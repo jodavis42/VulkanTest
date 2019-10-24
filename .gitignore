@@ -1,0 +1,12 @@
+Debug/*
+x64/*
+.vs
+VulkanTest2/Debug
+VulkanTest2/x64
+
+*.pdb
+*.pch
+*.ilk
+*.exe
+*.tlog
+*.lastbuildstate
