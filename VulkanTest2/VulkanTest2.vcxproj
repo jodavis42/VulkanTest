@@ -171,6 +171,7 @@
     <ClInclude Include="File.hpp" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="VulkanExtensions.hpp" />
+    <ClInclude Include="VulkanValidationLayers.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
