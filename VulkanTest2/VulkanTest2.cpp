@@ -86,6 +86,7 @@ private:
     createImageViews();
     createRenderPass();
     createGraphicsPipeline();
+    createFramebuffers();
   }
 
   void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
@@ -679,6 +680,28 @@ private:
     vkDestroyShaderModule(mDevice, vertexShaderModule, nullptr);
   }
 
+  void createFramebuffers()
+  {
+    mSwapChainFramebuffers.resize(mSwapChainImageViews.size());
+
+    for(size_t i = 0; i < mSwapChainImageViews.size(); i++) {
+      VkImageView attachments[] = { mSwapChainImageViews[i] };
+
+      VkFramebufferCreateInfo framebufferInfo = {};
+      framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+      framebufferInfo.renderPass = mRenderPass;
+      framebufferInfo.attachmentCount = 1;
+      framebufferInfo.pAttachments = attachments;
+      framebufferInfo.width = mSwapChainExtent.width;
+      framebufferInfo.height = mSwapChainExtent.height;
+      framebufferInfo.layers = 1;
+
+      if(vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr, &mSwapChainFramebuffers[i]) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create framebuffer!");
+      }
+    }
+  }
+
   void mainLoop() {
     while(!glfwWindowShouldClose(mWindow))
       glfwPollEvents();
@@ -689,6 +712,9 @@ private:
       DestroyDebugUtilsMessengerEXT(mInstance, mDebugMessenger, nullptr);
     }
 
+    for(auto framebuffer : mSwapChainFramebuffers) {
+      vkDestroyFramebuffer(mDevice, framebuffer, nullptr);
+    }
     for(auto imageView : mSwapChainImageViews) {
       vkDestroyImageView(mDevice, imageView, nullptr);
     }
@@ -720,6 +746,8 @@ private:
   VkRenderPass mRenderPass;
   VkPipelineLayout mPipelineLayout;
   VkPipeline mGraphicsPipeline;
+
+  std::vector<VkFramebuffer> mSwapChainFramebuffers;
 };
 
 int main() {
