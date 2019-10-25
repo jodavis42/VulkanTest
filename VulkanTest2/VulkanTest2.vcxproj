@@ -178,6 +178,11 @@
     </ClCompile>
     <ClCompile Include="VulkanTest2.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\compile.bat" />
+    <None Include="shaders\Pixel.frag" />
+    <None Include="shaders\Vertex.vert" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
