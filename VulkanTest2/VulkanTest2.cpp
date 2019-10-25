@@ -1132,6 +1132,8 @@ private:
       DestroyDebugUtilsMessengerEXT(mInstance, mDebugMessenger, nullptr);
     }
 
+    vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
+
     vkDestroyDevice(mDevice, nullptr);
     vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
     vkDestroyInstance(mInstance, nullptr);
