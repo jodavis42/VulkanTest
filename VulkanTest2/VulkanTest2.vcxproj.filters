@@ -39,6 +39,9 @@
     <ClInclude Include="VulkanPipeline.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="Vertex.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
