@@ -33,6 +33,12 @@
     <ClInclude Include="VulkanValidationLayers.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="VulkanRenderPass.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanPipeline.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
