@@ -25,6 +25,7 @@
 #include "VulkanPipeline.hpp"
 #include "VulkanRenderPass.hpp"
 #include "Vertex.hpp"
+#include "VulkanCommandBuffer.hpp"
 
 const int cWidth = 800;
 const int cHeight = 600;
@@ -568,55 +569,23 @@ private:
 
   void createCommandBuffers()
   {
+    CommandBuffersResultData resultData;
+    CommandBuffersCreationData creationData;
+    creationData.mDevice = mDevice;
+    creationData.mCommandPool = mCommandPool;
+    creationData.mRenderPass = mRenderPass;
+    creationData.mGraphicsPipeline = mGraphicsPipeline;
+    creationData.mVertexBuffer = mVertexBuffer;
+    creationData.mIndexBuffer = mIndexBuffer;
+    creationData.mSwapChain = mSwapChain;
+    creationData.mSwapChainExtent = mSwapChainExtent;
+    creationData.mIndexBufferCount = static_cast<uint32_t>(indices.size());
+    creationData.mSwapChainFramebuffers = mSwapChainFramebuffers;
+
+    CreateCommandBuffers(creationData, resultData);
+
+    mCommandBuffers = resultData.mCommandBuffers;
     mCommandBuffers.resize(mSwapChainFramebuffers.size());
-
-    VkCommandBufferAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = mCommandPool;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = (uint32_t)mCommandBuffers.size();
-
-    if(vkAllocateCommandBuffers(mDevice, &allocInfo, mCommandBuffers.data()) != VK_SUCCESS) {
-      throw std::runtime_error("failed to allocate command buffers!");
-    }
-
-    for(size_t i = 0; i < mCommandBuffers.size(); i++) {
-      VkCommandBufferBeginInfo beginInfo = {};
-      beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-      beginInfo.flags = 0; // Optional
-      beginInfo.pInheritanceInfo = nullptr; // Optional
-
-      if(vkBeginCommandBuffer(mCommandBuffers[i], &beginInfo) != VK_SUCCESS) {
-        throw std::runtime_error("failed to begin recording command buffer!");
-      }
-
-      VkRenderPassBeginInfo renderPassInfo = {};
-      renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-      renderPassInfo.renderPass = mRenderPass;
-      renderPassInfo.framebuffer = mSwapChainFramebuffers[i];
-      renderPassInfo.renderArea.offset = {0, 0};
-      renderPassInfo.renderArea.extent = mSwapChainExtent;
-      VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
-      renderPassInfo.clearValueCount = 1;
-      renderPassInfo.pClearValues = &clearColor;
-
-      vkCmdBeginRenderPass(mCommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-      vkCmdBindPipeline(mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline);
-
-      VkBuffer vertexBuffers[] = {mVertexBuffer};
-      VkDeviceSize offsets[] = {0};
-      vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers, offsets);
-      vkCmdBindIndexBuffer(mCommandBuffers[i], mIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
-
-      vkCmdDrawIndexed(mCommandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-
-      vkCmdEndRenderPass(mCommandBuffers[i]);
-
-      if(vkEndCommandBuffer(mCommandBuffers[i]) != VK_SUCCESS) {
-        throw std::runtime_error("failed to record command buffer!");
-      }
-    }
   }
 
   void createSyncObjects()

@@ -171,6 +171,7 @@
     <ClInclude Include="VulkanBufferCreation.hpp" />
     <ClInclude Include="File.hpp" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="VulkanCommandBuffer.hpp" />
     <ClInclude Include="VulkanExtensions.hpp" />
     <ClInclude Include="VulkanPipeline.hpp" />
     <ClInclude Include="VulkanRenderPass.hpp" />
