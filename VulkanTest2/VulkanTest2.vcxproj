@@ -172,7 +172,9 @@
     <ClInclude Include="File.hpp" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="VulkanCommandBuffer.hpp" />
+    <ClInclude Include="VulkanDeviceQueries.hpp" />
     <ClInclude Include="VulkanExtensions.hpp" />
+    <ClInclude Include="VulkanPhysicsDeviceSelection.hpp" />
     <ClInclude Include="VulkanPipeline.hpp" />
     <ClInclude Include="VulkanRenderPass.hpp" />
     <ClInclude Include="VulkanValidationLayers.hpp" />

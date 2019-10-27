@@ -45,6 +45,12 @@
     <ClInclude Include="VulkanCommandBuffer.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="VulkanPhysicsDeviceSelection.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanDeviceQueries.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
