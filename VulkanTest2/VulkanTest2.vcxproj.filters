@@ -54,12 +54,18 @@
     <ClInclude Include="VulkanLogicalDeviceCreation.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="VulkanRenderer.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="VulkanTest2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VulkanRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

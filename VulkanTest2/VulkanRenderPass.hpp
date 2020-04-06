@@ -8,7 +8,7 @@ struct RenderPassCreationData
   VkRenderPass mRenderPass;
 };
 
-void CreateRenderPass(RenderPassCreationData& creationData)
+inline void CreateRenderPass(RenderPassCreationData& creationData)
 {
   VkAttachmentDescription colorAttachment = {};
   colorAttachment.format = creationData.mSwapChainImageFormat;

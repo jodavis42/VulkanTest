@@ -1,5 +1,9 @@
 #pragma once
 
+#include "VulkanDeviceQueries.hpp"
+#include <vector>
+#include <set>
+
 struct LogicalDeviceCreationData
 {
   VkPhysicalDevice mPhysicalDevice;
@@ -14,7 +18,7 @@ struct LogicalDeviceResultData
   VkQueue mPresentQueue;
 };
 
-void CreateLogicalDevice(LogicalDeviceCreationData& creationData, LogicalDeviceResultData& resultData)
+inline void CreateLogicalDevice(LogicalDeviceCreationData& creationData, LogicalDeviceResultData& resultData)
 {
   QueueFamilyIndices indices = FindQueueFamilies(creationData.mPhysicalDevice, creationData.mSurface);
 

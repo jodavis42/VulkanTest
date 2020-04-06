@@ -24,7 +24,7 @@ struct PhysicsDeviceResultData
   VkPhysicalDevice mPhysicalDevice;
 };
 
-void SelectPhysicsDevice(PhysicsDeviceSelectionData& selectionData, PhysicsDeviceResultData& resultData)
+inline void SelectPhysicsDevice(PhysicsDeviceSelectionData& selectionData, PhysicsDeviceResultData& resultData)
 {
   resultData.mPhysicalDevice = VK_NULL_HANDLE;
   uint32_t deviceCount = 0;

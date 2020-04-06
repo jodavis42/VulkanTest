@@ -11,7 +11,7 @@ struct VulkanBufferCreationData
   VkCommandPool mCommandPool;
 };
 
-uint32_t FindMemoryType(VulkanBufferCreationData& vulkanData, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+inline uint32_t FindMemoryType(VulkanBufferCreationData& vulkanData, uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
   VkPhysicalDeviceMemoryProperties memProperties;
   vkGetPhysicalDeviceMemoryProperties(vulkanData.mPhysicalDevice, &memProperties);
@@ -25,7 +25,7 @@ uint32_t FindMemoryType(VulkanBufferCreationData& vulkanData, uint32_t typeFilte
   throw std::runtime_error("failed to find suitable memory type!");
 }
 
-void CreateBuffer(VulkanBufferCreationData& vulkanData, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
+inline void CreateBuffer(VulkanBufferCreationData& vulkanData, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
 {
   VkBufferCreateInfo bufferInfo = {};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -50,7 +50,7 @@ void CreateBuffer(VulkanBufferCreationData& vulkanData, VkDeviceSize size, VkBuf
   vkBindBufferMemory(vulkanData.mDevice, buffer, bufferMemory, 0);
 }
 
-void CopyBuffer(VulkanBufferCreationData& vulkanData, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+inline void CopyBuffer(VulkanBufferCreationData& vulkanData, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
   VkCommandBufferAllocateInfo allocInfo = {};
   allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -86,7 +86,7 @@ void CopyBuffer(VulkanBufferCreationData& vulkanData, VkBuffer srcBuffer, VkBuff
   vkFreeCommandBuffers(vulkanData.mDevice, vulkanData.mCommandPool, 1, &commandBuffer);
 }
 
-void CreateBuffer(VulkanBufferCreationData& vulkanData, VkBufferUsageFlags bufferUsage, VkBuffer& buffer, VkDeviceMemory& bufferMemory, const void* initialData, size_t dataSize)
+inline void CreateBuffer(VulkanBufferCreationData& vulkanData, VkBufferUsageFlags bufferUsage, VkBuffer& buffer, VkDeviceMemory& bufferMemory, const void* initialData, size_t dataSize)
 {
   VkBuffer stagingBuffer;
   VkDeviceMemory stagingBufferMemory;

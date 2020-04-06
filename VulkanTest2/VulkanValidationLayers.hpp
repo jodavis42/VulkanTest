@@ -1,11 +1,14 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <iostream>
+#include <stdexcept>
+#include "VulkanExtensions.hpp"
 
 const bool enableValidationLayers = true;
 const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
 
-bool CheckValidationLayerSupport()
+inline bool CheckValidationLayerSupport()
 {
   uint32_t layerCount;
   vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -45,7 +48,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
   return VK_FALSE;
 }
 
-void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
+inline void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
 {
   createInfo = {};
   createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -54,7 +57,7 @@ void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& create
   createInfo.pfnUserCallback = DebugCallback;
 }
 
-void SetupDebugMessenger(VkInstance& instance, VkDebugUtilsMessengerEXT& debugMessenger)
+inline void SetupDebugMessenger(VkInstance& instance, VkDebugUtilsMessengerEXT& debugMessenger)
 {
   if(!enableValidationLayers) 
     return;

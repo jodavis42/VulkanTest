@@ -16,7 +16,7 @@ struct GraphicsPipelineData
   VkPipeline mGraphicsPipeline;
 };
 
-VkShaderModule CreateShaderModule(VkDevice& device, const std::vector<char>& code)
+inline VkShaderModule CreateShaderModule(VkDevice& device, const std::vector<char>& code)
 {
   VkShaderModuleCreateInfo createInfo = {};
   createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -30,7 +30,7 @@ VkShaderModule CreateShaderModule(VkDevice& device, const std::vector<char>& cod
   return shaderModule;
 }
 
-void CreateGraphicsPipeline(GraphicsPipelineData& graphicsPipelineData)
+inline void CreateGraphicsPipeline(GraphicsPipelineData& graphicsPipelineData)
 {
   VkShaderModule vertexShaderModule = CreateShaderModule(graphicsPipelineData.mDevice, graphicsPipelineData.mVertexShaderCode);
   VkShaderModule pixelShaderModule = CreateShaderModule(graphicsPipelineData.mDevice, graphicsPipelineData.mPixelShaderCode);
