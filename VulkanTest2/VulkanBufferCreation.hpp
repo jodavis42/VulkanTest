@@ -50,7 +50,7 @@ inline void CreateBuffer(VulkanBufferCreationData& vulkanData, VkDeviceSize size
   vkBindBufferMemory(vulkanData.mDevice, buffer, bufferMemory, 0);
 }
 
-inline void CopyBuffer(VulkanBufferCreationData& vulkanData, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+inline VkCommandBuffer BeginSingleTimeCommands(VulkanBufferCreationData& vulkanData)
 {
   VkCommandBufferAllocateInfo allocInfo = {};
   allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -67,12 +67,11 @@ inline void CopyBuffer(VulkanBufferCreationData& vulkanData, VkBuffer srcBuffer,
 
   vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
-  VkBufferCopy copyRegion = {};
-  copyRegion.srcOffset = 0; // Optional
-  copyRegion.dstOffset = 0; // Optional
-  copyRegion.size = size;
-  vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+  return commandBuffer;
+}
 
+inline void EndSingleTimeCommands(VulkanBufferCreationData& vulkanData, VkCommandBuffer commandBuffer)
+{
   vkEndCommandBuffer(commandBuffer);
 
   VkSubmitInfo submitInfo = {};
@@ -84,6 +83,25 @@ inline void CopyBuffer(VulkanBufferCreationData& vulkanData, VkBuffer srcBuffer,
   vkQueueWaitIdle(vulkanData.mGraphicsQueue);
 
   vkFreeCommandBuffers(vulkanData.mDevice, vulkanData.mCommandPool, 1, &commandBuffer);
+}
+
+inline void CopyBuffer(VulkanBufferCreationData& vulkanData, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+{
+  VkCommandBuffer commandBuffer = BeginSingleTimeCommands(vulkanData);
+
+  VkCommandBufferBeginInfo beginInfo = {};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+  vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+  VkBufferCopy copyRegion = {};
+  copyRegion.srcOffset = 0; // Optional
+  copyRegion.dstOffset = 0; // Optional
+  copyRegion.size = size;
+  vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+  EndSingleTimeCommands(vulkanData, commandBuffer);
 }
 
 inline void CreateBuffer(VulkanBufferCreationData& vulkanData, VkBufferUsageFlags bufferUsage, VkBuffer& buffer, VkDeviceMemory& bufferMemory, const void* initialData, size_t dataSize)
