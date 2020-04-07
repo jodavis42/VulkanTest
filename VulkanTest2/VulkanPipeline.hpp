@@ -14,6 +14,7 @@ struct GraphicsPipelineData
 
   VkPipelineLayout mPipelineLayout;
   VkPipeline mGraphicsPipeline;
+  VkDescriptorSetLayout mDescriptorSetLayout;
 };
 
 inline VkShaderModule CreateShaderModule(VkDevice& device, const std::vector<char>& code)
@@ -87,7 +88,7 @@ inline void CreateGraphicsPipeline(GraphicsPipelineData& graphicsPipelineData)
   rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
   rasterizer.lineWidth = 1.0f;
   rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-  rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+  rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
   rasterizer.depthBiasEnable = VK_FALSE;
   rasterizer.depthBiasConstantFactor = 0.0f; // Optional
   rasterizer.depthBiasClamp = 0.0f; // Optional
@@ -125,10 +126,11 @@ inline void CreateGraphicsPipeline(GraphicsPipelineData& graphicsPipelineData)
 
   VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipelineLayoutInfo.setLayoutCount = 0; // Optional
-  pipelineLayoutInfo.pSetLayouts = nullptr; // Optional
+  pipelineLayoutInfo.setLayoutCount = 1;
+  pipelineLayoutInfo.pSetLayouts = &graphicsPipelineData.mDescriptorSetLayout;
   pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
   pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
+  
 
   if(vkCreatePipelineLayout(graphicsPipelineData.mDevice, &pipelineLayoutInfo, nullptr, &graphicsPipelineData.mPipelineLayout) != VK_SUCCESS)
     throw std::runtime_error("failed to create pipeline layout!");

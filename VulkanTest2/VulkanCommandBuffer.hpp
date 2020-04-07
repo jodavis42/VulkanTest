@@ -6,12 +6,14 @@ struct CommandBuffersCreationData
   VkCommandPool mCommandPool;
   VkRenderPass mRenderPass;
   VkPipeline mGraphicsPipeline;
+  VkPipelineLayout mPipelineLayout;
   VkBuffer mVertexBuffer;
   VkBuffer mIndexBuffer;
   VkSwapchainKHR mSwapChain;
   VkExtent2D mSwapChainExtent;
   uint32_t mIndexBufferCount;
   std::vector<VkFramebuffer> mSwapChainFramebuffers;
+  std::vector<VkDescriptorSet> mDescriptorSets;
 };
 
 struct CommandBuffersResultData
@@ -60,6 +62,7 @@ void CreateCommandBuffers(CommandBuffersCreationData& creationData, CommandBuffe
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(resultData.mCommandBuffers[i], 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(resultData.mCommandBuffers[i], creationData.mIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
+    vkCmdBindDescriptorSets(resultData.mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, creationData.mPipelineLayout, 0, 1, &creationData.mDescriptorSets[i], 0, nullptr);
 
     vkCmdDrawIndexed(resultData.mCommandBuffers[i], creationData.mIndexBufferCount, 1, 0, 0, 0);
 
