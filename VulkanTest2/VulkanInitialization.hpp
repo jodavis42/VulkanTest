@@ -13,6 +13,39 @@
 #include "VulkanPipeline.hpp"
 #include "File.hpp"
 
+using String = std::string;
+
+class VulkanStatus
+{
+public:
+  static constexpr bool ThrowOnError = true;
+  VulkanStatus()
+  {
+    mFailed = false;
+  }
+
+  VulkanStatus(const String& message)
+  {
+    MarkFailed(message);
+  }
+
+  operator bool() const
+  {
+    return !mFailed;
+  }
+
+  void MarkFailed(const String& message)
+  {
+    mFailed = true;
+    mErrorMessage = message;
+    if(ThrowOnError)
+      std::runtime_error(mErrorMessage.c_str());
+  }
+
+  bool mFailed = false;
+  String mErrorMessage;
+};
+
 struct VulkanRuntimeData
 {
   const std::vector<const char*> mDeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
@@ -68,7 +101,7 @@ struct VulkanRuntimeData
   VkDeviceMemory mIndexBufferMemory;
 };
 
-std::vector<const char*> GetRequiredExtensions()
+inline std::vector<const char*> GetRequiredExtensions()
 {
   uint32_t glfwExtensionCount = 0;
   const char** glfwExtensions;
@@ -82,10 +115,10 @@ std::vector<const char*> GetRequiredExtensions()
   return extensions;
 }
 
-void CreateInstance(VulkanRuntimeData& runtimeData)
+inline VulkanStatus CreateInstance(VkInstance& instance)
 {
   if(enableValidationLayers && !CheckValidationLayerSupport())
-    throw std::runtime_error("validation layers requested, but not available!");
+    return VulkanStatus("validation layers requested, but not available!");
 
   VkApplicationInfo appInfo = {};
   appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -117,19 +150,25 @@ void CreateInstance(VulkanRuntimeData& runtimeData)
 
   createInfo.enabledLayerCount = 0;
 
-  VkResult result = vkCreateInstance(&createInfo, nullptr, &runtimeData.mInstance);
+  VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
   if(result != VK_SUCCESS)
-    throw std::runtime_error("failed to create instance!");
+    VulkanStatus("failed to create instance!");
+  return VulkanStatus();
 }
 
-void CreateSurface(VulkanRuntimeData& runtimeData)
+inline void CreateInstance(VulkanRuntimeData& runtimeData)
+{
+  VulkanStatus status = CreateInstance(runtimeData.mInstance);
+}
+
+inline void CreateSurface(VulkanRuntimeData& runtimeData)
 {
   auto result = glfwCreateWindowSurface(runtimeData.mInstance, runtimeData.mWindow, nullptr, &runtimeData.mSurface);
   if(result != VK_SUCCESS)
     throw std::runtime_error("failed to create window surface!");
 }
 
-bool IsDeviceSuitable(VkPhysicalDevice physicalDevice, DeviceSuitabilityData* data)
+inline bool IsDeviceSuitable(VkPhysicalDevice physicalDevice, DeviceSuitabilityData* data)
 {
   VulkanRuntimeData* runtimeData = (VulkanRuntimeData*)data->mUserData;
   QueueFamilyIndices indices = FindQueueFamilies(physicalDevice, data->mSurface);
@@ -146,7 +185,7 @@ bool IsDeviceSuitable(VkPhysicalDevice physicalDevice, DeviceSuitabilityData* da
   return indices.isComplete() && extensionsSupported && swapChainAdequate;
 }
 
-void SelectPhysicalDevice(VulkanRuntimeData& runtimeData)
+inline void SelectPhysicalDevice(VulkanRuntimeData& runtimeData)
 {
   runtimeData.mPhysicalDevice = VK_NULL_HANDLE;
 
@@ -162,7 +201,7 @@ void SelectPhysicalDevice(VulkanRuntimeData& runtimeData)
   runtimeData.mPhysicalDevice = resultData.mPhysicalDevice;
 }
 
-void CreateLogicalDevice(VulkanRuntimeData& runtimeData)
+inline void CreateLogicalDevice(VulkanRuntimeData& runtimeData)
 {
   LogicalDeviceResultData resultData;
   LogicalDeviceCreationData creationData;
@@ -177,7 +216,7 @@ void CreateLogicalDevice(VulkanRuntimeData& runtimeData)
   runtimeData.mPresentQueue = resultData.mPresentQueue;
 }
 
-void CreateRenderPass(VulkanRuntimeData& runtimeData)
+inline void CreateRenderPass(VulkanRuntimeData& runtimeData)
 {
   RenderPassCreationData creationData;
   creationData.mRenderPass = runtimeData.mRenderPass;
@@ -188,7 +227,7 @@ void CreateRenderPass(VulkanRuntimeData& runtimeData)
   runtimeData.mRenderPass = creationData.mRenderPass;
 }
 
-void CreateGraphicsPipeline(VulkanRuntimeData& runtimeData)
+inline void CreateGraphicsPipeline(VulkanRuntimeData& runtimeData)
 {
   auto vertexShaderCode = readFile("shaders/vertex.spv");
   auto pixelShaderCode = readFile("shaders/pixel.spv");
@@ -209,21 +248,21 @@ void CreateGraphicsPipeline(VulkanRuntimeData& runtimeData)
   runtimeData.mPipelineLayout = graphicsPipelineData.mPipelineLayout;
 }
 
-void CreateVertexBuffer(VulkanRuntimeData& runtimeData)
+inline void CreateVertexBuffer(VulkanRuntimeData& runtimeData)
 {
   VulkanBufferCreationData vulkanData{runtimeData.mPhysicalDevice, runtimeData.mDevice, runtimeData.mGraphicsQueue, runtimeData.mGraphicsPipeline, runtimeData.mCommandPool};
   VkDeviceSize bufferSize = sizeof(runtimeData.mVertices[0]) * runtimeData.mVertices.size();
   CreateBuffer(vulkanData, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, runtimeData.mVertexBuffer, runtimeData.mVertexBufferMemory, runtimeData.mVertices.data(), bufferSize);
 }
 
-void CreateIndexBuffer(VulkanRuntimeData& runtimeData)
+inline void CreateIndexBuffer(VulkanRuntimeData& runtimeData)
 {
   VulkanBufferCreationData vulkanData{runtimeData.mPhysicalDevice, runtimeData.mDevice, runtimeData.mGraphicsQueue, runtimeData.mGraphicsPipeline, runtimeData.mCommandPool};
   VkDeviceSize bufferSize = sizeof(runtimeData.mIndices[0]) * runtimeData.mIndices.size();
   CreateBuffer(vulkanData, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, runtimeData.mIndexBuffer, runtimeData.mIndexBufferMemory, runtimeData.mIndices.data(), bufferSize);
 }
 
-void InitializeVulkan(VulkanRuntimeData& runtimeData)
+inline void InitializeVulkan(VulkanRuntimeData& runtimeData)
 {
   CreateInstance(runtimeData);
   SetupDebugMessenger(runtimeData.mInstance, runtimeData.mDebugMessenger);

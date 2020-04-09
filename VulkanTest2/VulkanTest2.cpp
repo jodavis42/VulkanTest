@@ -33,6 +33,7 @@
 #include "VulkanPhysicsDeviceSelection.hpp"
 #include "VulkanDeviceQueries.hpp"
 #include "VulkanLogicalDeviceCreation.hpp"
+#include "VulkanInitialization.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
