@@ -8,6 +8,12 @@ struct Vec2
     x = x_;
     y = y_;
   }
+
+  bool operator==(const Vec2& rhs) const
+  {
+    return x == rhs.x && y == rhs.y;
+  }
+
   float x, y;
 };
 
@@ -19,6 +25,11 @@ struct Vec3
     x = x_;
     y = y_;
     z = z_;
+  }
+
+  bool operator==(const Vec3& rhs) const
+  {
+    return x == rhs.x && y == rhs.y && z == rhs.z;
   }
 
   float x, y, z;
@@ -64,4 +75,57 @@ struct Vertex
 
     return attributeDescriptions;
   }
+
+  bool operator==(const Vertex& other) const {
+    return pos == other.pos && color == other.color && uv == other.uv;
+  }
 };
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
+
+namespace std {
+
+inline void hash_combine(size_t &seed, size_t hash)
+{
+  hash += 0x9e3779b9 + (seed << 6) + (seed >> 2);
+  seed ^= hash;
+}
+
+
+template<> struct hash<Vec2>
+{
+  size_t operator()(const Vec2& v) const
+  {
+    size_t seed = 0;
+    hash<float> hasher;
+    hash_combine(seed, hasher(v.x));
+    hash_combine(seed, hasher(v.y));
+    return seed;
+  }
+};
+
+template<> struct hash<Vec3>
+{
+  size_t operator()(const Vec3& v) const
+  {
+    size_t seed = 0;
+    hash<float> hasher;
+    hash_combine(seed, hasher(v.x));
+    hash_combine(seed, hasher(v.y));
+    hash_combine(seed, hasher(v.z));
+    return seed;
+  }
+};
+
+template<> struct hash<Vertex>
+{
+  size_t operator()(const Vertex& vertex) const
+  {
+    return ((hash<Vec3>()(vertex.pos) ^
+            (hash<Vec3>()(vertex.color) << 1)) >> 1) ^
+            (hash<Vec2>()(vertex.uv) << 1);
+  }
+};
+
+}

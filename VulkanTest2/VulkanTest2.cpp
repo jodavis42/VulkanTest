@@ -37,8 +37,13 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "tinyobjloader/tiny_obj_loader.h"
+
 const int cWidth = 800;
 const int cHeight = 600;
+const std::string MODEL_PATH = "models/chalet.obj";
+const std::string TEXTURE_PATH = "textures/chalet.jpg";
 const int MAX_FRAMES_IN_FLIGHT = 2;
 const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
@@ -59,23 +64,6 @@ public:
   }
 
 private:
-  const std::vector<Vertex> vertices =
-  {
-       {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-    {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-
-    {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-    {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-  };
-
-  const std::vector<uint16_t> indices = {
-    0, 1, 2, 2, 3, 0,
-    4, 5, 6, 6, 7, 4
-  };
 
   void initWindow()
   {
@@ -110,6 +98,7 @@ private:
     createTextureImage();
     createTextureImageView();
     createTextureSampler();
+    loadModel();
     createVertexBuffer();
     createIndexBuffer();
     createUniformBuffers();
@@ -529,7 +518,7 @@ private:
   void createTextureImage()
   {
     int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load("textures/image.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = texWidth * texHeight * 4;
 
     if(!pixels)
@@ -760,18 +749,58 @@ private:
     EndSingleTimeCommands(vulkanData, commandBuffer);
   }
 
+  void loadModel()
+  {
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+    std::string warn, err;
+
+    if(!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str()))
+      throw std::runtime_error(warn + err);
+
+    std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
+
+    for(const auto& shape : shapes)
+    {
+      for(const auto& index : shape.mesh.indices)\
+      {
+        Vertex vertex = {};
+        vertex.pos = {
+          attrib.vertices[3 * index.vertex_index + 0],
+          attrib.vertices[3 * index.vertex_index + 1],
+          attrib.vertices[3 * index.vertex_index + 2]
+        };
+
+        vertex.uv = {
+           attrib.texcoords[2 * index.texcoord_index + 0],
+    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+        };
+
+        vertex.color = {1.0f, 1.0f, 1.0f};
+
+        if(uniqueVertices.count(vertex) == 0) {
+          uniqueVertices[vertex] = static_cast<uint32_t>(mVertices.size());
+          mVertices.push_back(vertex);
+        }
+
+        mIndices.push_back(uniqueVertices[vertex]);
+      }
+    }
+  }
+
   void createVertexBuffer()
   {
     VulkanBufferCreationData vulkanData{mPhysicalDevice, mDevice, mGraphicsQueue, mGraphicsPipeline, mCommandPool};
-    VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-    CreateBuffer(vulkanData, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, mVertexBuffer, mVertexBufferMemory, vertices.data(), bufferSize);
+    VkDeviceSize bufferSize = sizeof(mVertices[0]) * mVertices.size();
+    CreateBuffer(vulkanData, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, mVertexBuffer, mVertexBufferMemory, mVertices.data(), bufferSize);
   }
 
   void createIndexBuffer()
   {
     VulkanBufferCreationData vulkanData{mPhysicalDevice, mDevice, mGraphicsQueue, mGraphicsPipeline, mCommandPool};
-    VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-    CreateBuffer(vulkanData, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, mIndexBuffer, mIndexBufferMemory, indices.data(), bufferSize);
+    VkDeviceSize bufferSize = sizeof(mIndices[0]) * mIndices.size();
+    CreateBuffer(vulkanData, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, mIndexBuffer, mIndexBufferMemory, mIndices.data(), bufferSize);
   }
 
   void createUniformBuffers()
@@ -869,7 +898,7 @@ private:
     creationData.mIndexBuffer = mIndexBuffer;
     creationData.mSwapChain = mSwapChain;
     creationData.mSwapChainExtent = mSwapChainExtent;
-    creationData.mIndexBufferCount = static_cast<uint32_t>(indices.size());
+    creationData.mIndexBufferCount = static_cast<uint32_t>(mIndices.size());
     creationData.mSwapChainFramebuffers = mSwapChainFramebuffers;
     creationData.mPipelineLayout = mPipelineLayout;
     creationData.mDescriptorSets = mDescriptorSets;
@@ -1057,6 +1086,9 @@ private:
   size_t mCurrentFrame = 0;
 
   bool mFramebufferResized = false;
+
+  std::vector<Vertex> mVertices;
+  std::vector<uint32_t> mIndices;
   VkBuffer mVertexBuffer;
   VkDeviceMemory mVertexBufferMemory;
 

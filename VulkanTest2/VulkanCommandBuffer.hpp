@@ -63,7 +63,7 @@ void CreateCommandBuffers(CommandBuffersCreationData& creationData, CommandBuffe
     VkBuffer vertexBuffers[] = {creationData.mVertexBuffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(resultData.mCommandBuffers[i], 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(resultData.mCommandBuffers[i], creationData.mIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
+    vkCmdBindIndexBuffer(resultData.mCommandBuffers[i], creationData.mIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
     vkCmdBindDescriptorSets(resultData.mCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, creationData.mPipelineLayout, 0, 1, &creationData.mDescriptorSets[i], 0, nullptr);
 
     vkCmdDrawIndexed(resultData.mCommandBuffers[i], creationData.mIndexBufferCount, 1, 0, 0, 0);
