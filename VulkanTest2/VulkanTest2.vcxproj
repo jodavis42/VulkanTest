@@ -174,12 +174,14 @@
     <ClInclude Include="VulkanCommandBuffer.hpp" />
     <ClInclude Include="VulkanDeviceQueries.hpp" />
     <ClInclude Include="VulkanExtensions.hpp" />
+    <ClInclude Include="VulkanImages.hpp" />
     <ClInclude Include="VulkanInitialization.hpp" />
     <ClInclude Include="VulkanLogicalDeviceCreation.hpp" />
     <ClInclude Include="VulkanPhysicsDeviceSelection.hpp" />
     <ClInclude Include="VulkanPipeline.hpp" />
     <ClInclude Include="VulkanRenderer.hpp" />
     <ClInclude Include="VulkanRenderPass.hpp" />
+    <ClInclude Include="VulkanSwapChain.hpp" />
     <ClInclude Include="VulkanValidationLayers.hpp" />
   </ItemGroup>
   <ItemGroup>

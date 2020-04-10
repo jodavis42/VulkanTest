@@ -42,6 +42,9 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
   const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
   void* pUserData)
 {
+  constexpr bool assertOnError = true;
+  if(messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT && assertOnError)
+    __debugbreak();
 
   std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 

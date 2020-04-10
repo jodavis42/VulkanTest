@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include "VulkanStatus.hpp"
 
 struct VulkanBufferCreationData
 {
@@ -11,18 +12,28 @@ struct VulkanBufferCreationData
   VkCommandPool mCommandPool;
 };
 
-inline uint32_t FindMemoryType(VulkanBufferCreationData& vulkanData, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+inline VulkanStatus FindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties, uint32_t& outMemoryType)
 {
   VkPhysicalDeviceMemoryProperties memProperties;
-  vkGetPhysicalDeviceMemoryProperties(vulkanData.mPhysicalDevice, &memProperties);
+  vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
 
   for(uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
   {
     if((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
-      return i;
+    {
+      outMemoryType = i;
+      VulkanStatus();
+    }
   }
 
-  throw std::runtime_error("failed to find suitable memory type!");
+  return VulkanStatus("failed to find suitable memory type!");
+}
+
+inline uint32_t FindMemoryType(VulkanBufferCreationData& vulkanData, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+{
+  uint32_t result = 0;
+  FindMemoryType(vulkanData.mPhysicalDevice, typeFilter, properties, result);
+  return result;
 }
 
 inline void CreateBuffer(VulkanBufferCreationData& vulkanData, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
