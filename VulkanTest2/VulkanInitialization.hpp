@@ -230,6 +230,21 @@ inline void CreateIndexBuffer(VulkanRuntimeData& runtimeData)
   CreateBuffer(vulkanData, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, runtimeData.mIndexBuffer, runtimeData.mIndexBufferMemory, runtimeData.mIndices.data(), bufferSize);
 }
 
+inline VulkanStatus CreateCommandPool(VkPhysicalDevice physicalDevice, VkDevice device, VkSurfaceKHR surface, VkCommandPool& commandPool)
+{
+  QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(physicalDevice, surface);
+
+  VkCommandPoolCreateInfo poolInfo = {};
+  poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+  poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+  poolInfo.flags = 0; // Optional
+
+  VulkanStatus result;
+  if(vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
+    result.MarkFailed("failed to create command pool!");
+  return result;
+}
+
 inline void InitializeVulkan(VulkanRuntimeData& runtimeData)
 {
   CreateInstance(runtimeData);

@@ -61,16 +61,16 @@ inline void CreateBuffer(VulkanBufferCreationData& vulkanData, VkDeviceSize size
   vkBindBufferMemory(vulkanData.mDevice, buffer, bufferMemory, 0);
 }
 
-inline VkCommandBuffer BeginSingleTimeCommands(VulkanBufferCreationData& vulkanData)
+inline VkCommandBuffer BeginSingleTimeCommands(VkDevice device, VkCommandPool commandPool)
 {
   VkCommandBufferAllocateInfo allocInfo = {};
   allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandPool = vulkanData.mCommandPool;
+  allocInfo.commandPool = commandPool;
   allocInfo.commandBufferCount = 1;
 
   VkCommandBuffer commandBuffer;
-  vkAllocateCommandBuffers(vulkanData.mDevice, &allocInfo, &commandBuffer);
+  vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
 
   VkCommandBufferBeginInfo beginInfo = {};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -81,7 +81,7 @@ inline VkCommandBuffer BeginSingleTimeCommands(VulkanBufferCreationData& vulkanD
   return commandBuffer;
 }
 
-inline void EndSingleTimeCommands(VulkanBufferCreationData& vulkanData, VkCommandBuffer commandBuffer)
+inline void EndSingleTimeCommands(VkDevice device, VkQueue graphicsQueue, VkCommandPool commandPool, VkCommandBuffer commandBuffer)
 {
   vkEndCommandBuffer(commandBuffer);
 
@@ -90,10 +90,20 @@ inline void EndSingleTimeCommands(VulkanBufferCreationData& vulkanData, VkComman
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = &commandBuffer;
 
-  vkQueueSubmit(vulkanData.mGraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-  vkQueueWaitIdle(vulkanData.mGraphicsQueue);
+  vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+  vkQueueWaitIdle(graphicsQueue);
 
-  vkFreeCommandBuffers(vulkanData.mDevice, vulkanData.mCommandPool, 1, &commandBuffer);
+  vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+}
+
+inline VkCommandBuffer BeginSingleTimeCommands(VulkanBufferCreationData& vulkanData)
+{
+  return BeginSingleTimeCommands(vulkanData.mDevice, vulkanData.mCommandPool);
+}
+
+inline void EndSingleTimeCommands(VulkanBufferCreationData& vulkanData, VkCommandBuffer commandBuffer)
+{
+  EndSingleTimeCommands(vulkanData.mDevice, vulkanData.mGraphicsQueue, vulkanData.mCommandPool, commandBuffer);
 }
 
 inline void CopyBuffer(VulkanBufferCreationData& vulkanData, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
