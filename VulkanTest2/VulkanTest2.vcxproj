@@ -167,6 +167,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Mesh.hpp" />
     <ClInclude Include="Vertex.hpp" />
     <ClInclude Include="VulkanBufferCreation.hpp" />
     <ClInclude Include="File.hpp" />

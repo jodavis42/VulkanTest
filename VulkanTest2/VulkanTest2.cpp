@@ -36,6 +36,7 @@
 #include "VulkanInitialization.hpp"
 #include "VulkanImages.hpp"
 #include "VulkanSwapChain.hpp"
+#include "Mesh.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
@@ -98,13 +99,10 @@ private:
   void LoadModelAndBuffersAndTextures()
   {
     loadModel();
-    createVertexBuffer();
-    createIndexBuffer();
     
     createTextureSampler();
     createTextureImage();
     createTextureImageView();
-
   }
 
   void initVulkan()
@@ -476,16 +474,8 @@ private:
     vkBindImageMemory(mDevice, image, imageMemory, 0);
   }
 
-  void loadModel()
+  void FilloutMesh(Mesh* mesh, std::vector<tinyobj::shape_t>& shapes, tinyobj::attrib_t& attrib)
   {
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-    std::string warn, err;
-
-    if(!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str()))
-      throw std::runtime_error(warn + err);
-
     std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
 
     for(const auto& shape : shapes)
@@ -507,27 +497,53 @@ private:
         vertex.color = {1.0f, 1.0f, 1.0f};
 
         if(uniqueVertices.count(vertex) == 0) {
-          uniqueVertices[vertex] = static_cast<uint32_t>(mVertices.size());
-          mVertices.push_back(vertex);
+          uniqueVertices[vertex] = static_cast<uint32_t>(mesh->mVertices.size());
+          mesh->mVertices.push_back(vertex);
         }
 
-        mIndices.push_back(uniqueVertices[vertex]);
+        mesh->mIndices.push_back(uniqueVertices[vertex]);
       }
     }
   }
 
-  void createVertexBuffer()
+  void CreateVertexBuffer(Mesh* mesh, VulkanMesh* vulkanMesh)
   {
     VulkanBufferCreationData vulkanData{mPhysicalDevice, mDevice, mGraphicsQueue, mGraphicsPipeline, mCommandPool};
-    VkDeviceSize bufferSize = sizeof(mVertices[0]) * mVertices.size();
-    CreateBuffer(vulkanData, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, mVertexBuffer, mVertexBufferMemory, mVertices.data(), bufferSize);
+    VkDeviceSize bufferSize = sizeof(mesh->mVertices[0]) * mesh->mVertices.size();
+    CreateBuffer(vulkanData, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vulkanMesh->mVertexBuffer, vulkanMesh->mVertexBufferMemory, mesh->mVertices.data(), bufferSize);
   }
 
-  void createIndexBuffer()
+  void CreateIndexBuffer(Mesh* mesh, VulkanMesh* vulkanMesh)
   {
     VulkanBufferCreationData vulkanData{mPhysicalDevice, mDevice, mGraphicsQueue, mGraphicsPipeline, mCommandPool};
-    VkDeviceSize bufferSize = sizeof(mIndices[0]) * mIndices.size();
-    CreateBuffer(vulkanData, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, mIndexBuffer, mIndexBufferMemory, mIndices.data(), bufferSize);
+    vulkanMesh->mIndexCount = static_cast<uint32_t>(mesh->mIndices.size());
+    VkDeviceSize bufferSize = sizeof(mesh->mIndices[0]) * mesh->mIndices.size();
+    CreateBuffer(vulkanData, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, vulkanMesh->mIndexBuffer, vulkanMesh->mIndexBufferMemory, mesh->mIndices.data(), bufferSize);
+  }
+
+  void LoadModel(const String& name, const String& path)
+  {
+    Mesh* mesh = new Mesh();
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+    std::string warn, err;
+
+    if(!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str()))
+      throw std::runtime_error(warn + err);
+
+    VulkanMesh* vulkanMesh = new VulkanMesh();
+    FilloutMesh(mesh, shapes, attrib);
+    CreateVertexBuffer(mesh, vulkanMesh);
+    CreateIndexBuffer(mesh, vulkanMesh);
+    
+    mMeshMap[name] = mesh;
+    mVulkanMeshMap[name] = vulkanMesh;
+  }
+
+  void loadModel()
+  {
+    LoadModel("Test", MODEL_PATH);
   }
 
   void createUniformBuffers()
@@ -617,17 +633,18 @@ private:
 
   void createCommandBuffers()
   {
+    VulkanMesh* vMesh = mVulkanMeshMap["Test"];
     CommandBuffersResultData resultData;
     CommandBuffersCreationData creationData;
     creationData.mDevice = mDevice;
     creationData.mCommandPool = mCommandPool;
     creationData.mRenderPass = mRenderPass;
     creationData.mGraphicsPipeline = mGraphicsPipeline;
-    creationData.mVertexBuffer = mVertexBuffer;
-    creationData.mIndexBuffer = mIndexBuffer;
+    creationData.mVertexBuffer = vMesh->mVertexBuffer;
+    creationData.mIndexBuffer = vMesh->mIndexBuffer;
     creationData.mSwapChain = mSwapChain.mSwapChain;
     creationData.mSwapChainExtent = mSwapChain.mExtent;
-    creationData.mIndexBufferCount = static_cast<uint32_t>(mIndices.size());
+    creationData.mIndexBufferCount = vMesh->mIndexCount;
     creationData.mSwapChainFramebuffers = mSwapChainFramebuffers;
     creationData.mPipelineLayout = mPipelineLayout;
     creationData.mDescriptorSets = mDescriptorSets;
@@ -757,10 +774,15 @@ private:
     Cleanup(mDevice, mDepthSet);
     Cleanup(mDevice, mTextureSet);
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
-    vkDestroyBuffer(mDevice, mIndexBuffer, nullptr);
-    vkFreeMemory(mDevice, mIndexBufferMemory, nullptr);
-    vkDestroyBuffer(mDevice, mVertexBuffer, nullptr);
-    vkFreeMemory(mDevice, mVertexBufferMemory, nullptr);
+
+    for(auto pair : mVulkanMeshMap)
+    {
+      VulkanMesh* vMesh = pair.second;
+      vkDestroyBuffer(mDevice, vMesh->mIndexBuffer, nullptr);
+      vkFreeMemory(mDevice, vMesh->mIndexBufferMemory, nullptr);
+      vkDestroyBuffer(mDevice, vMesh->mVertexBuffer, nullptr);
+      vkFreeMemory(mDevice, vMesh->mVertexBufferMemory, nullptr);
+    }
 
     for(size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
@@ -810,13 +832,8 @@ private:
 
   bool mFramebufferResized = false;
 
-  std::vector<Vertex> mVertices;
-  std::vector<uint32_t> mIndices;
-  VkBuffer mVertexBuffer;
-  VkDeviceMemory mVertexBufferMemory;
-
-  VkBuffer mIndexBuffer;
-  VkDeviceMemory mIndexBufferMemory;
+  std::unordered_map<String, Mesh*> mMeshMap;
+  std::unordered_map<String, VulkanMesh*> mVulkanMeshMap;
 
   std::vector<VkBuffer> mUniformBuffers;
   std::vector<VkDeviceMemory> mUniformBuffersMemory;
