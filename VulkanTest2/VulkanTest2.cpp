@@ -37,6 +37,7 @@
 #include "VulkanImages.hpp"
 #include "VulkanSwapChain.hpp"
 #include "Mesh.hpp"
+#include "Material.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
@@ -55,6 +56,12 @@ struct UniformBufferObject {
   alignas(16) glm::mat4 model;
   alignas(16) glm::mat4 view;
   alignas(16) glm::mat4 proj;
+};
+
+struct Model
+{
+  String mMaterialName;
+  String mMeshName;
 };
 
 class HelloTriangleApplication {
@@ -119,12 +126,13 @@ private:
 
     // Create shader
     createUniformBuffers();
-    createDescriptorSetLayout();
+    //createDescriptorSetLayout();
     createDescriptorPool();
     createDescriptorSets();
 
-    createGraphicsPipeline();
     createFramebuffers();
+    createGraphicsPipeline();
+    
     createCommandBuffers();
   }
 
@@ -284,35 +292,36 @@ private:
     mRenderPass = creationData.mRenderPass;
   }
 
-  void createDescriptorSetLayout()
-  {
-    VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-    uboLayoutBinding.binding = 0;
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+  //void createDescriptorSetLayout()
+  //{
+  //  VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+  //  uboLayoutBinding.binding = 0;
+  //  uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  //  uboLayoutBinding.descriptorCount = 1;
+  //  uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+  //  uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
 
-    VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
-    samplerLayoutBinding.binding = 1;
-    samplerLayoutBinding.descriptorCount = 1;
-    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
-    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  //  VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
+  //  samplerLayoutBinding.binding = 1;
+  //  samplerLayoutBinding.descriptorCount = 1;
+  //  samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  //  samplerLayoutBinding.pImmutableSamplers = nullptr;
+  //  samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
-    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-    layoutInfo.pBindings = bindings.data();
+  //  std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
+  //  VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+  //  layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  //  layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+  //  layoutInfo.pBindings = bindings.data();
 
-    if(vkCreateDescriptorSetLayout(mDevice, &layoutInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS)
-      throw std::runtime_error("failed to create descriptor set layout!");
+  //  if(vkCreateDescriptorSetLayout(mDevice, &layoutInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS)
+  //    throw std::runtime_error("failed to create descriptor set layout!");
 
-  }
+  //}
 
   void createGraphicsPipeline()
   {
+    VulkanMaterial* vMaterial = mVulkanMaterialMap["Test"];
     auto vertexShaderCode = readFile("shaders/vertex.spv");
     auto pixelShaderCode = readFile("shaders/pixel.spv");
 
@@ -326,7 +335,7 @@ private:
     graphicsPipelineData.mSwapChainExtent = mSwapChain.mExtent;
     graphicsPipelineData.mVertexAttributeDescriptions = Vertex::getAttributeDescriptions();
     graphicsPipelineData.mVertexBindingDescriptions = Vertex::getBindingDescription();
-    graphicsPipelineData.mDescriptorSetLayout = mDescriptorSetLayout;
+    graphicsPipelineData.mDescriptorSetLayout = vMaterial->mDescriptorSetLayout;
     CreateGraphicsPipeline(graphicsPipelineData);
 
     mGraphicsPipeline = graphicsPipelineData.mGraphicsPipeline;
@@ -521,9 +530,9 @@ private:
     CreateBuffer(vulkanData, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, vulkanMesh->mIndexBuffer, vulkanMesh->mIndexBufferMemory, mesh->mIndices.data(), bufferSize);
   }
 
-  void LoadModel(const String& name, const String& path)
+  void LoadMesh(const String& name, const String& path, Mesh*& mesh, VulkanMesh*& vulkanMesh)
   {
-    Mesh* mesh = new Mesh();
+    mesh = new Mesh();
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
@@ -532,13 +541,79 @@ private:
     if(!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str()))
       throw std::runtime_error(warn + err);
 
-    VulkanMesh* vulkanMesh = new VulkanMesh();
+    vulkanMesh = new VulkanMesh();
     FilloutMesh(mesh, shapes, attrib);
     CreateVertexBuffer(mesh, vulkanMesh);
     CreateIndexBuffer(mesh, vulkanMesh);
-    
+
     mMeshMap[name] = mesh;
     mVulkanMeshMap[name] = vulkanMesh;
+  }
+
+  VulkanStatus LoadVulkanMaterialDescriptorSetLayoutBinding(VulkanMaterial* vulkanMaterial)
+  {
+    VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+    uboLayoutBinding.binding = 0;
+    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboLayoutBinding.descriptorCount = 1;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
+    VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
+    samplerLayoutBinding.binding = 1;
+    samplerLayoutBinding.descriptorCount = 1;
+    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    samplerLayoutBinding.pImmutableSamplers = nullptr;
+    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
+    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+    layoutInfo.pBindings = bindings.data();
+
+    VulkanStatus result;
+    if(vkCreateDescriptorSetLayout(mDevice, &layoutInfo, nullptr, &vulkanMaterial->mDescriptorSetLayout) != VK_SUCCESS)
+      result.MarkFailed("failed to create descriptor set layout!");
+    return result;
+  }
+
+  void LoadVulkanMaterial(Material* material, VulkanMaterial* vulkanMaterial)
+  {
+    auto vertexShaderCode = readFile(material->mVertexShaderName);
+    auto pixelShaderCode = readFile(material->mPixelShaderName);
+
+    vulkanMaterial->mVertexShaderModule = CreateShaderModule(mDevice, vertexShaderCode);
+    vulkanMaterial->mPixelShaderModule = CreateShaderModule(mDevice, pixelShaderCode);
+    LoadVulkanMaterialDescriptorSetLayoutBinding(vulkanMaterial);
+  }
+
+  void LoadMaterial(const String& name, Material*& material, VulkanMaterial*& vulkanMaterial)
+  {
+    material = new Material();
+    material->mVertexShaderName = "shaders/vertex.spv";
+    material->mPixelShaderName = "shaders/pixel.spv";
+    mMaterialMap[name] = material;
+
+    vulkanMaterial = new VulkanMaterial();
+    LoadVulkanMaterial(material, vulkanMaterial);
+    mVulkanMaterialMap[name] = vulkanMaterial;
+  }
+
+  void LoadModel(const String& name, const String& path)
+  {
+    Mesh* mesh = nullptr;
+    VulkanMesh* vulkanMesh = nullptr;
+    LoadMesh(name, path, mesh, vulkanMesh);
+
+    Material* material = nullptr;
+    VulkanMaterial* vulkanMaterial = nullptr;
+    LoadMaterial(name, material, vulkanMaterial);
+
+    Model* model = new Model();
+    model->mMeshName = name;
+    model->mMaterialName = name;
+    mModels.emplace_back(model);
   }
 
   void loadModel()
@@ -583,8 +658,9 @@ private:
 
   void createDescriptorSets()
   {
+    VulkanMaterial* vMaterial = mVulkanMaterialMap["Test"];
     uint32_t count = static_cast<uint32_t>(mSwapChain.mImages.size());
-    std::vector<VkDescriptorSetLayout> layouts(count, mDescriptorSetLayout);
+    std::vector<VkDescriptorSetLayout> layouts(count, vMaterial->mDescriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = mDescriptorPool;
@@ -677,6 +753,11 @@ private:
         throw std::runtime_error("failed to create semaphores!");
       }
     }
+
+  }
+
+  void PrepareToRender(Model* model)
+  {
 
   }
 
@@ -773,7 +854,13 @@ private:
     vkDestroySampler(mDevice, mSampler, nullptr);
     Cleanup(mDevice, mDepthSet);
     Cleanup(mDevice, mTextureSet);
-    vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
+    for(auto pair : mVulkanMaterialMap)
+    {
+      VulkanMaterial* vMaterial = pair.second;
+      vkDestroyDescriptorSetLayout(mDevice, vMaterial->mDescriptorSetLayout, nullptr);
+      vkDestroyShaderModule(mDevice, vMaterial->mPixelShaderModule, nullptr);
+      vkDestroyShaderModule(mDevice, vMaterial->mVertexShaderModule, nullptr);
+    }
 
     for(auto pair : mVulkanMeshMap)
     {
@@ -815,7 +902,6 @@ private:
   SwapChainData mSwapChain;
 
   VkRenderPass mRenderPass;
-  VkDescriptorSetLayout mDescriptorSetLayout;
   VkPipelineLayout mPipelineLayout;
   VkPipeline mGraphicsPipeline;
   VkCommandPool mCommandPool;
@@ -834,6 +920,9 @@ private:
 
   std::unordered_map<String, Mesh*> mMeshMap;
   std::unordered_map<String, VulkanMesh*> mVulkanMeshMap;
+  std::unordered_map<String, Material*> mMaterialMap;
+  std::unordered_map<String, VulkanMaterial*> mVulkanMaterialMap;
+  std::vector<Model*> mModels;
 
   std::vector<VkBuffer> mUniformBuffers;
   std::vector<VkDeviceMemory> mUniformBuffersMemory;

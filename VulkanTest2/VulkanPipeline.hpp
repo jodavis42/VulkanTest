@@ -1,5 +1,21 @@
 #pragma once
 
+struct GraphicsPipelineCreationInfo
+{
+  VkDevice mDevice;
+  VkExtent2D mSwapChainExtent;
+  VkRenderPass mRenderPass;
+
+  std::vector<VkVertexInputBindingDescription> mVertexBindingDescriptions;
+  std::vector<VkVertexInputAttributeDescription> mVertexAttributeDescriptions;
+
+  VkShaderModule mVertexShaderModule;
+  VkShaderModule mPixelShaderModule;
+  String mVertexShaderMainFnName = "main";
+  String mPixelShaderMainFnName = "main";
+  VkPipelineLayout mPipelineLayout;
+};
+
 struct GraphicsPipelineData
 {
   VkDevice mDevice;
@@ -31,31 +47,48 @@ inline VkShaderModule CreateShaderModule(VkDevice& device, const std::vector<cha
   return shaderModule;
 }
 
-inline void CreateGraphicsPipeline(GraphicsPipelineData& graphicsPipelineData)
+inline VulkanStatus CreatePipelineLayout(VkDevice device, VkDescriptorSetLayout* descriptorSetLayouts, uint32_t layoutCount, VkPipelineLayout& pipelineLayout)
 {
-  VkShaderModule vertexShaderModule = CreateShaderModule(graphicsPipelineData.mDevice, graphicsPipelineData.mVertexShaderCode);
-  VkShaderModule pixelShaderModule = CreateShaderModule(graphicsPipelineData.mDevice, graphicsPipelineData.mPixelShaderCode);
+  VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
+  pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+  pipelineLayoutInfo.setLayoutCount = layoutCount;
+  pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts;
+  pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
+  pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
+  VulkanStatus result;
+  if(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
+    result.MarkFailed("failed to create pipeline layout!");
+  return result;
+}
+
+inline VulkanStatus CreatePipelineLayout(VkDevice device, std::vector<VkDescriptorSetLayout>& descriptorSetLayouts, VkPipelineLayout& pipelineLayout)
+{
+  return CreatePipelineLayout(device, descriptorSetLayouts.data(), (uint32_t)descriptorSetLayouts.size(), pipelineLayout);
+}
+
+inline VulkanStatus CreateGraphicsPipeline(GraphicsPipelineCreationInfo& creationInfo, VkPipeline& resultPipeline)
+{
   VkPipelineShaderStageCreateInfo vertexShaderStageInfo = {};
   vertexShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   vertexShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-  vertexShaderStageInfo.module = vertexShaderModule;
-  vertexShaderStageInfo.pName = "main";
+  vertexShaderStageInfo.module = creationInfo.mVertexShaderModule;
+  vertexShaderStageInfo.pName = creationInfo.mVertexShaderMainFnName.c_str();
 
   VkPipelineShaderStageCreateInfo pixelShaderStageInfo = {};
   pixelShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   pixelShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-  pixelShaderStageInfo.module = pixelShaderModule;
-  pixelShaderStageInfo.pName = "main";
+  pixelShaderStageInfo.module = creationInfo.mPixelShaderModule;
+  pixelShaderStageInfo.pName = creationInfo.mPixelShaderMainFnName.c_str();
 
   VkPipelineShaderStageCreateInfo shaderStages[] = {vertexShaderStageInfo, pixelShaderStageInfo};
 
   VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
   vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(graphicsPipelineData.mVertexBindingDescriptions.size());
-  vertexInputInfo.pVertexBindingDescriptions = graphicsPipelineData.mVertexBindingDescriptions.data();
-  vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(graphicsPipelineData.mVertexAttributeDescriptions.size());
-  vertexInputInfo.pVertexAttributeDescriptions = graphicsPipelineData.mVertexAttributeDescriptions.data();
+  vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(creationInfo.mVertexBindingDescriptions.size());
+  vertexInputInfo.pVertexBindingDescriptions = creationInfo.mVertexBindingDescriptions.data();
+  vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(creationInfo.mVertexAttributeDescriptions.size());
+  vertexInputInfo.pVertexAttributeDescriptions = creationInfo.mVertexAttributeDescriptions.data();
 
   VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
   inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -65,14 +98,14 @@ inline void CreateGraphicsPipeline(GraphicsPipelineData& graphicsPipelineData)
   VkViewport viewport = {};
   viewport.x = 0.0f;
   viewport.y = 0.0f;
-  viewport.width = (float)graphicsPipelineData.mSwapChainExtent.width;
-  viewport.height = (float)graphicsPipelineData.mSwapChainExtent.height;
+  viewport.width = (float)creationInfo.mSwapChainExtent.width;
+  viewport.height = (float)creationInfo.mSwapChainExtent.height;
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 
   VkRect2D scissor = {};
   scissor.offset = {0, 0};
-  scissor.extent = graphicsPipelineData.mSwapChainExtent;
+  scissor.extent = creationInfo.mSwapChainExtent;
 
   VkPipelineViewportStateCreateInfo viewportState = {};
   viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -136,23 +169,10 @@ inline void CreateGraphicsPipeline(GraphicsPipelineData& graphicsPipelineData)
   depthStencil.front = {}; // Optional
   depthStencil.back = {}; // Optional
 
-
-  VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-  pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipelineLayoutInfo.setLayoutCount = 1;
-  pipelineLayoutInfo.pSetLayouts = &graphicsPipelineData.mDescriptorSetLayout;
-  pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
-  pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
-  
-
-  if(vkCreatePipelineLayout(graphicsPipelineData.mDevice, &pipelineLayoutInfo, nullptr, &graphicsPipelineData.mPipelineLayout) != VK_SUCCESS)
-    throw std::runtime_error("failed to create pipeline layout!");
-
   VkGraphicsPipelineCreateInfo pipelineInfo = {};
   pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
   pipelineInfo.stageCount = 2;
   pipelineInfo.pStages = shaderStages;
-
   pipelineInfo.pVertexInputState = &vertexInputInfo;
   pipelineInfo.pInputAssemblyState = &inputAssembly;
   pipelineInfo.pViewportState = &viewportState;
@@ -161,14 +181,38 @@ inline void CreateGraphicsPipeline(GraphicsPipelineData& graphicsPipelineData)
   pipelineInfo.pDepthStencilState = &depthStencil;
   pipelineInfo.pColorBlendState = &colorBlending;
   pipelineInfo.pDynamicState = nullptr; // Optional
-  pipelineInfo.layout = graphicsPipelineData.mPipelineLayout;
-  pipelineInfo.renderPass = graphicsPipelineData.mRenderPass;
+  pipelineInfo.layout = creationInfo.mPipelineLayout;
+  pipelineInfo.renderPass = creationInfo.mRenderPass;
   pipelineInfo.subpass = 0;
   pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
   pipelineInfo.basePipelineIndex = -1; // Optional
 
-  if(vkCreateGraphicsPipelines(graphicsPipelineData.mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipelineData.mGraphicsPipeline) != VK_SUCCESS)
-    throw std::runtime_error("failed to create graphics pipeline!");
+  VulkanStatus result;
+  if(vkCreateGraphicsPipelines(creationInfo.mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &resultPipeline) != VK_SUCCESS)
+    result.MarkFailed("failed to create graphics pipeline!");
+  return result;
+}
+
+inline void CreateGraphicsPipeline(GraphicsPipelineData& graphicsPipelineData)
+{
+  VkShaderModule vertexShaderModule = CreateShaderModule(graphicsPipelineData.mDevice, graphicsPipelineData.mVertexShaderCode);
+  VkShaderModule pixelShaderModule = CreateShaderModule(graphicsPipelineData.mDevice, graphicsPipelineData.mPixelShaderCode);
+
+  VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
+  CreatePipelineLayout(graphicsPipelineData.mDevice, &graphicsPipelineData.mDescriptorSetLayout, 1, graphicsPipelineData.mPipelineLayout);
+
+  GraphicsPipelineCreationInfo creationInfo;
+  creationInfo.mVertexShaderModule = vertexShaderModule;
+  creationInfo.mPixelShaderModule = pixelShaderModule;
+  creationInfo.mVertexShaderMainFnName = "main";
+  creationInfo.mPixelShaderMainFnName = "main";
+  creationInfo.mDevice = graphicsPipelineData.mDevice;
+  creationInfo.mPipelineLayout = graphicsPipelineData.mPipelineLayout;
+  creationInfo.mRenderPass = graphicsPipelineData.mRenderPass;
+  creationInfo.mSwapChainExtent = graphicsPipelineData.mSwapChainExtent;
+  creationInfo.mVertexAttributeDescriptions = graphicsPipelineData.mVertexAttributeDescriptions;
+  creationInfo.mVertexBindingDescriptions = graphicsPipelineData.mVertexBindingDescriptions;
+  CreateGraphicsPipeline(creationInfo, graphicsPipelineData.mGraphicsPipeline);
 
   vkDestroyShaderModule(graphicsPipelineData.mDevice, pixelShaderModule, nullptr);
   vkDestroyShaderModule(graphicsPipelineData.mDevice, vertexShaderModule, nullptr);
