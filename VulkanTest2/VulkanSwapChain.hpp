@@ -18,9 +18,9 @@ struct SwapChainCreationInfo
 
 struct SwapChainResultInfo
 {
-  size_t GetCount() const
+  uint32_t GetCount() const
   {
-    return mImages.size();
+    return static_cast<uint32_t>(mImages.size());
   }
 
   VkSwapchainKHR mSwapChain;

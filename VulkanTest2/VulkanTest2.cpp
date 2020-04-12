@@ -126,7 +126,6 @@ private:
 
     // Create shader
     createUniformBuffers();
-    //createDescriptorSetLayout();
     createDescriptorPool();
     createDescriptorSets();
 
@@ -344,9 +343,9 @@ private:
 
   void createFramebuffers()
   {
-    mSwapChainFramebuffers.resize(mSwapChain.mImageViews.size());
+    mSwapChainFramebuffers.resize(GetFrameCount());
 
-    for(size_t i = 0; i < mSwapChain.mImageViews.size(); i++)
+    for(size_t i = 0; i < GetFrameCount(); i++)
     {
       std::array<VkImageView, 2> attachments = {mSwapChain.mImageViews[i], mDepthSet.mImageView};
 
@@ -625,7 +624,7 @@ private:
   {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-    size_t count = mSwapChain.GetCount();
+    size_t count = GetFrameCount();
     mUniformBuffers.resize(count);
     mUniformBuffersMemory.resize(count);
 
@@ -639,7 +638,7 @@ private:
 
   void createDescriptorPool()
   {
-    uint32_t swapChainCount = static_cast<uint32_t>(mSwapChain.GetCount());
+    uint32_t swapChainCount = static_cast<uint32_t>(GetFrameCount());
     std::array<VkDescriptorPoolSize, 2> poolSizes = {};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     poolSizes[0].descriptorCount = swapChainCount;
@@ -659,7 +658,7 @@ private:
   void createDescriptorSets()
   {
     VulkanMaterial* vMaterial = mVulkanMaterialMap["Test"];
-    uint32_t count = static_cast<uint32_t>(mSwapChain.mImages.size());
+    uint32_t count = static_cast<uint32_t>(GetFrameCount());
     std::vector<VkDescriptorSetLayout> layouts(count, vMaterial->mDescriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -759,6 +758,11 @@ private:
   void PrepareToRender(Model* model)
   {
 
+  }
+
+  uint32_t GetFrameCount()
+  {
+    return mSwapChain.GetCount();
   }
 
   void mainLoop() {
