@@ -42,9 +42,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
-#define TINYOBJLOADER_IMPLEMENTATION
-#include "tinyobjloader/tiny_obj_loader.h"
-
 const int cWidth = 800;
 const int cHeight = 600;
 const std::string MODEL_PATH = "models/chalet.obj";
@@ -103,8 +100,9 @@ private:
     createSyncObjects();
   }
 
-  void LoadModelAndBuffersAndTextures()
+  void LoadModelsAndBuffersAndTextures()
   {
+    mMeshManager.Load();
     loadModel();
     
     createTextureSampler();
@@ -119,7 +117,7 @@ private:
     createSwapChainImageAndViews();
     createDepthResources();
 
-    LoadModelAndBuffersAndTextures();
+    LoadModelsAndBuffersAndTextures();
     
 
     createRenderPass();
@@ -482,38 +480,6 @@ private:
     vkBindImageMemory(mDevice, image, imageMemory, 0);
   }
 
-  void FilloutMesh(Mesh* mesh, std::vector<tinyobj::shape_t>& shapes, tinyobj::attrib_t& attrib)
-  {
-    std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
-
-    for(const auto& shape : shapes)
-    {
-      for(const auto& index : shape.mesh.indices)\
-      {
-        Vertex vertex = {};
-        vertex.pos = {
-          attrib.vertices[3 * index.vertex_index + 0],
-          attrib.vertices[3 * index.vertex_index + 1],
-          attrib.vertices[3 * index.vertex_index + 2]
-        };
-
-        vertex.uv = {
-           attrib.texcoords[2 * index.texcoord_index + 0],
-    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-        };
-
-        vertex.color = {1.0f, 1.0f, 1.0f};
-
-        if(uniqueVertices.count(vertex) == 0) {
-          uniqueVertices[vertex] = static_cast<uint32_t>(mesh->mVertices.size());
-          mesh->mVertices.push_back(vertex);
-        }
-
-        mesh->mIndices.push_back(uniqueVertices[vertex]);
-      }
-    }
-  }
-
   void CreateVertexBuffer(Mesh* mesh, VulkanMesh* vulkanMesh)
   {
     VulkanBufferCreationData vulkanData{mPhysicalDevice, mDevice, mGraphicsQueue, mGraphicsPipeline, mCommandPool};
@@ -529,23 +495,11 @@ private:
     CreateBuffer(vulkanData, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, vulkanMesh->mIndexBuffer, vulkanMesh->mIndexBufferMemory, mesh->mIndices.data(), bufferSize);
   }
 
-  void LoadMesh(const String& name, const String& path, Mesh*& mesh, VulkanMesh*& vulkanMesh)
+  void LoadVulkanMesh(const String& name, Mesh* mesh)
   {
-    mesh = new Mesh();
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-    std::string warn, err;
-
-    if(!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str()))
-      throw std::runtime_error(warn + err);
-
-    vulkanMesh = new VulkanMesh();
-    FilloutMesh(mesh, shapes, attrib);
+    VulkanMesh* vulkanMesh = new VulkanMesh();
     CreateVertexBuffer(mesh, vulkanMesh);
     CreateIndexBuffer(mesh, vulkanMesh);
-
-    mMeshMap[name] = mesh;
     mVulkanMeshMap[name] = vulkanMesh;
   }
 
@@ -601,9 +555,8 @@ private:
 
   void LoadModel(const String& name, const String& path)
   {
-    Mesh* mesh = nullptr;
-    VulkanMesh* vulkanMesh = nullptr;
-    LoadMesh(name, path, mesh, vulkanMesh);
+    Mesh* mesh = mMeshManager.mMeshMap[name];
+    LoadVulkanMesh(name, mesh);
 
     Material* material = nullptr;
     VulkanMaterial* vulkanMaterial = nullptr;
@@ -935,6 +888,7 @@ private:
   ImageViewMemorySet mTextureSet;
   VkSampler mSampler;
   ImageViewMemorySet mDepthSet;
+  MeshManager mMeshManager;
 };
 
 int main()

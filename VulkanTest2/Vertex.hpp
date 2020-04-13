@@ -1,5 +1,8 @@
 #pragma once
 
+#include <vector>
+#include <vulkan/vulkan.h>
+
 struct Vec2
 {
   Vec2() {}
