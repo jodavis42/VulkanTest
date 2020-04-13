@@ -173,6 +173,7 @@ private:
 
     SelectPhysicsDevice(selectionData, resultData);
     mPhysicalDevice = resultData.mPhysicalDevice;
+    QueryPhysicalDeviceLimits(mPhysicalDevice, mDeviceLimits);
   }
 
   void createLogicalDevice()
@@ -608,6 +609,14 @@ private:
       throw std::runtime_error("failed to create descriptor pool!");
   }
 
+  size_t AlignUniformBufferOffset(size_t offset)
+  {
+    size_t alignment = mDeviceLimits.mMinUniformBufferOffsetAlignment;
+    size_t extra = offset % alignment;
+    size_t result = offset / alignment + extra != 0 ? alignment : 0;
+    return result;
+  }
+
   void createDescriptorSets()
   {
     VulkanMaterial* vMaterial = mVulkanMaterialMap["Test"];
@@ -855,7 +864,7 @@ private:
   VkQueue mGraphicsQueue;
   VkSurfaceKHR mSurface;
   VkQueue mPresentQueue;
-
+  PhysicalDeviceLimits mDeviceLimits;
   SwapChainData mSwapChain;
 
   VkRenderPass mRenderPass;

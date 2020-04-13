@@ -49,3 +49,18 @@ inline void SelectPhysicsDevice(PhysicsDeviceSelectionData& selectionData, Physi
   if(resultData.mPhysicalDevice == VK_NULL_HANDLE)
     throw std::runtime_error("failed to find a suitable GPU!");
 }
+
+struct PhysicalDeviceLimits
+{
+  uint32_t mMaxUniformBufferRange;
+  VkDeviceSize mMinUniformBufferOffsetAlignment;
+};
+
+inline void QueryPhysicalDeviceLimits(VkPhysicalDevice physicalDevice, PhysicalDeviceLimits& results)
+{
+  VkPhysicalDeviceProperties properties;
+  vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+
+  results.mMaxUniformBufferRange = properties.limits.maxUniformBufferRange;
+  results.mMinUniformBufferOffsetAlignment = properties.limits.minUniformBufferOffsetAlignment;
+}
