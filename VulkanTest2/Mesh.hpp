@@ -2,22 +2,13 @@
 
 #include "Vertex.hpp"
 #include <string>
+#include <unordered_map>
 using String = std::string;
 
 struct Mesh
 {
   std::vector<Vertex> mVertices;
   std::vector<uint32_t> mIndices;
-};
-
-struct VulkanMesh
-{
-  VkBuffer mVertexBuffer;
-  VkDeviceMemory mVertexBufferMemory;
-
-  VkBuffer mIndexBuffer;
-  VkDeviceMemory mIndexBufferMemory;
-  uint32_t mIndexCount;
 };
 
 struct MeshManager

@@ -38,6 +38,7 @@
 #include "VulkanSwapChain.hpp"
 #include "Mesh.hpp"
 #include "Material.hpp"
+#include "VulkanStructures.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
@@ -356,8 +357,8 @@ private:
     graphicsPipelineData.mVertexShaderCode = vertexShaderCode;
     graphicsPipelineData.mRenderPass = mRenderPass;
     graphicsPipelineData.mSwapChainExtent = mSwapChain.mExtent;
-    graphicsPipelineData.mVertexAttributeDescriptions = Vertex::getAttributeDescriptions();
-    graphicsPipelineData.mVertexBindingDescriptions = Vertex::getBindingDescription();
+    graphicsPipelineData.mVertexAttributeDescriptions = VulkanVertex::getAttributeDescriptions();
+    graphicsPipelineData.mVertexBindingDescriptions = VulkanVertex::getBindingDescription();
     graphicsPipelineData.mDescriptorSetLayout = vMaterial->mDescriptorSetLayout;
     CreateGraphicsPipeline(graphicsPipelineData);
 

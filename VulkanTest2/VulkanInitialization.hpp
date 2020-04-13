@@ -9,6 +9,7 @@
 #include "VulkanLogicalDeviceCreation.hpp"
 #include "VulkanBufferCreation.hpp"
 #include "Vertex.hpp"
+#include "VulkanStructures.hpp"
 #include "VulkanRenderPass.hpp"
 #include "VulkanPipeline.hpp"
 #include "File.hpp"
@@ -208,8 +209,8 @@ inline void CreateGraphicsPipeline(VulkanRuntimeData& runtimeData)
   graphicsPipelineData.mVertexShaderCode = vertexShaderCode;
   graphicsPipelineData.mRenderPass = runtimeData.mRenderPass;
   graphicsPipelineData.mSwapChainExtent = runtimeData.mSwapChainExtent;
-  graphicsPipelineData.mVertexAttributeDescriptions = Vertex::getAttributeDescriptions();
-  graphicsPipelineData.mVertexBindingDescriptions = Vertex::getBindingDescription();
+  graphicsPipelineData.mVertexAttributeDescriptions = VulkanVertex::getAttributeDescriptions();
+  graphicsPipelineData.mVertexBindingDescriptions = VulkanVertex::getBindingDescription();
   CreateGraphicsPipeline(graphicsPipelineData);
 
   runtimeData.mGraphicsPipeline = graphicsPipelineData.mGraphicsPipeline;
