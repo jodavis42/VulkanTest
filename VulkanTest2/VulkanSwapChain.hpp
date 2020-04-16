@@ -2,6 +2,8 @@
 
 #include "VulkanStatus.hpp"
 #include "VulkanDeviceQueries.hpp"
+#include "VulkanImages.hpp"
+#include "Helpers/Math.hpp"
 
 struct SwapChainCreationInfo
 {
@@ -14,6 +16,7 @@ struct SwapChainCreationInfo
   void* mUserData = nullptr;
   typedef void(*FrameBufferSizeQueryFn)(uint32_t& width, uint32_t& height, void* userData);
   FrameBufferSizeQueryFn mQueryFn = nullptr;
+  Integer2 mExtent;
 };
 
 struct SwapChainResultInfo
@@ -35,7 +38,7 @@ struct SwapChainData : public SwapChainResultInfo
 
 };
 
-inline  VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
+inline VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
 {
   for(const auto& availableFormat : availableFormats)
   {
@@ -66,7 +69,13 @@ inline VkExtent2D ChooseSwapExtent(SwapChainCreationInfo& info, const VkSurfaceC
   else
   {
     VkExtent2D actualExtent;
-    info.mQueryFn(actualExtent.width, actualExtent.height, info.mUserData);
+    if(info.mQueryFn != nullptr)
+      info.mQueryFn(actualExtent.width, actualExtent.height, info.mUserData);
+    else
+    {
+      actualExtent.width = info.mExtent.x;
+      actualExtent.height = info.mExtent.y;
+    }
     return actualExtent;
   }
 }
@@ -139,7 +148,7 @@ struct SwapChainImageViewResultInfo
   std::vector<VkImageView> mImageViews;
 };
 
-void CreateSwapChainImageView(VkDevice device, VkFormat format, uint32_t mipLevels, VkImage image, VkImageView& outImageView)
+inline void CreateSwapChainImageView(VkDevice device, VkFormat format, uint32_t mipLevels, VkImage image, VkImageView& outImageView)
 {
   ImageViewCreationInfo info(device, image);
   info.mFormat = format;
@@ -149,7 +158,7 @@ void CreateSwapChainImageView(VkDevice device, VkFormat format, uint32_t mipLeve
   VulkanStatus status = CreateImageView(info, outImageView);
 }
 
-void CreateSwapChainImageViews(SwapChainImageViewCreationInfo& info, SwapChainImageViewResultInfo& result)
+inline void CreateSwapChainImageViews(SwapChainImageViewCreationInfo& info, SwapChainImageViewResultInfo& result)
 {
   size_t count = info.mImages.size();
   result.mImageViews.resize(count);

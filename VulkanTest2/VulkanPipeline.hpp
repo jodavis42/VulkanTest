@@ -1,9 +1,12 @@
 #pragma once
 
+#include "Helpers/Math.hpp"
+
 struct GraphicsPipelineCreationInfo
 {
   VkDevice mDevice;
-  VkExtent2D mSwapChainExtent;
+  Vec2 mViewportOffset = Vec2(0, 0);
+  Vec2 mViewportSize = Vec2(0, 0);
   VkRenderPass mRenderPass;
 
   std::vector<VkVertexInputBindingDescription> mVertexBindingDescriptions;
@@ -19,7 +22,8 @@ struct GraphicsPipelineCreationInfo
 struct GraphicsPipelineData
 {
   VkDevice mDevice;
-  VkExtent2D mSwapChainExtent;
+  Vec2 mViewportOffset;
+  Vec2 mViewportSize;
   VkRenderPass mRenderPass;
 
   std::vector<char> mVertexShaderCode;
@@ -96,16 +100,17 @@ inline VulkanStatus CreateGraphicsPipeline(GraphicsPipelineCreationInfo& creatio
   inputAssembly.primitiveRestartEnable = VK_FALSE;
 
   VkViewport viewport = {};
-  viewport.x = 0.0f;
-  viewport.y = 0.0f;
-  viewport.width = (float)creationInfo.mSwapChainExtent.width;
-  viewport.height = (float)creationInfo.mSwapChainExtent.height;
+  viewport.x = creationInfo.mViewportOffset.x;
+  viewport.y = creationInfo.mViewportOffset.y;
+  viewport.width = creationInfo.mViewportSize.x;
+  viewport.height = creationInfo.mViewportSize.x;
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 
   VkRect2D scissor = {};
   scissor.offset = {0, 0};
-  scissor.extent = creationInfo.mSwapChainExtent;
+  scissor.extent.width = static_cast<uint32_t>(creationInfo.mViewportSize.x);
+  scissor.extent.height = static_cast<uint32_t>(creationInfo.mViewportSize.y);
 
   VkPipelineViewportStateCreateInfo viewportState = {};
   viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -209,7 +214,7 @@ inline void CreateGraphicsPipeline(GraphicsPipelineData& graphicsPipelineData)
   creationInfo.mDevice = graphicsPipelineData.mDevice;
   creationInfo.mPipelineLayout = graphicsPipelineData.mPipelineLayout;
   creationInfo.mRenderPass = graphicsPipelineData.mRenderPass;
-  creationInfo.mSwapChainExtent = graphicsPipelineData.mSwapChainExtent;
+  creationInfo.mViewportSize = graphicsPipelineData.mViewportSize;
   creationInfo.mVertexAttributeDescriptions = graphicsPipelineData.mVertexAttributeDescriptions;
   creationInfo.mVertexBindingDescriptions = graphicsPipelineData.mVertexBindingDescriptions;
   CreateGraphicsPipeline(creationInfo, graphicsPipelineData.mGraphicsPipeline);

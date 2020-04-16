@@ -8,7 +8,7 @@ struct VulkanBufferCreationData
   VkPhysicalDevice mPhysicalDevice;
   VkDevice mDevice;
   VkQueue mGraphicsQueue;
-  VkPipeline mGraphicsPipeline;
+  //VkPipeline mGraphicsPipeline;
   VkCommandPool mCommandPool;
 };
 
@@ -34,6 +34,31 @@ inline uint32_t FindMemoryType(VulkanBufferCreationData& vulkanData, uint32_t ty
   uint32_t result = 0;
   FindMemoryType(vulkanData.mPhysicalDevice, typeFilter, properties, result);
   return result;
+}
+
+inline void CreateBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
+{
+  VkBufferCreateInfo bufferInfo = {};
+  bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  bufferInfo.size = size;
+  bufferInfo.usage = usage;
+  bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+  if(vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
+    throw std::runtime_error("failed to create vertex buffer!");
+
+  VkMemoryRequirements memRequirements;
+  vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
+
+  VkMemoryAllocateInfo allocInfo = {};
+  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  allocInfo.allocationSize = memRequirements.size;
+  FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties, allocInfo.memoryTypeIndex);
+
+  if(vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
+    throw std::runtime_error("failed to allocate vertex buffer memory!");
+
+  vkBindBufferMemory(device, buffer, bufferMemory, 0);
 }
 
 inline void CreateBuffer(VulkanBufferCreationData& vulkanData, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)

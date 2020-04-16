@@ -19,6 +19,7 @@ public:
 
   void Load();
   void LoadMesh(const String& name, const String& path);
+  Mesh* Find(const String& name);
   void Destroy();
 
   std::unordered_map<String, Mesh*> mMeshMap;

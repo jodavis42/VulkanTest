@@ -2,6 +2,7 @@
 
 #include "VulkanStatus.hpp"
 #include "VulkanBufferCreation.hpp"
+#include "VulkanStructures.hpp"
 
 struct ImageViewMemorySet
 {
@@ -44,14 +45,22 @@ struct ImageViewCreationInfo
   uint32_t mBaseMipLevel = 0;
 };
 
-void Cleanup(VkDevice device, ImageViewMemorySet& set)
+__declspec(noinline) inline void Cleanup(VkDevice device, VulkanImage& image)
+{
+  vkDestroyImageView(device, image.mImageView, nullptr);
+  vkFreeMemory(device, image.mImageMemory, nullptr);
+  vkDestroyImage(device, image.mImage, nullptr);
+  vkDestroySampler(device, image.mSampler, nullptr);
+}
+
+inline void Cleanup(VkDevice device, ImageViewMemorySet& set)
 {
   vkDestroyImageView(device, set.mImageView, nullptr);
   vkFreeMemory(device, set.mImageMemory, nullptr);
   vkDestroyImage(device, set.mImage, nullptr);
 }
 
-VulkanStatus CreateImage(ImageCreationInfo& info, VkImage& outImage)
+inline VulkanStatus CreateImage(ImageCreationInfo& info, VkImage& outImage)
 {
   VkImageCreateInfo imageInfo = {};
   imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -208,7 +217,7 @@ inline VulkanStatus ComputeTransitionStages(VkImageLayout oldLayout, VkImageLayo
   return VulkanStatus();
 }
 
-bool HasStencilComponent(VkFormat format)
+inline bool HasStencilComponent(VkFormat format)
 {
   return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
@@ -271,7 +280,7 @@ struct ImageCopyInfo
   VkImage mImage;
 };
 
-void CopyBufferToImage(ImageCopyInfo info)
+inline void CopyBufferToImage(ImageCopyInfo info)
 {
   VkCommandBuffer commandBuffer = BeginSingleTimeCommands(info.mDevice, info.mCommandPool);
 
@@ -316,7 +325,7 @@ struct MipmapGenerationInfo
   uint32_t mMipLevels;
 };
 
-VulkanStatus GenerateMipmaps(MipmapGenerationInfo info)
+inline VulkanStatus GenerateMipmaps(MipmapGenerationInfo info)
 {
   // Check if image format supports linear blitting
   VkFormatProperties formatProperties;
@@ -422,7 +431,7 @@ struct TextureImageCreationInfo
   uint32_t mMipLevels;
 };
 
-VulkanStatus CreateTextureImage(TextureImageCreationInfo& info, ImageViewMemorySet& imageSet)
+inline VulkanStatus CreateTextureImage(TextureImageCreationInfo& info, ImageViewMemorySet& imageSet)
 {
   VkDeviceSize imageSize = info.mPixelsSize;
   uint32_t mipLevels = info.mMipLevels;
@@ -432,7 +441,7 @@ VulkanStatus CreateTextureImage(TextureImageCreationInfo& info, ImageViewMemoryS
 
   VkBuffer stagingBuffer;
   VkDeviceMemory stagingBufferMemory;
-  VulkanBufferCreationData vulkanData{info.mPhysicalDevice, info.mDevice, info.mGraphicsQueue, info.mGraphicsPipeline, info.mCommandPool};
+  VulkanBufferCreationData vulkanData{info.mPhysicalDevice, info.mDevice, info.mGraphicsQueue, info.mCommandPool};
   CreateBuffer(vulkanData, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
   void* data;
@@ -507,4 +516,17 @@ VulkanStatus CreateTextureImage(TextureImageCreationInfo& info, ImageViewMemoryS
     GenerateMipmaps(mipGenerationInfo);
   }
   return VulkanStatus();
+}
+
+inline VulkanStatus CreateTextureImage(TextureImageCreationInfo& info, VulkanImage& vulkanImage)
+{
+  ImageViewMemorySet set;
+  set.mImage = vulkanImage.mImage;
+  set.mImageMemory = vulkanImage.mImageMemory;
+  set.mImageView = vulkanImage.mImageView;
+  VulkanStatus result = CreateTextureImage(info, set);
+  vulkanImage.mImage = set.mImage;
+  vulkanImage.mImageMemory = set.mImageMemory;
+  vulkanImage.mImageView = set.mImageView;
+  return result;
 }

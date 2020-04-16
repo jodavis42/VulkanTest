@@ -167,11 +167,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Material.hpp" />
-    <ClInclude Include="Mesh.hpp" />
-    <ClInclude Include="Vertex.hpp" />
+    <ClInclude Include="Helpers\Enums.hpp" />
+    <ClInclude Include="Helpers\File.hpp" />
+    <ClInclude Include="Helpers\Material.hpp" />
+    <ClInclude Include="Helpers\Math.hpp" />
+    <ClInclude Include="Helpers\Mesh.hpp" />
+    <ClInclude Include="Helpers\Shader.hpp" />
+    <ClInclude Include="Helpers\Texture.hpp" />
+    <ClInclude Include="Helpers\Vertex.hpp" />
+    <ClInclude Include="Internal\EnumConversions.hpp" />
     <ClInclude Include="VulkanBufferCreation.hpp" />
-    <ClInclude Include="File.hpp" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="VulkanCommandBuffer.hpp" />
     <ClInclude Include="VulkanDeviceQueries.hpp" />
@@ -182,13 +187,18 @@
     <ClInclude Include="VulkanPhysicsDeviceSelection.hpp" />
     <ClInclude Include="VulkanPipeline.hpp" />
     <ClInclude Include="VulkanRenderer.hpp" />
+    <ClInclude Include="VulkanRendererInit.hpp" />
     <ClInclude Include="VulkanRenderPass.hpp" />
     <ClInclude Include="VulkanStructures.hpp" />
     <ClInclude Include="VulkanSwapChain.hpp" />
+    <ClInclude Include="VulkanSyncronization.hpp" />
     <ClInclude Include="VulkanValidationLayers.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="Helpers\Material.cpp" />
+    <ClCompile Include="Helpers\Mesh.cpp" />
+    <ClCompile Include="Helpers\Shader.cpp" />
+    <ClCompile Include="Helpers\Texture.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

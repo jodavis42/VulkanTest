@@ -16,13 +16,16 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{8d6f3c5a-9d07-42f7-9c2a-11d240147ef5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Helpers">
+      <UniqueIdentifier>{67576422-9ea8-42e9-bd93-8d1b14829efa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Internal">
+      <UniqueIdentifier>{0765eb6f-7f90-4812-a3e2-b38f46d46e19}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="File.hpp">
-      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="VulkanBufferCreation.hpp">
       <Filter>Source Files</Filter>
@@ -37,9 +40,6 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="VulkanPipeline.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Vertex.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="VulkanCommandBuffer.hpp">
@@ -66,13 +66,40 @@
     <ClInclude Include="VulkanSwapChain.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Mesh.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="VulkanStructures.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Material.hpp">
+    <ClInclude Include="VulkanSyncronization.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\Texture.hpp">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\Shader.hpp">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\Vertex.hpp">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\Mesh.hpp">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\Math.hpp">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\Material.hpp">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\File.hpp">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Internal\EnumConversions.hpp">
+      <Filter>Internal</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\Enums.hpp">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanRendererInit.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -86,8 +113,17 @@
     <ClCompile Include="VulkanRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Mesh.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="Helpers\Mesh.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\Shader.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\Texture.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\Material.cpp">
+      <Filter>Helpers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

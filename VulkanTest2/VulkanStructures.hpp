@@ -10,6 +10,12 @@ struct VulkanMesh
   uint32_t mIndexCount;
 };
 
+struct VulkanShader
+{
+  VkShaderModule mVertexShaderModule;
+  VkShaderModule mPixelShaderModule;
+};
+
 struct VulkanMaterial
 {
   VkShaderModule mVertexShaderModule;
@@ -55,4 +61,12 @@ struct VulkanVertex
 
     return attributeDescriptions;
   }
+};
+
+struct VulkanImage
+{
+  VkImage mImage = VK_NULL_HANDLE;
+  VkDeviceMemory mImageMemory = VK_NULL_HANDLE;
+  VkImageView mImageView = VK_NULL_HANDLE;
+  VkSampler mSampler = VK_NULL_HANDLE;
 };

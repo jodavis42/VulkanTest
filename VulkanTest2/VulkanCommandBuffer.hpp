@@ -99,6 +99,7 @@ VulkanStatus WriteCommandBuffer(CommandBufferWriteInfo& writeInfo, VkCommandBuff
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
   vkCmdBindIndexBuffer(commandBuffer, writeInfo.mIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+  
 
   for(uint32_t i = 0; i < writeInfo.mDrawCount; ++i)
   {

@@ -8,12 +8,20 @@
 #include "VulkanPhysicsDeviceSelection.hpp"
 #include "VulkanLogicalDeviceCreation.hpp"
 #include "VulkanBufferCreation.hpp"
-#include "Vertex.hpp"
+#include "Helpers/Vertex.hpp"
 #include "VulkanStructures.hpp"
 #include "VulkanRenderPass.hpp"
 #include "VulkanPipeline.hpp"
-#include "File.hpp"
+#include "Helpers/File.hpp"
 #include "VulkanStatus.hpp"
+#include "VulkanSyncronization.hpp"
+#include "VulkanRendererInit.hpp"
+#include "VulkanSwapChain.hpp"
+
+struct ConstantSwapChainInfo
+{
+  VkSurfaceFormatKHR mFormat;
+};
 
 struct VulkanRuntimeData
 {
@@ -36,30 +44,43 @@ struct VulkanRuntimeData
     4, 5, 6, 6, 7, 4
   };
 
-  GLFWwindow* mWindow;
-  VkInstance mInstance;
-  VkDebugUtilsMessengerEXT mDebugMessenger;
-  VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;
-  VkDevice mDevice;
-  VkQueue mGraphicsQueue;
+  static constexpr size_t mMaxFramesInFlight = 2;
+  VkInstance mInstance = VK_NULL_HANDLE;
+  VkDebugUtilsMessengerEXT mDebugMessenger = VK_NULL_HANDLE;
+  SurfaceCreationDelegate mSurfaceCreationCallback;
   VkSurfaceKHR mSurface;
+  VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;
+  PhysicalDeviceLimits mDeviceLimits;
+  VkDevice mDevice = VK_NULL_HANDLE;
+  VkCommandPool mCommandPool;
+  SyncObjects mSyncObjects;
+
+  
+  VulkanImage mDepthImage;
+  VkFormat mDepthFormat;
+  uint32_t mWidth;
+  uint32_t mHeight;
+
+  ConstantSwapChainInfo mSwapChainInfo;
+  SwapChainData mSwapChain;
+
+  
+
+  
+  
+  
+  VkQueue mGraphicsQueue;
+  
   VkQueue mPresentQueue;
-  VkSwapchainKHR mSwapChain;
-  std::vector<VkImage> mSwapChainImages;
-  VkFormat mSwapChainImageFormat;
-  VkExtent2D mSwapChainExtent;
-  std::vector<VkImageView> mSwapChainImageViews;
   VkRenderPass mRenderPass;
   VkPipelineLayout mPipelineLayout;
   VkPipeline mGraphicsPipeline;
-  VkCommandPool mCommandPool;
+  
 
   std::vector<VkFramebuffer> mSwapChainFramebuffers;
   std::vector<VkCommandBuffer> mCommandBuffers;
 
-  std::vector<VkSemaphore> mImageAvailableSemaphores;
-  std::vector<VkSemaphore> mRenderFinishedSemaphores;
-  std::vector<VkFence> mInFlightFences;
+  
   size_t mCurrentFrame = 0;
 
   bool mFramebufferResized = false;
@@ -130,11 +151,10 @@ inline void CreateInstance(VulkanRuntimeData& runtimeData)
   VulkanStatus status = CreateInstance(runtimeData.mInstance);
 }
 
-inline void CreateSurface(VulkanRuntimeData& runtimeData)
+inline void CreateSurface(VkInstance instance, SurfaceCreationDelegate callback, VkSurfaceKHR& outSurface)
 {
-  auto result = glfwCreateWindowSurface(runtimeData.mInstance, runtimeData.mWindow, nullptr, &runtimeData.mSurface);
-  if(result != VK_SUCCESS)
-    throw std::runtime_error("failed to create window surface!");
+  if(callback.mUserData != nullptr)
+    callback.mCallbackFn(instance, callback.mUserData, outSurface);
 }
 
 inline bool IsDeviceSuitable(VkPhysicalDevice physicalDevice, DeviceSuitabilityData* data)
@@ -166,6 +186,7 @@ inline void SelectPhysicalDevice(VulkanRuntimeData& runtimeData)
   selectionData.mSuitabilityData.mDeviceSuitabilityFn = &IsDeviceSuitable;
 
   SelectPhysicsDevice(selectionData, resultData);
+  QueryPhysicalDeviceLimits(resultData.mPhysicalDevice, runtimeData.mDeviceLimits);
 
   runtimeData.mPhysicalDevice = resultData.mPhysicalDevice;
 }
@@ -190,7 +211,7 @@ inline void CreateRenderPass(VulkanRuntimeData& runtimeData)
   RenderPassCreationData creationData;
   creationData.mRenderPass = runtimeData.mRenderPass;
   creationData.mDevice = runtimeData.mDevice;
-  creationData.mSwapChainImageFormat = runtimeData.mSwapChainImageFormat;
+  creationData.mSwapChainImageFormat = runtimeData.mSwapChain.mImageFormat;
   CreateRenderPass(creationData);
 
   runtimeData.mRenderPass = creationData.mRenderPass;
@@ -208,7 +229,7 @@ inline void CreateGraphicsPipeline(VulkanRuntimeData& runtimeData)
   graphicsPipelineData.mPixelShaderCode = pixelShaderCode;
   graphicsPipelineData.mVertexShaderCode = vertexShaderCode;
   graphicsPipelineData.mRenderPass = runtimeData.mRenderPass;
-  graphicsPipelineData.mSwapChainExtent = runtimeData.mSwapChainExtent;
+  graphicsPipelineData.mViewportOffset = Vec2((float)runtimeData.mSwapChain.mExtent.width, (float)runtimeData.mSwapChain.mExtent.height);
   graphicsPipelineData.mVertexAttributeDescriptions = VulkanVertex::getAttributeDescriptions();
   graphicsPipelineData.mVertexBindingDescriptions = VulkanVertex::getBindingDescription();
   CreateGraphicsPipeline(graphicsPipelineData);
@@ -219,14 +240,14 @@ inline void CreateGraphicsPipeline(VulkanRuntimeData& runtimeData)
 
 inline void CreateVertexBuffer(VulkanRuntimeData& runtimeData)
 {
-  VulkanBufferCreationData vulkanData{runtimeData.mPhysicalDevice, runtimeData.mDevice, runtimeData.mGraphicsQueue, runtimeData.mGraphicsPipeline, runtimeData.mCommandPool};
+  VulkanBufferCreationData vulkanData{runtimeData.mPhysicalDevice, runtimeData.mDevice, runtimeData.mGraphicsQueue, runtimeData.mCommandPool};
   VkDeviceSize bufferSize = sizeof(runtimeData.mVertices[0]) * runtimeData.mVertices.size();
   CreateBuffer(vulkanData, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, runtimeData.mVertexBuffer, runtimeData.mVertexBufferMemory, runtimeData.mVertices.data(), bufferSize);
 }
 
 inline void CreateIndexBuffer(VulkanRuntimeData& runtimeData)
 {
-  VulkanBufferCreationData vulkanData{runtimeData.mPhysicalDevice, runtimeData.mDevice, runtimeData.mGraphicsQueue, runtimeData.mGraphicsPipeline, runtimeData.mCommandPool};
+  VulkanBufferCreationData vulkanData{runtimeData.mPhysicalDevice, runtimeData.mDevice, runtimeData.mGraphicsQueue, runtimeData.mCommandPool};
   VkDeviceSize bufferSize = sizeof(runtimeData.mIndices[0]) * runtimeData.mIndices.size();
   CreateBuffer(vulkanData, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, runtimeData.mIndexBuffer, runtimeData.mIndexBufferMemory, runtimeData.mIndices.data(), bufferSize);
 }
@@ -247,22 +268,28 @@ inline VulkanStatus CreateCommandPool(VkPhysicalDevice physicalDevice, VkDevice 
   return result;
 }
 
+
+
 inline void InitializeVulkan(VulkanRuntimeData& runtimeData)
 {
-  CreateInstance(runtimeData);
+  CreateInstance(runtimeData.mInstance);
   SetupDebugMessenger(runtimeData.mInstance, runtimeData.mDebugMessenger);
-  CreateSurface(runtimeData);
+  CreateSurface(runtimeData.mInstance, runtimeData.mSurfaceCreationCallback, runtimeData.mSurface);
   SelectPhysicalDevice(runtimeData);
   CreateLogicalDevice(runtimeData);
+  CreateCommandPool(runtimeData.mPhysicalDevice, runtimeData.mDevice, runtimeData.mSurface, runtimeData.mCommandPool);
+  CreateSyncObjects(runtimeData.mDevice, VulkanRuntimeData::mMaxFramesInFlight, runtimeData.mSyncObjects);
   //CreateSwapChain(runtimeData);
   //CreateImageViews(runtimeData);
-  CreateRenderPass(runtimeData);
-  CreateGraphicsPipeline(runtimeData);
+  //CreateRenderPass(runtimeData);
+  //CreateGraphicsPipeline(runtimeData);
   //CreateFramebuffers(runtimeData);
   //CreateCommandPool(runtimeData);
-  CreateVertexBuffer(runtimeData);
-  CreateIndexBuffer(runtimeData);
+  //CreateVertexBuffer(runtimeData);
+  //CreateIndexBuffer(runtimeData);
   //CreateCommandBuffers(runtimeData);
   //CreateSyncObjects(runtimeData);
+
+
 }
 

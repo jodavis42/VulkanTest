@@ -69,6 +69,14 @@ void MeshManager::LoadMesh(const String& name, const String& path)
   mMeshMap[name] = mesh;
 }
 
+Mesh* MeshManager::Find(const String& name)
+{
+  auto it = mMeshMap.find(name);
+  if(it == mMeshMap.end())
+    return nullptr;
+  return it->second;
+}
+
 void MeshManager::Destroy()
 {
   for(auto pair : mMeshMap)

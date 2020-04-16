@@ -35,6 +35,24 @@ struct Vec3
   float x, y, z;
 };
 
+struct Integer2
+{
+  typedef signed int scalar;
+  Integer2() {}
+  Integer2(scalar x_, scalar y_)
+  {
+    x = x_;
+    y = y_;
+  }
+
+  bool operator==(const Integer2& rhs) const
+  {
+    return x == rhs.x && y == rhs.y;
+  }
+
+  scalar x, y;
+};
+
 namespace std
 {
 

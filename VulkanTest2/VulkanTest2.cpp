@@ -2,7 +2,6 @@
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-//#include <vulkan/vulkan.h>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
@@ -22,13 +21,13 @@
 #include <algorithm>
 #include <fstream>
 #include <array>
-#include "File.hpp"
+#include "Helpers/File.hpp"
 #include "VulkanExtensions.hpp"
 #include "VulkanBufferCreation.hpp"
 #include "VulkanValidationLayers.hpp"
 #include "VulkanPipeline.hpp"
 #include "VulkanRenderPass.hpp"
-#include "Vertex.hpp"
+#include "Helpers/Vertex.hpp"
 #include "VulkanCommandBuffer.hpp"
 #include "VulkanPhysicsDeviceSelection.hpp"
 #include "VulkanDeviceQueries.hpp"
@@ -36,17 +35,15 @@
 #include "VulkanInitialization.hpp"
 #include "VulkanImages.hpp"
 #include "VulkanSwapChain.hpp"
-#include "Mesh.hpp"
-#include "Material.hpp"
+#include "Helpers/Mesh.hpp"
+#include "Helpers/Material.hpp"
+#include "Helpers/Texture.hpp"
+#include "Helpers/Shader.hpp"
 #include "VulkanStructures.hpp"
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb/stb_image.h"
+#include "VulkanRenderer.hpp"
 
 const int cWidth = 800;
 const int cHeight = 600;
-const std::string MODEL_PATH = "models/chalet.obj";
-const std::string TEXTURE_PATH = "textures/chalet.jpg";
 const int MAX_FRAMES_IN_FLIGHT = 2;
 const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
@@ -92,6 +89,33 @@ public:
 
 private:
 
+  static void FramebufferResizeCallback(GLFWwindow* window, int width, int height)
+  {
+    auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
+    app->mFramebufferResized = true;
+  }
+
+  static VulkanStatus SurfaceCreationCallback(VkInstance instance, void* userData, VkSurfaceKHR& outSurface)
+  {
+    auto self = reinterpret_cast<HelloTriangleApplication*>(userData);
+    auto result = glfwCreateWindowSurface(instance, self->mWindow, nullptr, &outSurface);
+
+    VulkanStatus status;
+    if(result != VK_SUCCESS)
+      status.MarkFailed("failed to create window surface!");
+    return status;
+  }
+
+  static void SwapChainQuerySizeCallback(uint32_t& width, uint32_t& height, void* userData)
+  {
+    HelloTriangleApplication* self = static_cast<HelloTriangleApplication*>(userData);
+
+    int w, h;
+    glfwGetFramebufferSize(self->mWindow, &w, &h);
+    width = static_cast<uint32_t>(w);
+    height = static_cast<uint32_t>(h);
+  }
+
   void initWindow()
   {
     glfwInit();
@@ -99,24 +123,32 @@ private:
 
     mWindow = glfwCreateWindow(cWidth, cHeight, "Vulkan", nullptr, nullptr);
     glfwSetWindowUserPointer(mWindow, this);
-    glfwSetFramebufferSizeCallback(mWindow, framebufferResizeCallback);
-  }
-
-  static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
-  {
-    auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
-    app->mFramebufferResized = true;
+    glfwSetFramebufferSizeCallback(mWindow, FramebufferResizeCallback);
   }
 
   void GlobalSetup()
   {
-    CreateInstance(mInstance);
-    SetupDebugMessenger(mInstance, mDebugMessenger);
-    createSurface();
-    pickPhysicalDevice();
-    createLogicalDevice();
-    createCommandPool();
-    createSyncObjects();
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(mWindow, &width, &height);
+    auto internal = mRenderer.GetRuntimeData();
+
+    VulkanInitializationData initData;
+    initData.mWidth = width;
+    initData.mHeight = height;
+    initData.mSurfaceCreationCallback.mCallbackFn = &HelloTriangleApplication::SurfaceCreationCallback;
+    initData.mSurfaceCreationCallback.mUserData = this;
+    mRenderer.Initialize(initData);
+
+    mInstance = internal->mInstance;
+    mDebugMessenger = internal->mDebugMessenger;
+    mPhysicalDevice = internal->mPhysicalDevice;
+    mDevice = internal->mDevice;
+    mCommandPool = internal->mCommandPool;
+    mGraphicsQueue = internal->mGraphicsQueue;
+    mPresentQueue = internal->mPresentQueue;
+    mSurface = internal->mSurface;
+    mDeviceLimits = internal->mDeviceLimits;
+    mSyncObjects = internal->mSyncObjects;
   }
 
   void populateMaterialBuffer()
@@ -127,20 +159,106 @@ private:
 
     float value = 0.5f;
     glm::vec4 color(value);
-    VulkanMaterial* vulkanMaterial = mVulkanMaterialMap["Test"];
+    VulkanMaterial* vulkanMaterial = mRenderer.mMaterialMap[mMaterialManager.Find("Test")];
     memcpy(byteData + vulkanMaterial->mBufferOffset, &color, vulkanMaterial->mBufferSize);
 
     vkUnmapMemory(mDevice, mMaterialBuffer.mBufferMemory);
   }
 
+  void LoadVulkanImage(const String& name, Texture* texture)
+  {
+    mRenderer.CreateTexture(texture);
+  }
+
+  void LoadVulkanShader(const String& name, Shader* shader)
+  {
+    mRenderer.CreateShader(shader);
+  }
+
+  void LoadVulkanShaders()
+  {
+    for(auto pair : mShaderManager.mShaderMap)
+    {
+      mRenderer.CreateShader(pair.second);
+    }
+  }
+
+  void LoadVulkanMaterial(Material* material)
+  {
+    mRenderer.CreateMaterial(material, mGlobalDescriptorLayouts.data(), mGlobalDescriptorLayouts.size());
+  }
+
+  void LoadVulkanMaterials()
+  {
+    for(auto pair : mMaterialManager.mMaterialMap)
+    {
+      LoadVulkanMaterial(pair.second);
+    }
+  }
+
+  void CreateGlobalMaterialDescriptorSets()
+  {
+    mGlobalDescriptorLayouts.resize(2);
+    MaterialDescriptorSetLayout& cameraDescriptor = mGlobalDescriptorLayouts[0];
+    cameraDescriptor.mBinding = 0;
+    cameraDescriptor.mDescriptorType = MaterialDescriptorType::Uniform;
+    cameraDescriptor.mStageFlags = (ShaderStageFlags::Enum)(ShaderStageFlags::Vertex);
+    size_t offset = 0;
+    offset = cameraDescriptor.AddElement(MaterialDescriptorEntryType::Mat4, offset, sizeof(glm::mat4));
+    offset = cameraDescriptor.AddElement(MaterialDescriptorEntryType::Mat4, offset, sizeof(glm::mat4));
+
+    MaterialDescriptorSetLayout& transformDescriptor = mGlobalDescriptorLayouts[1];
+    transformDescriptor.mBinding = 1;
+    transformDescriptor.mDescriptorType = MaterialDescriptorType::UniformDynamic;
+    transformDescriptor.mStageFlags = (ShaderStageFlags::Enum)(ShaderStageFlags::Vertex);
+    offset = 0;
+    offset = transformDescriptor.AddElement(MaterialDescriptorEntryType::Mat4, offset, sizeof(glm::mat4));
+  }
+
+  void LoadShadersAndMaterials()
+  {
+    CreateGlobalMaterialDescriptorSets();
+
+    ShaderLoadData shaderLoadData;
+    shaderLoadData.mShaderCodePaths[ShaderStage::Vertex] = "shaders/vertex.spv";
+    shaderLoadData.mShaderCodePaths[ShaderStage::Pixel] = "shaders/pixel.spv";
+    mShaderManager.LoadShader("Test", shaderLoadData);
+
+    Material* material = new Material();
+    
+    material->mDescriptorLayouts.resize(2);
+    MaterialDescriptorSetLayout& materialDescriptor = material->mDescriptorLayouts[0];
+    materialDescriptor.mBinding = 2;
+    materialDescriptor.mStageFlags = (ShaderStageFlags::Enum)(ShaderStageFlags::Vertex | ShaderStageFlags::Pixel);
+    materialDescriptor.mDescriptorType = MaterialDescriptorType::UniformDynamic;
+    materialDescriptor.AddElement(MaterialDescriptorEntryType::Vec4, 0, sizeof(glm::vec4));
+
+    material->mBuffers.resize(1);
+    MaterialBuffer& materialBuffer = material->mBuffers[0];
+    materialBuffer.mBinding = 2;
+    materialBuffer.mData.resize(sizeof(glm::vec4));
+    glm::vec4* color = (glm::vec4*) materialBuffer.mData.data();
+    *color = glm::vec4(0.5f);
+
+    MaterialDescriptorSetLayout& imageDescriptor = material->mDescriptorLayouts[1];
+    imageDescriptor.mBinding = 3;
+    imageDescriptor.mStageFlags = (ShaderStageFlags::Enum)(ShaderStageFlags::Pixel);
+    imageDescriptor.mDescriptorType = MaterialDescriptorType::SampledImage;
+    
+    material->mShader = mShaderManager.mShaderMap["Test"];
+    mMaterialManager.Add("Test", material);
+  }
+
   void LoadModelsAndBuffersAndTextures()
   {
     mMeshManager.Load();
+    mTextureManager.Load();
+    LoadShadersAndMaterials();
+
     loadModel();
-    
-    createTextureSampler();
-    createTextureImage();
-    createTextureImageView();
+    LoadVulkanImage("Test", mTextureManager.Find("Test"));
+    LoadVulkanShaders();
+    LoadVulkanMaterials();
 
     populateMaterialBuffer();
   }
@@ -148,7 +266,7 @@ private:
   void createMaterialBuffers()
   {
     VkDeviceSize materialBufferSize = mDeviceLimits.mMaxUniformBufferRange;
-    VulkanBufferCreationData vulkanData{mPhysicalDevice, mDevice, mGraphicsQueue, mGraphicsPipeline, mCommandPool};
+    VulkanBufferCreationData vulkanData{mPhysicalDevice, mDevice, mGraphicsQueue, mCommandPool};
     VkBufferUsageFlags usageFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     CreateBuffer(vulkanData, materialBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, usageFlags, mMaterialBuffer.mBuffer, mMaterialBuffer.mBufferMemory);
   }
@@ -157,8 +275,6 @@ private:
   {
     GlobalSetup();
 
-    createSwapChainImageAndViews();
-    createDepthResources();
     createMaterialBuffers();
 
     LoadModelsAndBuffersAndTextures();
@@ -175,64 +291,6 @@ private:
     createGraphicsPipeline();
     
     createCommandBuffers();
-  }
-
-  static bool IsDeviceSuitable(VkPhysicalDevice physicalDevice, DeviceSuitabilityData* data)
-  {
-    HelloTriangleApplication* self = (HelloTriangleApplication*)data->mUserData;
-    QueueFamilyIndices indices = FindQueueFamilies(physicalDevice, data->mSurface);
-
-    bool extensionsSupported = CheckDeviceExtensionSupport(physicalDevice, deviceExtensions);
-
-    bool swapChainAdequate = false;
-    if(extensionsSupported)
-    {
-      SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(physicalDevice, data->mSurface);
-      swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
-    }
-
-    VkPhysicalDeviceFeatures supportedFeatures;
-    vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
-
-    return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
-  }
-
-  void createSurface()
-  {
-    auto result = glfwCreateWindowSurface(mInstance, mWindow, nullptr, &mSurface);
-    if(result != VK_SUCCESS)
-      throw std::runtime_error("failed to create window surface!");
-  }
-
-  void pickPhysicalDevice()
-  {
-    mPhysicalDevice = VK_NULL_HANDLE;
-
-    PhysicsDeviceResultData resultData;
-    PhysicsDeviceSelectionData selectionData;
-    selectionData.mInstance = mInstance;
-    selectionData.mSuitabilityData.mUserData = this;
-    selectionData.mSuitabilityData.mSurface = mSurface;
-    selectionData.mSuitabilityData.mDeviceSuitabilityFn = &IsDeviceSuitable;
-
-    SelectPhysicsDevice(selectionData, resultData);
-    mPhysicalDevice = resultData.mPhysicalDevice;
-    QueryPhysicalDeviceLimits(mPhysicalDevice, mDeviceLimits);
-  }
-
-  void createLogicalDevice()
-  {
-    LogicalDeviceResultData resultData;
-    LogicalDeviceCreationData creationData;
-    creationData.mPhysicalDevice = mPhysicalDevice;
-    creationData.mSurface = mSurface;
-    creationData.mDeviceExtensions = deviceExtensions;
-
-    CreateLogicalDevice(creationData, resultData);
-
-    mDevice = resultData.mDevice;
-    mGraphicsQueue = resultData.mGraphicsQueue;
-    mPresentQueue = resultData.mPresentQueue;
   }
 
   void CleanupUniform(VulkanUniformBuffer& buffer)
@@ -258,13 +316,9 @@ private:
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
 
-    for(auto imageView : mSwapChain.mImageViews)
-      vkDestroyImageView(mDevice, imageView, nullptr);
-
-    vkDestroySwapchainKHR(mDevice, mSwapChain.mSwapChain, nullptr);
+    mRenderer.DestroySwapChainInternal();
 
     CleanupUniforms(mUniformBuffers);
-    CleanupUniform(mMaterialBuffer);
 
     vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
   }
@@ -281,11 +335,12 @@ private:
     vkDeviceWaitIdle(mDevice);
 
     cleanupSwapChain();
-    createSwapChainImageAndViews();
+    mRenderer.Resize(width, height);
+    mRenderer.CreateSwapChainInternal();
 
     createRenderPass();
     createGraphicsPipeline();
-    createDepthResources();
+    
     createFramebuffers();
     createUniformBuffers();
     createDescriptorPool();
@@ -293,50 +348,12 @@ private:
     createCommandBuffers();
   }
 
-  static void SwapChainQuerySizeCallback(uint32_t& width, uint32_t& height, void* userData)
-  {
-    HelloTriangleApplication* self = static_cast<HelloTriangleApplication*>(userData);
-
-    int w, h;
-    glfwGetFramebufferSize(self->mWindow, &w, &h);
-    width = static_cast<uint32_t>(w);
-    height = static_cast<uint32_t>(h);
-  }
-
-  void createSwapChainImageAndViews()
-  {
-    SwapChainResultInfo swapChainResultInfo;
-
-    SwapChainCreationInfo swapChainInfo;
-    swapChainInfo.mDevice = mDevice;
-    swapChainInfo.mPhysicalDevice = mPhysicalDevice;
-    swapChainInfo.mSurface = mSurface;
-    swapChainInfo.mUserData = this;
-    swapChainInfo.mQueryFn = &HelloTriangleApplication::SwapChainQuerySizeCallback;
-
-    CreateSwapChainAndViews(swapChainInfo, mSwapChain);
-  }
-
-  std::vector<const char*> getRequiredExtensions()
-  {
-    uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions;
-    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-    std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-    if(enableValidationLayers)
-      extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-
-    return extensions;
-  }
-
   void createRenderPass()
   {
     RenderPassCreationData creationData;
     creationData.mRenderPass = mRenderPass;
     creationData.mDevice = mDevice;
-    creationData.mSwapChainImageFormat = mSwapChain.mImageFormat;
+    creationData.mSwapChainImageFormat = mRenderer.mInternal->mSwapChain.mImageFormat;
     creationData.mDepthFormat = FindDepthFormat(mPhysicalDevice);
     CreateRenderPass(creationData);
 
@@ -345,42 +362,41 @@ private:
 
   void createGraphicsPipeline()
   {
-    VulkanMaterial* vMaterial = mVulkanMaterialMap["Test"];
-    auto vertexShaderCode = readFile("shaders/vertex.spv");
-    auto pixelShaderCode = readFile("shaders/pixel.spv");
+    VulkanMaterial* vMaterial = mRenderer.mMaterialMap[mMaterialManager.Find("Test")];
 
-    GraphicsPipelineData graphicsPipelineData;
-    graphicsPipelineData.mDevice = mDevice;
-    graphicsPipelineData.mGraphicsPipeline = mGraphicsPipeline;
-    graphicsPipelineData.mPipelineLayout = mPipelineLayout;
-    graphicsPipelineData.mPixelShaderCode = pixelShaderCode;
-    graphicsPipelineData.mVertexShaderCode = vertexShaderCode;
-    graphicsPipelineData.mRenderPass = mRenderPass;
-    graphicsPipelineData.mSwapChainExtent = mSwapChain.mExtent;
-    graphicsPipelineData.mVertexAttributeDescriptions = VulkanVertex::getAttributeDescriptions();
-    graphicsPipelineData.mVertexBindingDescriptions = VulkanVertex::getBindingDescription();
-    graphicsPipelineData.mDescriptorSetLayout = vMaterial->mDescriptorSetLayout;
-    CreateGraphicsPipeline(graphicsPipelineData);
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
+    CreatePipelineLayout(mDevice, &vMaterial->mDescriptorSetLayout, 1, mPipelineLayout);
 
-    mGraphicsPipeline = graphicsPipelineData.mGraphicsPipeline;
-    mPipelineLayout = graphicsPipelineData.mPipelineLayout;
+    GraphicsPipelineCreationInfo creationInfo;
+    creationInfo.mVertexShaderModule = vMaterial->mVertexShaderModule;
+    creationInfo.mPixelShaderModule = vMaterial->mPixelShaderModule;
+    creationInfo.mVertexShaderMainFnName = "main";
+    creationInfo.mPixelShaderMainFnName = "main";
+    creationInfo.mDevice = mDevice;
+    creationInfo.mPipelineLayout = mPipelineLayout;
+    creationInfo.mRenderPass = mRenderPass;
+    creationInfo.mViewportSize = Vec2((float)mRenderer.mInternal->mSwapChain.mExtent.width, (float)mRenderer.mInternal->mSwapChain.mExtent.height);
+    creationInfo.mVertexAttributeDescriptions = VulkanVertex::getAttributeDescriptions();
+    creationInfo.mVertexBindingDescriptions = VulkanVertex::getBindingDescription();
+    CreateGraphicsPipeline(creationInfo, mGraphicsPipeline);
   }
 
   void createFramebuffers()
   {
+    VulkanRuntimeData* runtimeData = mRenderer.GetRuntimeData();
     mSwapChainFramebuffers.resize(GetFrameCount());
 
     for(size_t i = 0; i < GetFrameCount(); i++)
     {
-      std::array<VkImageView, 2> attachments = {mSwapChain.mImageViews[i], mDepthSet.mImageView};
+      std::array<VkImageView, 2> attachments = {mRenderer.mInternal->mSwapChain.mImageViews[i], runtimeData->mDepthImage.mImageView};
 
       VkFramebufferCreateInfo framebufferInfo = {};
       framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
       framebufferInfo.renderPass = mRenderPass;
       framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
       framebufferInfo.pAttachments = attachments.data();
-      framebufferInfo.width = mSwapChain.mExtent.width;
-      framebufferInfo.height = mSwapChain.mExtent.height;
+      framebufferInfo.width = mRenderer.mInternal->mSwapChain.mExtent.width;
+      framebufferInfo.height = mRenderer.mInternal->mSwapChain.mExtent.height;
       framebufferInfo.layers = 1;
 
       if(vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr, &mSwapChainFramebuffers[i]) != VK_SUCCESS)
@@ -388,197 +404,15 @@ private:
     }
   }
 
-  void createCommandPool()
-  {
-    CreateCommandPool(mPhysicalDevice, mDevice, mSurface, mCommandPool);
-  }
-
-  void createDepthResources()
-  {
-    VkFormat depthFormat = FindDepthFormat(mPhysicalDevice);
-    createImage(mSwapChain.mExtent.width, mSwapChain.mExtent.height, mMipLevels, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mDepthSet.mImage, mDepthSet.mImageMemory);
-
-    ImageViewCreationInfo viewCreationInfo(mDevice, mDepthSet.mImage);
-    viewCreationInfo.mFormat = depthFormat;
-    viewCreationInfo.mViewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewCreationInfo.mAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
-    viewCreationInfo.mMipLevels = mMipLevels;
-    VulkanStatus status = CreateImageView(viewCreationInfo, mDepthSet.mImageView);
-
-    ImageLayoutTransitionInfo transitionInfo;
-    transitionInfo.mDevice = mDevice;
-    transitionInfo.mGraphicsQueue = mGraphicsQueue;
-    transitionInfo.mCommandPool = mCommandPool;
-    transitionInfo.mFormat = depthFormat;
-    transitionInfo.mImage = mDepthSet.mImage;
-    transitionInfo.mOldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    transitionInfo.mNewLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    transitionInfo.mMipLevels = mMipLevels;
-    TransitionImageLayout(transitionInfo);
-  }
-
-  void createTextureImage()
-  {
-    int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    uint32_t pixelsSize = texWidth * texHeight * 4;
-    uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
-
-    TextureImageCreationInfo info;
-    info.mPhysicalDevice = mPhysicalDevice;
-    info.mDevice = mDevice;
-    info.mGraphicsQueue = mGraphicsQueue;
-    info.mGraphicsPipeline = mGraphicsPipeline;
-    info.mCommandPool = mCommandPool;
-    info.mFormat = VK_FORMAT_R8G8B8A8_SRGB;
-    info.mPixels = (void*)pixels;
-    info.mPixelsSize = pixelsSize;
-    info.mWidth = texWidth;
-    info.mHeight = texHeight;
-    info.mMipLevels = mipLevels;
-    CreateTextureImage(info, mTextureSet);
-
-    stbi_image_free(pixels);
-  }
-
-  void createTextureImageView()
-  {
-    ImageViewCreationInfo info(mDevice, mTextureSet.mImage);
-    info.mFormat = VK_FORMAT_R8G8B8A8_SRGB;
-    info.mViewType = VK_IMAGE_VIEW_TYPE_2D;
-    info.mAspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-    info.mMipLevels = mMipLevels;
-    VulkanStatus status = CreateImageView(info, mTextureSet.mImageView);
-  }
-
-  void createTextureSampler()
-  {
-    SamplerCreationInfo info;
-    info.mDevice = mDevice;
-    info.mMaxLod = static_cast<float>(mMipLevels);
-    CreateTextureSampler(info, mSampler);
-  }
-
-  void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
-  {
-    ImageCreationInfo imageInfo;
-    imageInfo.mDevice = mDevice;
-    imageInfo.mWidth = width;
-    imageInfo.mHeight = height;
-    imageInfo.mMipLevels = mipLevels;
-    imageInfo.mFormat = format;
-    imageInfo.mTiling = tiling;
-    imageInfo.mUsage = usage;
-    imageInfo.mType = VK_IMAGE_TYPE_2D;
-    CreateImage(imageInfo, image);
-
-    ImageMemoryCreationInfo memoryInfo;
-    memoryInfo.mImage = image;
-    memoryInfo.mDevice = mDevice;
-    memoryInfo.mPhysicalDevice = mPhysicalDevice;
-    memoryInfo.mProperties = properties;
-    CreateImageMemory(memoryInfo, imageMemory);
-
-    vkBindImageMemory(mDevice, image, imageMemory, 0);
-  }
-
-  void CreateVertexBuffer(Mesh* mesh, VulkanMesh* vulkanMesh)
-  {
-    VulkanBufferCreationData vulkanData{mPhysicalDevice, mDevice, mGraphicsQueue, mGraphicsPipeline, mCommandPool};
-    VkDeviceSize bufferSize = sizeof(mesh->mVertices[0]) * mesh->mVertices.size();
-    CreateBuffer(vulkanData, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vulkanMesh->mVertexBuffer, vulkanMesh->mVertexBufferMemory, mesh->mVertices.data(), bufferSize);
-  }
-
-  void CreateIndexBuffer(Mesh* mesh, VulkanMesh* vulkanMesh)
-  {
-    VulkanBufferCreationData vulkanData{mPhysicalDevice, mDevice, mGraphicsQueue, mGraphicsPipeline, mCommandPool};
-    vulkanMesh->mIndexCount = static_cast<uint32_t>(mesh->mIndices.size());
-    VkDeviceSize bufferSize = sizeof(mesh->mIndices[0]) * mesh->mIndices.size();
-    CreateBuffer(vulkanData, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, vulkanMesh->mIndexBuffer, vulkanMesh->mIndexBufferMemory, mesh->mIndices.data(), bufferSize);
-  }
-
   void LoadVulkanMesh(const String& name, Mesh* mesh)
   {
-    VulkanMesh* vulkanMesh = new VulkanMesh();
-    CreateVertexBuffer(mesh, vulkanMesh);
-    CreateIndexBuffer(mesh, vulkanMesh);
-    mVulkanMeshMap[name] = vulkanMesh;
+    mRenderer.CreateMesh(mesh);
   }
 
-  VulkanStatus LoadVulkanMaterialDescriptorSetLayoutBinding(VulkanMaterial* vulkanMaterial)
-  {
-    VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-    uboLayoutBinding.binding = 0;
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-    VkDescriptorSetLayoutBinding cameraDataLayoutBinding = {};
-    cameraDataLayoutBinding.binding = 1;
-    cameraDataLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    cameraDataLayoutBinding.descriptorCount = 1;
-    cameraDataLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    cameraDataLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-    VkDescriptorSetLayoutBinding materialLayoutBinding = {};
-    materialLayoutBinding.binding = 2;
-    materialLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    materialLayoutBinding.descriptorCount = 1;
-    materialLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    materialLayoutBinding.pImmutableSamplers = nullptr; // Optional
-    vulkanMaterial->mBufferOffset = 0;
-    vulkanMaterial->mBufferSize = sizeof(glm::vec4);
-
-    VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
-    samplerLayoutBinding.binding = 3;
-    samplerLayoutBinding.descriptorCount = 1;
-    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
-    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    std::vector<VkDescriptorSetLayoutBinding> bindings = {uboLayoutBinding, cameraDataLayoutBinding, materialLayoutBinding, samplerLayoutBinding};
-    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-    layoutInfo.pBindings = bindings.data();
-
-    VulkanStatus result;
-    if(vkCreateDescriptorSetLayout(mDevice, &layoutInfo, nullptr, &vulkanMaterial->mDescriptorSetLayout) != VK_SUCCESS)
-      result.MarkFailed("failed to create descriptor set layout!");
-    return result;
-  }
-
-  void LoadVulkanMaterial(Material* material, VulkanMaterial* vulkanMaterial)
-  {
-    auto vertexShaderCode = readFile(material->mVertexShaderName);
-    auto pixelShaderCode = readFile(material->mPixelShaderName);
-
-    vulkanMaterial->mVertexShaderModule = CreateShaderModule(mDevice, vertexShaderCode);
-    vulkanMaterial->mPixelShaderModule = CreateShaderModule(mDevice, pixelShaderCode);
-    LoadVulkanMaterialDescriptorSetLayoutBinding(vulkanMaterial);
-  }
-
-  void LoadMaterial(const String& name, Material*& material, VulkanMaterial*& vulkanMaterial)
-  {
-    material = new Material();
-    material->mVertexShaderName = "shaders/vertex.spv";
-    material->mPixelShaderName = "shaders/pixel.spv";
-    mMaterialMap[name] = material;
-
-    vulkanMaterial = new VulkanMaterial();
-    LoadVulkanMaterial(material, vulkanMaterial);
-    mVulkanMaterialMap[name] = vulkanMaterial;
-  }
-
-  void LoadModel(const String& name, const String& path)
+  void LoadModel(const String& name)
   {
     Mesh* mesh = mMeshManager.mMeshMap[name];
     LoadVulkanMesh(name, mesh);
-
-    Material* material = nullptr;
-    VulkanMaterial* vulkanMaterial = nullptr;
-    LoadMaterial(name, material, vulkanMaterial);
 
     Model* model = new Model();
     model->mMeshName = name;
@@ -601,7 +435,7 @@ private:
 
   void loadModel()
   {
-    LoadModel("Test", MODEL_PATH);
+    LoadModel("Test");
   }
 
   void createUniformBuffers()
@@ -611,7 +445,7 @@ private:
     size_t count = GetFrameCount();
     mUniformBuffers.mBuffers.resize(count);
 
-    VulkanBufferCreationData vulkanData{mPhysicalDevice, mDevice, mGraphicsQueue, mGraphicsPipeline, mCommandPool};
+    VulkanBufferCreationData vulkanData{mPhysicalDevice, mDevice, mGraphicsQueue, mCommandPool};
 
     for(size_t i = 0; i < count; i++)
     {
@@ -652,7 +486,8 @@ private:
 
   void createDescriptorSets()
   {
-    VulkanMaterial* vMaterial = mVulkanMaterialMap["Test"];
+    VulkanMaterial* vMaterial = mRenderer.mMaterialMap[mMaterialManager.Find("Test")];
+    VulkanImage* vulkanImage = mRenderer.mTextureMap[mTextureManager.Find("Test")];
     uint32_t count = static_cast<uint32_t>(GetFrameCount());
     std::vector<VkDescriptorSetLayout> layouts(count, vMaterial->mDescriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo = {};
@@ -686,8 +521,8 @@ private:
 
       VkDescriptorImageInfo imageInfo = {};
       imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-      imageInfo.imageView = mTextureSet.mImageView;
-      imageInfo.sampler = mSampler;
+      imageInfo.imageView = vulkanImage->mImageView;
+      imageInfo.sampler = vulkanImage->mSampler;
 
       std::array<VkWriteDescriptorSet, 4> descriptorWrites = {};
 
@@ -730,7 +565,7 @@ private:
 
   void createCommandBuffers()
   {
-    VulkanMesh* vMesh = mVulkanMeshMap["Test"];
+    VulkanMesh* vMesh = mRenderer.mMeshMap[mMeshManager.Find("Test")];
     CommandBuffersResultData resultData;
     CommandBuffersCreationData creationData;
     creationData.mDevice = mDevice;
@@ -739,8 +574,8 @@ private:
     creationData.mGraphicsPipeline = mGraphicsPipeline;
     creationData.mVertexBuffer = vMesh->mVertexBuffer;
     creationData.mIndexBuffer = vMesh->mIndexBuffer;
-    creationData.mSwapChain = mSwapChain.mSwapChain;
-    creationData.mSwapChainExtent = mSwapChain.mExtent;
+    creationData.mSwapChain = mRenderer.mInternal->mSwapChain.mSwapChain;
+    creationData.mSwapChainExtent = mRenderer.mInternal->mSwapChain.mExtent;
     creationData.mIndexBufferCount = vMesh->mIndexCount;
     creationData.mSwapChainFramebuffers = mSwapChainFramebuffers;
     creationData.mPipelineLayout = mPipelineLayout;
@@ -752,34 +587,9 @@ private:
     mCommandBuffers.resize(mSwapChainFramebuffers.size());
   }
 
-  void createSyncObjects()
-  {
-    mImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    mRenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    mInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-
-    VkSemaphoreCreateInfo semaphoreInfo = {};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-    VkFenceCreateInfo fenceInfo = {};
-    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-    for(size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-    {
-      if(vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mImageAvailableSemaphores[i]) != VK_SUCCESS ||
-        vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mRenderFinishedSemaphores[i]) != VK_SUCCESS ||
-        vkCreateFence(mDevice, &fenceInfo, nullptr, &mInFlightFences[i]) != VK_SUCCESS)
-      {
-        throw std::runtime_error("failed to create semaphores!");
-      }
-    }
-
-  }
-
   uint32_t GetFrameCount()
   {
-    return mSwapChain.GetCount();
+    return mRenderer.mInternal->mSwapChain.GetCount();
   }
 
   struct FrameData
@@ -795,8 +605,8 @@ private:
   {
     updateUniformBuffer(frameData.mUniformBufferMemory);
 
-    VulkanMesh* mesh = mVulkanMeshMap["Test"];
-    VulkanMaterial* material = mVulkanMaterialMap["Test"];
+    VulkanMesh* mesh = mRenderer.mMeshMap[mMeshManager.Find("Test")];
+    VulkanMaterial* material = mRenderer.mMaterialMap[mMaterialManager.Find("Test")];
 
     VkCommandBuffer commandBuffer = frameData.mCommandBuffer;
 
@@ -815,8 +625,8 @@ private:
     writeInfo.mPipelineLayout = mPipelineLayout;
     writeInfo.mVertexBuffer = mesh->mVertexBuffer;
     writeInfo.mIndexBuffer = mesh->mIndexBuffer;
-    writeInfo.mSwapChain = mSwapChain.mSwapChain;
-    writeInfo.mSwapChainExtent = mSwapChain.mExtent;
+    writeInfo.mSwapChain = mRenderer.mInternal->mSwapChain.mSwapChain;
+    writeInfo.mSwapChainExtent = mRenderer.mInternal->mSwapChain.mExtent;
     writeInfo.mIndexBufferCount = mesh->mIndexCount;
     writeInfo.mSwapChainFramebuffer = frameData.mFramebuffer;
     writeInfo.mDescriptorSet = frameData.mDescriptorSet;
@@ -839,10 +649,10 @@ private:
 
   void drawFrame()
   {
-    vkWaitForFences(mDevice, 1, &mInFlightFences[mCurrentFrame], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(mDevice, 1, &mSyncObjects.mInFlightFences[mCurrentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(mDevice, mSwapChain.mSwapChain, UINT64_MAX, mImageAvailableSemaphores[mCurrentFrame], VK_NULL_HANDLE, &imageIndex);
+    VkResult result = vkAcquireNextImageKHR(mDevice, mRenderer.mInternal->mSwapChain.mSwapChain, UINT64_MAX, mSyncObjects.mImageAvailableSemaphores[mCurrentFrame], VK_NULL_HANDLE, &imageIndex);
     if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || mFramebufferResized)
     {
       mFramebufferResized = false;
@@ -862,7 +672,7 @@ private:
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-    VkSemaphore waitSemaphores[] = {mImageAvailableSemaphores[mCurrentFrame]};
+    VkSemaphore waitSemaphores[] = {mSyncObjects.mImageAvailableSemaphores[mCurrentFrame]};
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
@@ -870,13 +680,13 @@ private:
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &frameData.mCommandBuffer;
 
-    VkSemaphore signalSemaphores[] = {mRenderFinishedSemaphores[mCurrentFrame]};
+    VkSemaphore signalSemaphores[] = {mSyncObjects.mRenderFinishedSemaphores[mCurrentFrame]};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    vkResetFences(mDevice, 1, &mInFlightFences[mCurrentFrame]);
+    vkResetFences(mDevice, 1, &mSyncObjects.mInFlightFences[mCurrentFrame]);
 
-    if(vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, mInFlightFences[mCurrentFrame]) != VK_SUCCESS)
+    if(vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, mSyncObjects.mInFlightFences[mCurrentFrame]) != VK_SUCCESS)
       throw std::runtime_error("failed to submit draw command buffer!");
 
     VkPresentInfoKHR presentInfo = {};
@@ -885,7 +695,7 @@ private:
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = signalSemaphores;
 
-    VkSwapchainKHR swapChains[] = {mSwapChain.mSwapChain};
+    VkSwapchainKHR swapChains[] = {mRenderer.mInternal->mSwapChain.mSwapChain};
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
@@ -909,7 +719,7 @@ private:
 
     PerCameraData perCameraData;
     perCameraData.view = glm::lookAt(glm::vec3(5.0f, 5.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    perCameraData.proj = glm::perspective(glm::radians(45.0f), mSwapChain.mExtent.width / (float)mSwapChain.mExtent.height, 0.1f, 10.0f);
+    perCameraData.proj = glm::perspective(glm::radians(45.0f), mRenderer.mInternal->mSwapChain.mExtent.width / (float)mRenderer.mInternal->mSwapChain.mExtent.height, 0.1f, 10.0f);
     perCameraData.proj[1][1] *= -1;
 
     void* data;
@@ -943,32 +753,35 @@ private:
   void cleanup() 
   {
     cleanupSwapChain();
+    CleanupUniform(mMaterialBuffer);
+    mRenderer.Cleanup();
 
-    vkDestroySampler(mDevice, mSampler, nullptr);
-    Cleanup(mDevice, mDepthSet);
-    Cleanup(mDevice, mTextureSet);
-    for(auto pair : mVulkanMaterialMap)
+    for(auto pair : mShaderManager.mShaderMap)
     {
-      VulkanMaterial* vMaterial = pair.second;
-      vkDestroyDescriptorSetLayout(mDevice, vMaterial->mDescriptorSetLayout, nullptr);
-      vkDestroyShaderModule(mDevice, vMaterial->mPixelShaderModule, nullptr);
-      vkDestroyShaderModule(mDevice, vMaterial->mVertexShaderModule, nullptr);
+      Shader* shader= pair.second;
+      mRenderer.DestroyShader(shader);
     }
-
-    for(auto pair : mVulkanMeshMap)
+    for(auto pair : mMaterialManager.mMaterialMap)
     {
-      VulkanMesh* vMesh = pair.second;
-      vkDestroyBuffer(mDevice, vMesh->mIndexBuffer, nullptr);
-      vkFreeMemory(mDevice, vMesh->mIndexBufferMemory, nullptr);
-      vkDestroyBuffer(mDevice, vMesh->mVertexBuffer, nullptr);
-      vkFreeMemory(mDevice, vMesh->mVertexBufferMemory, nullptr);
+      Material* material = pair.second;
+      mRenderer.DestroyMaterial(material);
+    }
+    for(auto pair : mMeshManager.mMeshMap)
+    {
+      Mesh* mesh = pair.second;
+      mRenderer.DestroyMesh(mesh);
+    }
+    for(auto pair : mTextureManager.mTextureMap)
+    {
+      Texture* texture = pair.second;
+      mRenderer.DestroyTexture(texture);
     }
 
     for(size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-      vkDestroyFence(mDevice, mInFlightFences[i], nullptr);
-      vkDestroySemaphore(mDevice, mRenderFinishedSemaphores[i], nullptr);
-      vkDestroySemaphore(mDevice, mImageAvailableSemaphores[i], nullptr);
+      vkDestroyFence(mDevice, mSyncObjects.mInFlightFences[i], nullptr);
+      vkDestroySemaphore(mDevice, mSyncObjects.mRenderFinishedSemaphores[i], nullptr);
+      vkDestroySemaphore(mDevice, mSyncObjects.mImageAvailableSemaphores[i], nullptr);
     }
 
     if(enableValidationLayers)
@@ -992,7 +805,6 @@ private:
   VkSurfaceKHR mSurface;
   VkQueue mPresentQueue;
   PhysicalDeviceLimits mDeviceLimits;
-  SwapChainData mSwapChain;
 
   VkRenderPass mRenderPass;
   VkPipelineLayout mPipelineLayout;
@@ -1004,27 +816,22 @@ private:
   std::vector<VkFramebuffer> mSwapChainFramebuffers;
   std::vector<VkCommandBuffer> mCommandBuffers;
 
-  std::vector<VkSemaphore> mImageAvailableSemaphores;
-  std::vector<VkSemaphore> mRenderFinishedSemaphores;
-  std::vector<VkFence> mInFlightFences;
+  SyncObjects mSyncObjects;
   size_t mCurrentFrame = 0;
 
   bool mFramebufferResized = false;
 
-  std::unordered_map<String, Mesh*> mMeshMap;
-  std::unordered_map<String, VulkanMesh*> mVulkanMeshMap;
-  std::unordered_map<String, Material*> mMaterialMap;
-  std::unordered_map<String, VulkanMaterial*> mVulkanMaterialMap;
   std::vector<Model*> mModels;
 
   VulkanUniformBuffers mUniformBuffers;
   VulkanUniformBuffer mMaterialBuffer;
 
-  uint32_t mMipLevels = 1;
-  ImageViewMemorySet mTextureSet;
-  VkSampler mSampler;
-  ImageViewMemorySet mDepthSet;
   MeshManager mMeshManager;
+  TextureManager mTextureManager;
+  ShaderManager mShaderManager;
+  MaterialManager mMaterialManager;
+  VulkanRenderer mRenderer;
+  std::vector<MaterialDescriptorSetLayout> mGlobalDescriptorLayouts;
 };
 
 int main()
