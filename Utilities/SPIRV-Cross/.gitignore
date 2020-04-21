@@ -1,0 +1,10 @@
+Debug/*
+x64/*
+.vs
+
+*.pdb
+*.pch
+*.ilk
+*.exe
+*.tlog
+*.lastbuildstate

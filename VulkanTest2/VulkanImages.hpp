@@ -424,7 +424,7 @@ struct TextureImageCreationInfo
   VkPipeline mGraphicsPipeline = VK_NULL_HANDLE;
   VkCommandPool mCommandPool = VK_NULL_HANDLE;
   VkFormat mFormat;
-  void* mPixels = nullptr;
+  const void* mPixels = nullptr;
   uint32_t mPixelsSize = 0;
   uint32_t mWidth;
   uint32_t mHeight;

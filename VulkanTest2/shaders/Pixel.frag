@@ -3,14 +3,14 @@
 
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragUv;
-layout(binding = 3) uniform sampler2D texSampler;
+layout(binding = 3) uniform sampler2D Texture;
 layout(location = 0) out vec4 outColor;
 
-layout(binding = 2) uniform MaterialData {
-    vec3 albedo;
+layout(binding = 2) uniform Material {
+    vec3 Albedo;
 } material;
 
 void main() {
-    outColor = texture(texSampler, fragUv);
-    outColor.xyz *= material.albedo;
+    outColor = texture(Texture, fragUv);
+    outColor.xyz *= material.Albedo;
 }

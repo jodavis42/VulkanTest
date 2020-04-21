@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h>
 #include "VulkanStatus.hpp"
+#include "VulkanPhysicsDeviceSelection.hpp"
 
 struct VulkanBufferCreationData
 {
@@ -161,4 +162,12 @@ inline void CreateBuffer(VulkanBufferCreationData& vulkanData, VkBufferUsageFlag
 
   vkDestroyBuffer(vulkanData.mDevice, stagingBuffer, nullptr);
   vkFreeMemory(vulkanData.mDevice, stagingBufferMemory, nullptr);
+}
+
+inline size_t AlignUniformBufferOffset(PhysicalDeviceLimits& deviceLimits, size_t offset)
+{
+  size_t alignment = deviceLimits.mMinUniformBufferOffsetAlignment;
+  size_t extra = offset % alignment;
+  size_t result = offset / alignment + extra != 0 ? alignment : 0;
+  return result;
 }

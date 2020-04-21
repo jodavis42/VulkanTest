@@ -43,6 +43,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
   void* pUserData)
 {
   constexpr bool assertOnError = true;
+  //OutputDebugStringA(pCallbackData->pMessage);
   if(messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT && assertOnError)
     __debugbreak();
 

@@ -2,18 +2,81 @@
 
 #include <unordered_map>
 #include "VulkanRendererInit.hpp"
+#include "Helpers/Math.hpp"
 
 struct VulkanRuntimeData;
 struct Mesh;
 struct Texture;
 struct Shader;
 struct Material;
-struct MaterialDescriptorSetLayout;
+struct ShaderBinding;
+struct ShaderMaterialBinding;
 
 struct VulkanMesh;
-struct VulkanMaterial;
 struct VulkanShader;
 struct VulkanImage;
+struct RenderFrame;
+struct VulkanRenderFrame;
+class VulkanRenderer;
+struct RenderFrame;
+struct VulkanShaderMaterial;
+
+template <typename T>
+struct Factory
+{
+  struct Slot
+  {
+    T* mItem = nullptr;
+    bool mValid = false;
+  };
+  std::vector<Slot> mSlots;
+};
+
+struct RenderTarget
+{
+  RenderFrame* mRenderFrame = nullptr;
+  size_t mId = 0;
+};
+
+struct RenderPass
+{
+  RenderTarget* mTarget = nullptr;
+  RenderFrame* mRenderFrame = nullptr;
+  size_t mId = 0;
+};
+
+struct CommandBuffer
+{
+  void Begin();
+  void End();
+  void BeginRenderPass(RenderPass* renderPass);
+  void EndRenderPass(RenderPass* renderPass);
+
+  RenderFrame* mRenderFrame = nullptr;
+  size_t mId = 0;
+};
+
+struct RenderFrame
+{
+  RenderFrame(VulkanRenderer* renderer, size_t id);
+  RenderPass* GetFinalRenderPass();
+
+  RenderTarget* GetFinalRenderTarget();
+  RenderTarget* CreateRenderTarget(Integer2 size);
+
+  CommandBuffer* GetFinalCommandBuffer();
+  CommandBuffer* CreateCommandBuffer();
+
+  VulkanRenderer* mRenderer = nullptr;
+  size_t mId = 0;
+
+
+  // Private
+  CommandBuffer mCommandBuffer;
+  RenderTarget mRenderTarget;
+  RenderPass mRenderPass;
+
+};
 
 class VulkanRenderer
 {
@@ -23,21 +86,27 @@ public:
 
   void Initialize(const VulkanInitializationData& initData);
   void Cleanup();
+  void CleanupResources();
   void Destroy();
 
-  void CreateMesh(Mesh* mesh);
-  void DestroyMesh(Mesh* mesh);
+  void CreateMesh(const Mesh* mesh);
+  void DestroyMesh(const Mesh* mesh);
 
-  void CreateTexture(Texture* texture);
-  void DestroyTexture(Texture* texture);
+  void CreateTexture(const Texture* texture);
+  void DestroyTexture(const Texture* texture);
 
-  void CreateShader(Shader* shader);
-  void DestroyShader(Shader* shader);
+  void CreateShader(const Shader* shader);
+  void DestroyShader(const Shader* shader);
 
-  void CreateMaterial(Material* material, MaterialDescriptorSetLayout* globalDescriptors, size_t globalCount);
-  void DestroyMaterial(Material* material);
+  void CreateShaderMaterial(const ShaderBinding* shaderMaterial);
+  void UpdateShaderMaterial(const ShaderMaterialBinding* shaderMaterialBinding);
+  void DestroyShaderMaterial(const ShaderBinding* shaderMaterial);
+
+  RenderFrame* BeginFrame();
+  void EndFrame(RenderFrame* frame);
   
   void Resize(size_t width, size_t height);
+
   //
   //virtual BufferRenderData CreateBuffer(BufferCreationData& creationData, BufferType::Enum bufferType) { return BufferRenderData(); };
   //virtual void UploadBuffer(BufferRenderData& renderData, ByteBuffer& data) {};
@@ -57,18 +126,21 @@ public:
   VulkanRuntimeData* GetRuntimeData(){return mInternal;}
 //private:
 
+  void RecreateFramesInternal();
   void CreateSwapChainInternal();
   void DestroySwapChainInternal();
-  void CreateImageInternal(Texture* texture, VulkanImage* image);
-  void CreateImageViewInternal(Texture* texture, VulkanImage* image);
-  void SetDescriptorSetLayoutBinding(MaterialDescriptorSetLayout* materialDescriptor, void* vulkanDescriptor);
+  void CreateRenderFramesInternal();
+  void DestroyRenderFramesInternal();
+  void CreateImageInternal(const Texture* texture, VulkanImage* image);
+  void CreateImageViewInternal(const Texture* texture, VulkanImage* image);
   void CreateDepthResourcesInternal();
   void DestroyDepthResourcesInternal();
 
   VulkanRuntimeData* mInternal;
 
-  std::unordered_map<Mesh*, VulkanMesh*> mMeshMap;
-  std::unordered_map<Texture*, VulkanImage*> mTextureMap;
-  std::unordered_map<Shader*, VulkanShader*> mShaderMap;
-  std::unordered_map<Material*, VulkanMaterial*> mMaterialMap;
+  std::unordered_map<const Mesh*, VulkanMesh*> mMeshMap;
+  std::unordered_map<const Texture*, VulkanImage*> mTextureMap;
+  std::unordered_map<String, VulkanImage*> mTextureNameMap;
+  std::unordered_map<const Shader*, VulkanShader*> mShaderMap;
+  std::unordered_map<const ShaderBinding*, VulkanShaderMaterial*> mShaderMaterialMap;
 };

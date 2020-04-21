@@ -7,6 +7,7 @@ struct SyncObjects
   std::vector<VkSemaphore> mImageAvailableSemaphores;
   std::vector<VkSemaphore> mRenderFinishedSemaphores;
   std::vector<VkFence> mInFlightFences;
+  std::vector<VkFence> mImagesInFlight;
 };
 
 inline VulkanStatus CreateSyncObjects(VkDevice device, size_t maxFrames, SyncObjects& syncObjects)

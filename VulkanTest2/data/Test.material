@@ -1,0 +1,14 @@
+{
+  "Name": "Test",
+  "ShaderName": "Test",
+  "Properties" : {
+    "Albedo" : {
+      "PrimitiveType" : "Float4",
+      "Value" : [0, 0, 0.75, 1]
+    },
+    "Texture" : {
+      "PrimitiveType" : "SampledImage",
+      "Value" : "Test"
+    }
+  }
+}

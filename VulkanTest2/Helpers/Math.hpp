@@ -2,6 +2,8 @@
 
 struct Vec2
 {
+  static constexpr size_t Count = 2;
+
   Vec2() {}
   Vec2(float x_, float y_)
   {
@@ -13,12 +15,19 @@ struct Vec2
   {
     return x == rhs.x && y == rhs.y;
   }
+  float& operator[](size_t index)
+  {
+    float* data = &x;
+    return data[index];
+  }
 
   float x, y;
 };
 
 struct Vec3
 {
+  static constexpr size_t Count = 3;
+
   Vec3() {}
   Vec3(float x_, float y_, float z_)
   {
@@ -31,13 +40,45 @@ struct Vec3
   {
     return x == rhs.x && y == rhs.y && z == rhs.z;
   }
+  float& operator[](size_t index)
+  {
+    float* data = &x;
+    return data[index];
+  }
 
   float x, y, z;
 };
 
+struct Vec4
+{
+  static constexpr size_t Count = 4;
+
+  Vec4() {}
+  Vec4(float x_, float y_, float z_, float w_)
+  {
+    x = x_;
+    y = y_;
+    z = z_;
+    w = w_;
+  }
+
+  bool operator==(const Vec4& rhs) const
+  {
+    return x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w;
+  }
+  float& operator[](size_t index)
+  {
+    float* data = &x;
+    return data[index];
+  }
+
+  float x, y, z, w;
+
+};
 struct Integer2
 {
   typedef signed int scalar;
+  static constexpr size_t Count = 2;
   Integer2() {}
   Integer2(scalar x_, scalar y_)
   {
@@ -48,6 +89,11 @@ struct Integer2
   bool operator==(const Integer2& rhs) const
   {
     return x == rhs.x && y == rhs.y;
+  }
+  scalar& operator[](size_t index)
+  {
+    scalar* data = &x;
+    return data[index];
   }
 
   scalar x, y;

@@ -5,28 +5,40 @@
 #include <vector>
 using String = std::string;
 
-struct ShaderStage
-{
-  enum Enum
-  {
-    Vertex = 0,
-    Pixel,
-    Count
-  };
-};
-
-struct ShaderStageFlags
-{
-  enum Enum
-  {
-    None = 0,
-    Vertex = 1 << 0,
-    Pixel = 1 << 1,
-    Mask = (1 << 2) - 1
-  };
-};
+#include "ShaderEnumTypes.hpp"
 
 constexpr size_t ShaderStageCount = static_cast<size_t>(ShaderStage::Count);
+
+//-------------------------------------------------------------------ShaderResourceField
+struct ShaderResourceField
+{
+  ShaderPrimitiveType::Enum mPrimitiveType = ShaderPrimitiveType::Unknown;
+  String mName;
+  String mType;
+  size_t mSizeInBytes = 0;
+  size_t mOffset = 0;
+  size_t mStride = 0;
+};
+
+//-------------------------------------------------------------------ShaderResource
+struct ShaderResource
+{
+  ShaderResourceType::Enum mResourceType = ShaderResourceType::Unknown;
+  String mResourceName;
+  String mResourceTypeName;
+  size_t mBindingId = 0;
+  size_t mLocation = 0;
+  size_t mDescriptorSet = 0;
+  size_t mSizeInBytes = 0;
+  std::vector<ShaderResourceField> mFields;
+};
+
+//-------------------------------------------------------------------ShaderResources
+struct ShaderResources
+{
+  std::vector<ShaderResource> mUniformBuffers;
+  std::vector<ShaderResource> mSampledImages;
+};
 
 //-------------------------------------------------------------------ShaderLoadData
 struct ShaderLoadData
@@ -39,6 +51,7 @@ struct Shader
 {
 public:
   std::vector<char> mShaderByteCode[ShaderStageCount]{};
+  ShaderResources mResources[ShaderStageCount]{};
 };
 
 //-------------------------------------------------------------------ShaderManager
@@ -49,7 +62,9 @@ public:
   ~ShaderManager();
 
   void Load();
+  void LoadFromFile(const String& path);
   void LoadShader(const String& name, const ShaderLoadData& shaderData);
+  void LoadShaderResources(const std::vector<char>& shaderByteCode, ShaderResources& resources);
   Shader* Find(const String& name);
   void Destroy();
 

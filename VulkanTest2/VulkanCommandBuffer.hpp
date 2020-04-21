@@ -42,7 +42,7 @@ struct CommandBufferWriteInfo
   uint32_t mDynamicOffsetsCount = 0;
 };
 
-VulkanStatus BeginCommandBuffer(VkCommandBuffer& commandBuffer)
+inline VulkanStatus BeginCommandBuffer(VkCommandBuffer& commandBuffer)
 {
   VkCommandBufferBeginInfo beginInfo = {};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -55,7 +55,7 @@ VulkanStatus BeginCommandBuffer(VkCommandBuffer& commandBuffer)
   return result;
 }
 
-VulkanStatus EndCommandBuffer(VkCommandBuffer& commandBuffer)
+inline VulkanStatus EndCommandBuffer(VkCommandBuffer& commandBuffer)
 {
   VulkanStatus result;
   if(vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
@@ -63,7 +63,7 @@ VulkanStatus EndCommandBuffer(VkCommandBuffer& commandBuffer)
   return result;
 }
 
-VulkanStatus BeginRenderPass(CommandBufferWriteInfo& writeInfo, VkCommandBuffer& commandBuffer)
+inline VulkanStatus BeginRenderPass(CommandBufferWriteInfo& writeInfo, VkCommandBuffer& commandBuffer)
 {
   VkRenderPassBeginInfo renderPassInfo = {};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -81,13 +81,13 @@ VulkanStatus BeginRenderPass(CommandBufferWriteInfo& writeInfo, VkCommandBuffer&
   return VulkanStatus();
 }
 
-VulkanStatus EndRenderPass(CommandBufferWriteInfo& writeInfo, VkCommandBuffer& commandBuffer)
+inline VulkanStatus EndRenderPass(CommandBufferWriteInfo& writeInfo, VkCommandBuffer& commandBuffer)
 {
   vkCmdEndRenderPass(commandBuffer);
   return VulkanStatus();
 }
 
-VulkanStatus WriteCommandBuffer(CommandBufferWriteInfo& writeInfo, VkCommandBuffer& commandBuffer)
+inline VulkanStatus WriteCommandBuffer(CommandBufferWriteInfo& writeInfo, VkCommandBuffer& commandBuffer)
 {
   BeginCommandBuffer(commandBuffer);
 
@@ -116,7 +116,7 @@ VulkanStatus WriteCommandBuffer(CommandBufferWriteInfo& writeInfo, VkCommandBuff
   return VulkanStatus();
 }
 
-VulkanStatus CreateCommandBuffer(VkDevice device, VkCommandPool commandPool, VkCommandBuffer* resultBuffers, uint32_t resultBuffersCount)
+inline VulkanStatus CreateCommandBuffer(VkDevice device, VkCommandPool commandPool, VkCommandBuffer* resultBuffers, uint32_t resultBuffersCount)
 {
   VkCommandBufferAllocateInfo allocInfo = {};
   allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -130,7 +130,7 @@ VulkanStatus CreateCommandBuffer(VkDevice device, VkCommandPool commandPool, VkC
   return result;
 }
 
-void CreateCommandBuffers(CommandBuffersCreationData& creationData, CommandBuffersResultData& resultData)
+inline void CreateCommandBuffers(CommandBuffersCreationData& creationData, CommandBuffersResultData& resultData)
 {
   resultData.mCommandBuffers.resize(creationData.mSwapChainFramebuffers.size());
   CreateCommandBuffer(creationData.mDevice, creationData.mCommandPool, resultData.mCommandBuffers.data(), static_cast<uint32_t>(resultData.mCommandBuffers.size()));

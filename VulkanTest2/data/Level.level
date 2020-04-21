@@ -1,0 +1,32 @@
+[
+  {
+    "Name" : "Object1",
+    "Transform" : {
+      "Translation" : [0, 0, 0]
+    },
+    "Model" : {
+      "Mesh" : "Test",
+      "Material" : "Test"
+    }
+  },
+  {
+    "Name" : "Object2",
+    "Transform" : {
+      "Translation" : [3, 0, 0]
+    },
+    "Model" : {
+      "Mesh" : "Test",
+      "Material" : "Test"
+    }
+  },
+  {
+    "Name" : "Object3",
+    "Transform" : {
+      "Translation" : [-3, 0, 0]
+    },
+    "Model" : {
+      "Mesh" : "Test",
+      "Material" : "Test"
+    }
+  }
+]

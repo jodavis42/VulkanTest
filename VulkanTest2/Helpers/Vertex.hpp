@@ -3,6 +3,7 @@
 #include <vector>
 #include "Math.hpp"
 
+//-------------------------------------------------------------------Vertex
 struct Vertex
 {
   Vec3 pos;

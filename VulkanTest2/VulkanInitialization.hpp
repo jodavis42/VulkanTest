@@ -60,12 +60,13 @@ struct VulkanRuntimeData
   VkFormat mDepthFormat;
   uint32_t mWidth;
   uint32_t mHeight;
+  bool mResized = false;
 
   ConstantSwapChainInfo mSwapChainInfo;
   SwapChainData mSwapChain;
 
   
-
+  std::vector<VulkanRenderFrame> mRenderFrames;
   
   
   
@@ -89,6 +90,11 @@ struct VulkanRuntimeData
 
   VkBuffer mIndexBuffer;
   VkDeviceMemory mIndexBufferMemory;
+
+  //VulkanUniformBuffer mMaterialBuffer;
+  VulkanUniformBuffers mUniformBuffers;
+  uint32_t mLastUsedMaterialBufferId = 0;
+  std::unordered_map<uint32_t, VulkanUniformBuffer> mMaterialBuffers;
 };
 
 inline std::vector<const char*> GetRequiredExtensions()

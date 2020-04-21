@@ -2,13 +2,14 @@
 
 #include "Texture.hpp"
 
-
+#include <filesystem>
 #include <algorithm>
+#include "JsonSerializers.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
-const std::string TEXTURE_PATH = "textures/chalet.jpg";
 
+//-------------------------------------------------------------------TextureManager
 TextureManager::TextureManager()
 {
 
@@ -21,7 +22,20 @@ TextureManager::~TextureManager()
 
 void TextureManager::Load()
 {
-  LoadTexture("Test", TEXTURE_PATH);
+  LoadAllFilesOfExtension(*this, "data", ".texture");
+}
+
+void TextureManager::LoadFromFile(const String& path)
+{
+  JsonLoader loader;
+  loader.LoadFromFile(path);
+
+  String textureName;
+  String texturePath;
+
+  LoadPrimitive(loader, "Name", textureName);
+  LoadPrimitive(loader, "TexturePath", texturePath);
+  LoadTexture(textureName, texturePath);
 }
 
 void TextureManager::LoadTexture(const String& name, const String& path)
@@ -31,6 +45,7 @@ void TextureManager::LoadTexture(const String& name, const String& path)
   uint32_t pixelsSize = texWidth * texHeight * 4;
 
   Texture* texture = new Texture();
+  texture->mName = name;
   texture->mSizeX = texWidth;
   texture->mSizeY = texHeight;
   texture->mMipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;

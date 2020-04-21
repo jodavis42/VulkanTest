@@ -2,16 +2,7 @@
 
 #include "Shader.hpp"
 
-//-------------------------------------------------------------------MaterialDescriptorEntryType
-enum class MaterialDescriptorEntryType
-{
-  Unknown,
-  Byte,
-  Int,
-  Float,
-  Vec2, Vec3, Vec4,
-  Mat2, Mat3, Mat4
-};
+typedef unsigned char byte;
 
 //-------------------------------------------------------------------MaterialDescriptorType
 enum class MaterialDescriptorType
@@ -22,38 +13,6 @@ enum class MaterialDescriptorType
   SampledImage
 };
 
-//-------------------------------------------------------------------MaterialDescriptorElement
-struct MaterialDescriptorElement
-{
-  MaterialDescriptorElement() {}
-  MaterialDescriptorElement(MaterialDescriptorEntryType type, size_t offset, size_t size)
-    : mElementType(type), mOffset(offset), mSize(size)
-  {
-
-  }
-
-  MaterialDescriptorEntryType mElementType = MaterialDescriptorEntryType::Unknown;
-  size_t mOffset = 0;
-  size_t mSize = 0;
-};
-
-//-------------------------------------------------------------------MaterialDescriptorSetLayout
-struct MaterialDescriptorSetLayout
-{
-  size_t mBinding = 0;
-  ShaderStageFlags::Enum mStageFlags = ShaderStageFlags::None;
-  MaterialDescriptorType mDescriptorType = MaterialDescriptorType::Unknown;
-  std::vector<MaterialDescriptorElement> mElements;
-  size_t mTotalSize;
-
-  size_t AddElement(MaterialDescriptorEntryType type, size_t offset, size_t size)
-  {
-    mElements.emplace_back(MaterialDescriptorElement(type, offset, size));
-    mTotalSize += size;
-    return offset + size;
-  }
-};
-
 //-------------------------------------------------------------------MaterialBuffer
 struct MaterialBuffer
 {
@@ -61,17 +20,19 @@ struct MaterialBuffer
   std::vector<char> mData;
 };
 
+struct MaterialProperty
+{
+  String mPropertyName;
+  ShaderPrimitiveType::Enum mType = ShaderPrimitiveType::Unknown;
+  std::vector<byte> mData;
+};
+
 //-------------------------------------------------------------------Material
 struct Material
 {
-  Shader* mShader = nullptr;
+  String mShaderName;
 
-  std::vector<MaterialBuffer> mBuffers;
-  std::vector<MaterialDescriptorSetLayout> mDescriptorLayouts;
-
-  // Remove below here...
-  String mVertexShaderName;
-  String mPixelShaderName;
+  std::vector<MaterialProperty> mProperties;
 };
 
 //-------------------------------------------------------------------MaterialManager
@@ -80,6 +41,9 @@ struct MaterialManager
 public:
   MaterialManager();
   ~MaterialManager();
+
+  void Load();
+  void LoadFromFile(const String& path);
 
   void Add(const String& name, Material* material);
   Material* Find(const String& name);

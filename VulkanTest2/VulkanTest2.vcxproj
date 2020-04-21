@@ -91,7 +91,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>C:\Users\Josh\Documents\Visual Studio 2017\Projects\VulkanTest2\Utilities;C:\Users\Josh\Downloads\glfw-3.3.bin.WIN64\glfw-3.3.bin.WIN64\include;C:\VulkanSDK\1.2.131.2\Include;C:\Users\Josh\Documents\Visual Studio 2017\Projects\VulkanTest2\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Josh\Documents\Visual Studio 2017\Projects\VulkanTest2\Utilities;C:\Users\Josh\Downloads\glfw-3.3.bin.WIN64\glfw-3.3.bin.WIN64\include;C:\VulkanSDK\1.2.131.2\Include;C:\Users\Josh\Documents\Visual Studio 2017\Projects\VulkanTest2\glm;$(ProjectDir);$(SolutionDir)\RapidJson</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -111,7 +111,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\Users\Josh\Documents\Visual Studio 2017\Projects\VulkanTest2\Utilities;C:\Users\Josh\Downloads\glfw-3.3.bin.WIN64\glfw-3.3.bin.WIN64\include;C:\VulkanSDK\1.2.131.2\Include;C:\Users\Josh\Documents\Visual Studio 2017\Projects\VulkanTest2\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Josh\Documents\Visual Studio 2017\Projects\VulkanTest2\Utilities;C:\Users\Josh\Downloads\glfw-3.3.bin.WIN64\glfw-3.3.bin.WIN64\include;C:\VulkanSDK\1.2.131.2\Include;C:\Users\Josh\Documents\Visual Studio 2017\Projects\VulkanTest2\glm;$(ProjectDir);$(SolutionDir)\RapidJson</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -131,7 +131,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>C:\Users\Josh\Documents\Visual Studio 2017\Projects\VulkanTest2\Utilities;C:\Users\Josh\Downloads\glfw-3.3.bin.WIN64\glfw-3.3.bin.WIN64\include;C:\VulkanSDK\1.2.131.2\Include;C:\Users\Josh\Documents\Visual Studio 2017\Projects\VulkanTest2\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Josh\Documents\Visual Studio 2017\Projects\VulkanTest2\Utilities;C:\Users\Josh\Downloads\glfw-3.3.bin.WIN64\glfw-3.3.bin.WIN64\include;C:\VulkanSDK\1.2.131.2\Include;C:\Users\Josh\Documents\Visual Studio 2017\Projects\VulkanTest2\glm;$(ProjectDir);$(SolutionDir)\RapidJson</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -155,7 +155,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\Users\Josh\Documents\Visual Studio 2017\Projects\VulkanTest2\Utilities;C:\Users\Josh\Downloads\glfw-3.3.bin.WIN64\glfw-3.3.bin.WIN64\include;C:\VulkanSDK\1.2.131.2\Include;C:\Users\Josh\Documents\Visual Studio 2017\Projects\VulkanTest2\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Josh\Documents\Visual Studio 2017\Projects\VulkanTest2\Utilities;C:\Users\Josh\Downloads\glfw-3.3.bin.WIN64\glfw-3.3.bin.WIN64\include;C:\VulkanSDK\1.2.131.2\Include;C:\Users\Josh\Documents\Visual Studio 2017\Projects\VulkanTest2\glm;$(ProjectDir);$(SolutionDir)\RapidJson</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -170,12 +170,16 @@
     <ClInclude Include="Helpers\Enums.hpp" />
     <ClInclude Include="Helpers\File.hpp" />
     <ClInclude Include="Helpers\Material.hpp" />
+    <ClInclude Include="Helpers\MaterialBinding.hpp" />
     <ClInclude Include="Helpers\Math.hpp" />
     <ClInclude Include="Helpers\Mesh.hpp" />
     <ClInclude Include="Helpers\Shader.hpp" />
+    <ClInclude Include="Helpers\ShaderEnumTypes.hpp" />
     <ClInclude Include="Helpers\Texture.hpp" />
     <ClInclude Include="Helpers\Vertex.hpp" />
     <ClInclude Include="Internal\EnumConversions.hpp" />
+    <ClInclude Include="Internal\VulkanMaterials.hpp" />
+    <ClInclude Include="JsonSerializers.hpp" />
     <ClInclude Include="VulkanBufferCreation.hpp" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="VulkanCommandBuffer.hpp" />
@@ -196,9 +200,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Helpers\Material.cpp" />
+    <ClCompile Include="Helpers\MaterialBinding.cpp" />
     <ClCompile Include="Helpers\Mesh.cpp" />
     <ClCompile Include="Helpers\Shader.cpp" />
+    <ClCompile Include="Helpers\ShaderEnumTypes.cpp" />
     <ClCompile Include="Helpers\Texture.cpp" />
+    <ClCompile Include="Internal\VulkanMaterials.cpp" />
+    <ClCompile Include="JsonSerializers.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -206,12 +214,28 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="VulkanRenderer.cpp" />
+    <ClCompile Include="VulkanStructures.cpp" />
     <ClCompile Include="VulkanTest2.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="data\Chalet.mesh" />
+    <None Include="data\Chalet.texture" />
+    <None Include="data\Level.level" />
+    <None Include="data\Test.material" />
+    <None Include="data\Test.mesh" />
+    <None Include="data\Test.shader" />
+    <None Include="data\Test.texture" />
+    <None Include="data\Test2.shader" />
     <None Include="shaders\compile.bat" />
     <None Include="shaders\Pixel.frag" />
+    <None Include="shaders\Pixel2.frag" />
     <None Include="shaders\Vertex.vert" />
+    <None Include="shaders\Vertex2.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Utilities\SPIRV-Cross\SPIRV-Cross.vcxproj">
+      <Project>{f753071b-b175-40d1-80a5-8f154eb8dbae}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

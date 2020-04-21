@@ -50,8 +50,10 @@ public:
   TextureAddressing mAddressingY = TextureAddressing::Repeat;
   size_t mMipLevels = 1;
   std::vector<float> mTextureData;
+  String mName;
 };
 
+//-------------------------------------------------------------------TextureManager
 struct TextureManager
 {
 public:
@@ -59,6 +61,7 @@ public:
   ~TextureManager();
 
   void Load();
+  void LoadFromFile(const String& path);
   void LoadTexture(const String& name, const String& path);
   Texture* Find(const String& name);
   void Destroy();

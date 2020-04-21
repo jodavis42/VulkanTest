@@ -1,11 +1,13 @@
 #include "pch.h"
 
+#pragma optimize("", on)
 #include "Mesh.hpp"
+
+#include <filesystem>
+#include "JsonSerializers.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tinyobjloader/tiny_obj_loader.h"
-const std::string MODEL_PATH = "models/chalet.obj";
-#include <vulkan/vulkan.h>
 
 void FilloutMesh(Mesh* mesh, std::vector<tinyobj::shape_t>& shapes, tinyobj::attrib_t& attrib)
 {
@@ -13,23 +15,26 @@ void FilloutMesh(Mesh* mesh, std::vector<tinyobj::shape_t>& shapes, tinyobj::att
 
   for(const auto& shape : shapes)
   {
-    for(const auto& index : shape.mesh.indices)\
+    for(const auto& index : shape.mesh.indices)
     {
       Vertex vertex = {};
-      vertex.pos = {
+      vertex.pos =
+      {
         attrib.vertices[3 * index.vertex_index + 0],
         attrib.vertices[3 * index.vertex_index + 1],
         attrib.vertices[3 * index.vertex_index + 2]
       };
 
-      vertex.uv = {
+      vertex.uv =
+      {
          attrib.texcoords[2 * index.texcoord_index + 0],
-  1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+         1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
       };
 
       vertex.color = {1.0f, 1.0f, 1.0f};
 
-      if(uniqueVertices.count(vertex) == 0) {
+      if(uniqueVertices.count(vertex) == 0)
+      {
         uniqueVertices[vertex] = static_cast<uint32_t>(mesh->mVertices.size());
         mesh->mVertices.push_back(vertex);
       }
@@ -39,6 +44,7 @@ void FilloutMesh(Mesh* mesh, std::vector<tinyobj::shape_t>& shapes, tinyobj::att
   }
 }
 
+//-------------------------------------------------------------------MeshManager
 MeshManager::MeshManager()
 {
 
@@ -51,7 +57,20 @@ MeshManager::~MeshManager()
 
 void MeshManager::Load()
 {
-  LoadMesh("Test", MODEL_PATH);
+  LoadAllFilesOfExtension(*this, "data", ".mesh");
+}
+
+void MeshManager::LoadFromFile(const String& path)
+{
+  JsonLoader loader;
+  loader.LoadFromFile(path);
+
+  String meshName;
+  String meshPath;
+
+  LoadPrimitive(loader, "Name", meshName);
+  LoadPrimitive(loader, "MeshPath", meshPath);
+  LoadMesh(meshName, meshPath);
 }
 
 void MeshManager::LoadMesh(const String& name, const String& path)
