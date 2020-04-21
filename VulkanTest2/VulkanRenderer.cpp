@@ -327,6 +327,30 @@ void VulkanRenderer::Resize(size_t width, size_t height)
   mInternal->mResized = true;
 }
 
+Matrix4 VulkanRenderer::BuildPerspectiveMatrix(float verticalFov, float aspectRatio, float nearDistance, float farDistance)
+{
+// Near and far distances are expected to be positive
+  float depth = farDistance - nearDistance;
+  // tan(fov/2) = t/n
+  // n/t = cot(fov/2)
+  float n_t = 1.0f / std::tan(verticalFov * 0.5f);
+
+  // r = t*(r/t) = t*aspect
+  // n/r = n/(t*aspect) = (n/t)/aspect
+  float n_r = n_t / aspectRatio;
+
+  Matrix4 m;
+  m.SetIdentity();
+  m[0][0] = n_r;
+  m[1][1] = -n_t;
+  m[2][2] = -farDistance / depth;
+  m[3][3] = 0.0f;
+  m[3][2] = -farDistance * nearDistance / depth;
+  m[2][3] = -1.0f;
+
+  return m;
+}
+
 void VulkanRenderer::Draw()
 {
 

@@ -99,6 +99,84 @@ struct Integer2
   scalar x, y;
 };
 
+struct Matrix4
+{
+
+  typedef float scalar;
+
+  Matrix4()
+  {
+    SetIdentity();
+  }
+
+  void Load(scalar* data)
+  {
+    for(size_t i = 0; i < 16; ++i)
+      array[i] = data[i];
+  }
+
+  const Vec4& operator[](uint32_t index) const
+  {
+    return ((Vec4*)this)[index];
+  }
+  Vec4& operator[](uint32_t index)
+  {
+    return ((Vec4*)this)[index];
+  }
+
+  scalar operator()(uint32_t r, uint32_t c) const
+  {
+    return array[c + r * 4];
+  }
+
+  scalar& operator()(uint32_t r, uint32_t c)
+  {
+    return array[c + r * 4];
+  }
+
+  /// Set all elements to 0.
+  void ZeroOut()
+  {
+    for(size_t i = 0; i < 16; ++i)
+      array[i] = 0.0f;
+  }
+
+  /// Set the matrix to the identity.
+  void SetIdentity()
+  {
+    m00 = 1.0f; m01 = 0.0f; m02 = 0.0f; m03 = 0.0f;
+    m10 = 0.0f; m11 = 1.0f; m12 = 0.0f; m13 = 0.0f;
+    m20 = 0.0f; m21 = 0.0f; m22 = 1.0f; m23 = 0.0f;
+    m30 = 0.0f; m31 = 0.0f; m32 = 0.0f; m33 = .0f;
+  }
+
+  /// Return the transpose of the given matrix.
+  static Matrix4 Transposed(const Matrix4& mat)
+  {
+    Matrix4 result = mat;
+    std::swap(result.m01, result.m10);
+    std::swap(result.m02, result.m20);
+    std::swap(result.m03, result.m30);
+    std::swap(result.m12, result.m21);
+    std::swap(result.m13, result.m31);
+    std::swap(result.m23, result.m32);
+    return result;
+  }
+
+  union
+  {
+    struct
+    {
+      scalar m00, m01, m02, m03,
+             m10, m11, m12, m13,
+             m20, m21, m22, m23,
+             m30, m31, m32, m33;
+    };
+
+    scalar array[16];
+  };
+};
+
 namespace std
 {
 

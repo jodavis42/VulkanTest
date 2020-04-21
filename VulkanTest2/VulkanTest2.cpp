@@ -47,12 +47,12 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 struct PerCameraData {
-  alignas(16) glm::mat4 view;
-  alignas(16) glm::mat4 proj;
+  alignas(16) Matrix4 view;
+  alignas(16) Matrix4 proj;
 };
 
 struct PerObjectData {
-  alignas(16) glm::mat4 model;
+  alignas(16) Matrix4 model;
 };
 
 
@@ -593,10 +593,16 @@ private:
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
+    float nearDistance = 0.1f;
+    float farDistance = 10.0f;
+    VkExtent2D extent = mRenderer.mInternal->mSwapChain.mExtent;
+    float aspectRatio = extent.width / (float)extent.height;
+    float fov = glm::radians(45.0f);
+    auto lookAt = glm::lookAt(glm::vec3(5.0f, 5.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
     PerCameraData perCameraData;
-    perCameraData.view = glm::lookAt(glm::vec3(5.0f, 5.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    perCameraData.proj = glm::perspective(glm::radians(45.0f), mRenderer.mInternal->mSwapChain.mExtent.width / (float)mRenderer.mInternal->mSwapChain.mExtent.height, 0.1f, 10.0f);
-    perCameraData.proj[1][1] *= -1;
+    perCameraData.view.Load(&lookAt[0][0]);
+    perCameraData.proj = mRenderer.BuildPerspectiveMatrix(fov, aspectRatio, nearDistance, farDistance);
 
     void* data;
 

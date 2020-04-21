@@ -119,7 +119,7 @@ public:
   //virtual void DispatchCompute(ObjectData& objData, int x, int y, int z) {};
   //
   //virtual void Reshape(int width, int height, float aspectRatio) {};
-  //virtual Matrix4 BuildPerspectiveMatrix(float verticalFov, float aspectRatio, float nearDistance, float farDistance) abstract;
+  virtual Matrix4 BuildPerspectiveMatrix(float verticalFov, float aspectRatio, float nearDistance, float farDistance);
   //virtual ZilchShaderIRBackend* CreateBackend() abstract;
   void Draw();
 
