@@ -35,6 +35,7 @@
 #include "Helpers/Shader.hpp"
 #include "Helpers/Material.hpp"
 #include "Helpers/MaterialBinding.hpp"
+#include "Helpers/Model.hpp"
 #include "Helpers/Texture.hpp"
 #include "VulkanStructures.hpp"
 #include "VulkanRenderer.hpp"
@@ -59,31 +60,9 @@ struct PerObjectData {
 #pragma optimize("", off)
 
 
-struct Model
-{
-  String mMaterialName;
-  String mMeshName;
-
-  Vec3 mTranslation = Vec3(0, 0, 0);
-  glm::mat3 mRotation;
-  Vec3 mScale = Vec3(1, 1, 1);
-};
 
 
-void LoadModel(JsonLoader& loader, Model* model)
-{
-  if(loader.BeginMember("Transform"))
-  {
-    LoadArray(loader, "Translation", model->mTranslation);
-    loader.EndMember();
-  }
-  if(loader.BeginMember("Model"))
-  {
-    LoadPrimitive(loader, "Mesh", model->mMeshName);
-    LoadPrimitive(loader, "Material", model->mMaterialName);
-    loader.EndMember();
-  }
-}
+
 
 class HelloTriangleApplication {
 public:
@@ -395,11 +374,6 @@ private:
     return ::AlignUniformBufferOffset(mDeviceLimits, offset);
   }
 
-  uint32_t GetFrameCount()
-  {
-    return mRenderer.mInternal->mSwapChain.GetCount();
-  }
-
   struct FrameData
   {
     VkFramebuffer mFramebuffer;
@@ -496,7 +470,7 @@ private:
     else if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
       throw std::runtime_error("failed to acquire swap chain image!");
 
-    auto& uniformBuffers = GetUniformBuffers();
+    auto& uniformBuffers = *mRenderer.RequestUniformBuffer(0);
     FrameData frameData;
     frameData.mIndex = imageIndex;
     frameData.mCommandBuffer = mRenderer.mInternal->mRenderFrames[imageIndex].mCommandBuffer;
@@ -647,10 +621,6 @@ private:
   {
     ShaderBinding& shaderBinding = mShaderBindings[material->mShaderName];
     return mRenderer.mShaderMaterialMap[&shaderBinding];
-  }
-  VulkanUniformBuffers& GetUniformBuffers()
-  {
-    return *mRenderer.RequestUniformBuffer(0);
   }
 
   GLFWwindow* mWindow;

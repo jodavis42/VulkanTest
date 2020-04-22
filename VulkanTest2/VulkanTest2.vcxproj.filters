@@ -117,6 +117,9 @@
     <ClInclude Include="Helpers\MaterialBinding.hpp">
       <Filter>Helpers</Filter>
     </ClInclude>
+    <ClInclude Include="Helpers\Model.hpp">
+      <Filter>Helpers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -154,6 +157,9 @@
     </ClCompile>
     <ClCompile Include="VulkanStructures.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\Model.cpp">
+      <Filter>Helpers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -173,6 +173,7 @@
     <ClInclude Include="Helpers\MaterialBinding.hpp" />
     <ClInclude Include="Helpers\Math.hpp" />
     <ClInclude Include="Helpers\Mesh.hpp" />
+    <ClInclude Include="Helpers\Model.hpp" />
     <ClInclude Include="Helpers\Shader.hpp" />
     <ClInclude Include="Helpers\ShaderEnumTypes.hpp" />
     <ClInclude Include="Helpers\Texture.hpp" />
@@ -202,6 +203,7 @@
     <ClCompile Include="Helpers\Material.cpp" />
     <ClCompile Include="Helpers\MaterialBinding.cpp" />
     <ClCompile Include="Helpers\Mesh.cpp" />
+    <ClCompile Include="Helpers\Model.cpp" />
     <ClCompile Include="Helpers\Shader.cpp" />
     <ClCompile Include="Helpers\ShaderEnumTypes.cpp" />
     <ClCompile Include="Helpers\Texture.cpp" />
