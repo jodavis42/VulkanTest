@@ -379,6 +379,24 @@ VulkanUniformBuffers* VulkanRenderer::RequestUniformBuffer(uint32_t bufferId)
   return &uniformBuffers;
 }
 
+void* VulkanRenderer::MapUniformBufferMemory(UniformBufferType::Enum bufferType, uint32_t bufferId, uint32_t frameIndex)
+{
+  VulkanUniformBuffer* buffer = GetUniformBuffer(mInternal, bufferType, bufferId, frameIndex);
+  
+  void* data = nullptr;
+  if(buffer != nullptr)
+    vkMapMemory(mInternal->mDevice, buffer->mBufferMemory, 0, mInternal->mDeviceLimits.mMaxUniformBufferRange, 0, &data);
+  return data;
+}
+
+void VulkanRenderer::UnMapUniformBufferMemory(UniformBufferType::Enum bufferType, uint32_t bufferId, uint32_t frameIndex)
+{
+  VulkanUniformBuffer* buffer = GetUniformBuffer(mInternal, bufferType, bufferId, frameIndex);
+
+  if(buffer != nullptr && buffer->mBufferMemory != VK_NULL_HANDLE)
+    vkUnmapMemory(mInternal->mDevice, buffer->mBufferMemory);
+}
+
 void VulkanRenderer::DestroyUniformBuffer(uint32_t bufferId)
 {
   auto it = mInternal->mUniformBufferMap.find(bufferId);

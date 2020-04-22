@@ -82,7 +82,7 @@ struct VulkanRuntimeData
   std::vector<VkCommandBuffer> mCommandBuffers;
 
   
-  size_t mCurrentFrame = 0;
+  uint32_t mCurrentFrame = 0;
 
   bool mFramebufferResized = false;
   VkBuffer mVertexBuffer;
@@ -274,6 +274,21 @@ inline VulkanStatus CreateCommandPool(VkPhysicalDevice physicalDevice, VkDevice 
   return result;
 }
 
+inline VulkanUniformBuffer* GetUniformBuffer(VulkanRuntimeData* runtimeData, UniformBufferType::Enum bufferType, uint32_t bufferId, uint32_t frameIndex)
+{
+  VulkanUniformBuffer* buffer = nullptr;
+  if(bufferType == UniformBufferType::Global)
+  {
+    if(frameIndex >= runtimeData->mSwapChain.GetCount())
+      __debugbreak();
+    buffer = &runtimeData->mUniformBufferMap[bufferId].mBuffers[frameIndex];
+  }
+  else if(bufferType == UniformBufferType::Material)
+  {
+    buffer = &runtimeData->mMaterialBuffers[bufferId];
+  }
+  return buffer;
+}
 
 
 inline void InitializeVulkan(VulkanRuntimeData& runtimeData)

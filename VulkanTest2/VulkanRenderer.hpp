@@ -125,7 +125,10 @@ public:
   void Draw();
 
   VulkanUniformBuffers* RequestUniformBuffer(uint32_t bufferId);
+  void* MapUniformBufferMemory(UniformBufferType::Enum bufferType, uint32_t bufferId, uint32_t frameIndex = static_cast<uint32_t>(-1));
+  void UnMapUniformBufferMemory(UniformBufferType::Enum bufferType, uint32_t bufferId, uint32_t frameIndex = static_cast<uint32_t>(-1));
   void DestroyUniformBuffer(uint32_t bufferId);
+
   VulkanRuntimeData* GetRuntimeData(){return mInternal;}
   
 //private:

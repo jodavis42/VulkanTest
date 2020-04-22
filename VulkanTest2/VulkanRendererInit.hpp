@@ -16,3 +16,12 @@ struct VulkanInitializationData
   size_t mHeight;
   SurfaceCreationDelegate mSurfaceCreationCallback;
 };
+
+struct UniformBufferType
+{
+  enum Enum
+  {
+    Global,
+    Material
+  };
+};

@@ -59,11 +59,6 @@ struct PerObjectData {
 
 #pragma optimize("", off)
 
-
-
-
-
-
 class HelloTriangleApplication {
 public:
   void run()
@@ -173,17 +168,13 @@ private:
     for(size_t i = 0; i < propertiesByBuffer.size(); ++i)
     {
       BufferSortData& data = propertiesByBuffer[i];
-      if(bufferId != data.mBufferId)
+      if(bufferId != data.mBufferId || byteData == nullptr)
       {
-        if(bufferMemory != VK_NULL_HANDLE)
-          vkUnmapMemory(mRenderer.mInternal->mDevice, bufferMemory);
-        bufferId = data.mBufferId;
+        if(byteData != nullptr)
+          mRenderer.UnMapUniformBufferMemory(UniformBufferType::Material, bufferId);
 
-        VulkanUniformBuffer& materialBuffer = mRenderer.mInternal->mMaterialBuffers[data.mBufferId];
-        bufferMemory = materialBuffer.mBufferMemory;
-        void* data;
-        vkMapMemory(mRenderer.mInternal->mDevice, bufferMemory, 0, mDeviceLimits.mMaxUniformBufferRange, 0, &data);
-        byteData = static_cast<unsigned char*>(data);
+        bufferId = data.mBufferId;
+        byteData = static_cast<byte*>(mRenderer.MapUniformBufferMemory(UniformBufferType::Material, bufferId));
       }
 
       MaterialProperty* prop = data.mProperty;
@@ -378,16 +369,12 @@ private:
   {
     VkFramebuffer mFramebuffer;
     VkCommandBuffer mCommandBuffer;
-    VkBuffer mUniformBuffer;
-    VkDeviceMemory mUniformBufferMemory;
     uint32_t mIndex;
   };
 
   void prepareFrame(FrameData& frameData)
   {
-    updateUniformBuffer(frameData.mUniformBufferMemory);
-
-    
+    UpdateGlobalBuffer(frameData);
 
     VkCommandBuffer commandBuffer = frameData.mCommandBuffer;
     
@@ -445,6 +432,44 @@ private:
     EndCommandBuffer(commandBuffer);
   }
 
+  void UpdateGlobalBuffer(FrameData& frameData)
+  {
+    static auto startTime = std::chrono::high_resolution_clock::now();
+
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+    float nearDistance = 0.1f;
+    float farDistance = 10.0f;
+    VkExtent2D extent = mRenderer.mInternal->mSwapChain.mExtent;
+    float aspectRatio = extent.width / (float)extent.height;
+    float fov = glm::radians(45.0f);
+    auto lookAt = glm::lookAt(glm::vec3(5.0f, 5.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+    PerCameraData perCameraData;
+    perCameraData.view.Load(&lookAt[0][0]);
+    perCameraData.proj = mRenderer.BuildPerspectiveMatrix(fov, aspectRatio, nearDistance, farDistance);
+
+    byte* data = static_cast<byte*>(mRenderer.MapUniformBufferMemory(UniformBufferType::Global, 0, frameData.mIndex));
+
+    size_t offset = 0;
+    memcpy(data, &perCameraData, sizeof(perCameraData));
+    offset += AlignUniformBufferOffset(sizeof(perCameraData));
+
+    size_t count = mModels.size();
+    for(size_t i = 0; i < count; ++i)
+    {
+      Model* model = mModels[i];
+      glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(model->mScale.x, model->mScale.y, model->mScale.z));
+      glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+      glm::mat4 translation = glm::translate(glm::mat4(1.0f), glm::vec3(model->mTranslation.x, model->mTranslation.y, model->mTranslation.z));
+      glm::mat4 transform = translation * rotation * scale;
+      byte* memory = data + offset + AlignUniformBufferOffset(sizeof(PerObjectData)) * i;
+      memcpy(memory, &transform, sizeof(transform));
+    }
+    mRenderer.UnMapUniformBufferMemory(UniformBufferType::Global, 0, frameData.mIndex);
+  }
+
   void mainLoop() {
     while(!glfwWindowShouldClose(mWindow))
     {
@@ -475,8 +500,6 @@ private:
     frameData.mIndex = imageIndex;
     frameData.mCommandBuffer = mRenderer.mInternal->mRenderFrames[imageIndex].mCommandBuffer;
     frameData.mFramebuffer = mRenderer.mInternal->mRenderFrames[imageIndex].mFrameBuffer;
-    frameData.mUniformBuffer = uniformBuffers.mBuffers[imageIndex].mBuffer;
-    frameData.mUniformBufferMemory = uniformBuffers.mBuffers[imageIndex].mBufferMemory;
     prepareFrame(frameData);
 
     if(mSyncObjects.mImagesInFlight[imageIndex] != VK_NULL_HANDLE) {
@@ -523,47 +546,6 @@ private:
       throw std::runtime_error("failed to present swap chain image!");
 
     mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-  }
-
-  void updateUniformBuffer(VkDeviceMemory uniformBufferMemory)
-  {
-    static auto startTime = std::chrono::high_resolution_clock::now();
-
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-    float nearDistance = 0.1f;
-    float farDistance = 10.0f;
-    VkExtent2D extent = mRenderer.mInternal->mSwapChain.mExtent;
-    float aspectRatio = extent.width / (float)extent.height;
-    float fov = glm::radians(45.0f);
-    auto lookAt = glm::lookAt(glm::vec3(5.0f, 5.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
-    PerCameraData perCameraData;
-    perCameraData.view.Load(&lookAt[0][0]);
-    perCameraData.proj = mRenderer.BuildPerspectiveMatrix(fov, aspectRatio, nearDistance, farDistance);
-
-    void* data;
-
-    size_t offset = 0;
-    vkMapMemory(mRenderer.mInternal->mDevice, uniformBufferMemory, offset, sizeof(perCameraData), 0, &data);
-    memcpy(data, &perCameraData, sizeof(perCameraData));
-    vkUnmapMemory(mRenderer.mInternal->mDevice, uniformBufferMemory);
-    offset += AlignUniformBufferOffset(sizeof(perCameraData));
-
-    size_t count = mModels.size();
-    vkMapMemory(mRenderer.mInternal->mDevice, uniformBufferMemory, offset, AlignUniformBufferOffset(sizeof(PerObjectData)) * count, 0, &data);
-    for(size_t i = 0; i < count; ++i)
-    {
-      Model* model = mModels[i];
-      glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(model->mScale.x, model->mScale.y, model->mScale.z));
-      glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-      glm::mat4 translation = glm::translate(glm::mat4(1.0f), glm::vec3(model->mTranslation.x, model->mTranslation.y, model->mTranslation.z));
-      glm::mat4 transform = translation * rotation * scale;
-      char* memory = ((char*)data) + AlignUniformBufferOffset(sizeof(PerObjectData)) * i;
-      memcpy(memory, &transform, sizeof(transform));
-    }
-    vkUnmapMemory(mRenderer.mInternal->mDevice, uniformBufferMemory);
   }
 
   void cleanup() 
