@@ -91,8 +91,8 @@ struct VulkanRuntimeData
   VkBuffer mIndexBuffer;
   VkDeviceMemory mIndexBufferMemory;
 
-  //VulkanUniformBuffer mMaterialBuffer;
-  VulkanUniformBuffers mUniformBuffers;
+  
+  std::unordered_map <uint32_t, VulkanUniformBuffers> mUniformBufferMap;
   uint32_t mLastUsedMaterialBufferId = 0;
   std::unordered_map<uint32_t, VulkanUniformBuffer> mMaterialBuffers;
 };

@@ -313,28 +313,12 @@ private:
   {
     GlobalSetup();
 
-    createUniformBuffers();
-
     LoadModelsAndBuffersAndTextures();
-  }
-
-  void CleanupUniform(VulkanUniformBuffer& buffer)
-  {
-    vkDestroyBuffer(mRenderer.mInternal->mDevice, buffer.mBuffer, nullptr);
-    vkFreeMemory(mRenderer.mInternal->mDevice, buffer.mBufferMemory, nullptr);
-    buffer.mBuffer = VK_NULL_HANDLE;
-    buffer.mBufferMemory = VK_NULL_HANDLE;
-  }
-
-  void CleanupUniforms(VulkanUniformBuffers& buffers)
-  {
-    for(auto&& buffer : buffers.mBuffers)
-      CleanupUniform(buffer);
   }
 
   void cleanupSwapChain()
   {
-    CleanupUniforms(GetUniformBuffers());
+    mRenderer.DestroyUniformBuffer(0);
     
     for(auto pair : mShaderMaterialBindings)
     {
@@ -362,7 +346,6 @@ private:
     mRenderer.CreateDepthResourcesInternal();
     mRenderer.CreateSwapChainInternal();
     mRenderer.CreateRenderFramesInternal();
-    createUniformBuffers();
 
     for(auto pair : mShaderMaterialBindings)
     {
@@ -404,24 +387,6 @@ private:
       mModels.emplace_back(model);
 
       loader.EndArrayItem();
-    }
-  }
-
-  void createUniformBuffers()
-  {
-    VkDeviceSize bufferSize = AlignUniformBufferOffset(sizeof(PerCameraData)) + sizeof(PerObjectData) * 1000;
-
-    size_t count = GetFrameCount();
-    auto& uniformBuffers = GetUniformBuffers();
-    uniformBuffers.mBuffers.resize(count);
-
-    VulkanBufferCreationData vulkanData{mRenderer.mInternal->mPhysicalDevice, mRenderer.mInternal->mDevice, mRenderer.mInternal->mGraphicsQueue, mRenderer.mInternal->mCommandPool};
-
-    for(size_t i = 0; i < count; i++)
-    {
-      VulkanUniformBuffer& buffer = uniformBuffers.mBuffers[i];
-      VkImageUsageFlags usageFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-      CreateBuffer(vulkanData, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, usageFlags, buffer.mBuffer, buffer.mBufferMemory);
     }
   }
 
@@ -685,7 +650,7 @@ private:
   }
   VulkanUniformBuffers& GetUniformBuffers()
   {
-    return mRenderer.mInternal->mUniformBuffers;
+    return *mRenderer.RequestUniformBuffer(0);
   }
 
   GLFWwindow* mWindow;

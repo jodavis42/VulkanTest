@@ -20,6 +20,7 @@ struct VulkanRenderFrame;
 class VulkanRenderer;
 struct RenderFrame;
 struct VulkanShaderMaterial;
+struct VulkanUniformBuffers;
 
 template <typename T>
 struct Factory
@@ -123,7 +124,10 @@ public:
   //virtual ZilchShaderIRBackend* CreateBackend() abstract;
   void Draw();
 
+  VulkanUniformBuffers* RequestUniformBuffer(uint32_t bufferId);
+  void DestroyUniformBuffer(uint32_t bufferId);
   VulkanRuntimeData* GetRuntimeData(){return mInternal;}
+  
 //private:
 
   void RecreateFramesInternal();

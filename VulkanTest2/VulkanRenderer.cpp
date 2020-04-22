@@ -356,6 +356,44 @@ void VulkanRenderer::Draw()
 
 }
 
+VulkanUniformBuffers* VulkanRenderer::RequestUniformBuffer(uint32_t bufferId)
+{
+  auto it = mInternal->mUniformBufferMap.find(bufferId);
+  if(it != mInternal->mUniformBufferMap.end())
+    return &it->second;
+
+  VkDeviceSize bufferSize = mInternal->mDeviceLimits.mMaxUniformBufferRange;
+
+  size_t count = mInternal->mSwapChain.GetCount();
+  auto& uniformBuffers = mInternal->mUniformBufferMap[bufferId];
+  uniformBuffers.mBuffers.resize(count);
+
+  VulkanBufferCreationData vulkanData{mInternal->mPhysicalDevice, mInternal->mDevice, mInternal->mGraphicsQueue, mInternal->mCommandPool};
+
+  for(size_t i = 0; i < count; i++)
+  {
+    VulkanUniformBuffer& buffer = uniformBuffers.mBuffers[i];
+    VkImageUsageFlags usageFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    CreateBuffer(vulkanData, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, usageFlags, buffer.mBuffer, buffer.mBufferMemory);
+  }
+  return &uniformBuffers;
+}
+
+void VulkanRenderer::DestroyUniformBuffer(uint32_t bufferId)
+{
+  auto it = mInternal->mUniformBufferMap.find(bufferId);
+  if(it == mInternal->mUniformBufferMap.end())
+    return;
+
+  auto& uniformBuffers = it->second;
+  for(auto& buffer : uniformBuffers.mBuffers)
+  {
+    vkDestroyBuffer(mInternal->mDevice, buffer.mBuffer, nullptr);
+    vkFreeMemory(mInternal->mDevice, buffer.mBufferMemory, nullptr);
+  }
+  mInternal->mUniformBufferMap.erase(bufferId);
+}
+
 void VulkanRenderer::RecreateFramesInternal()
 {
   DestroyRenderFramesInternal();

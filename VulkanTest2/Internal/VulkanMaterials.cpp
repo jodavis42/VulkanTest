@@ -173,7 +173,8 @@ void UpdateMaterialDescriptorSet(RendererData& rendererData, const ShaderMateria
   {
     ShaderResourceBinding* resourceBinding = pair.second;
 
-    VkBuffer buffer = runtimeData->mUniformBuffers.mBuffers[frameIndex].mBuffer;
+    VulkanUniformBuffers* buffers = rendererData.mRenderer->RequestUniformBuffer(0);
+    VkBuffer buffer = buffers->mBuffers[frameIndex].mBuffer;
     if(resourceBinding->mMaterialBindingId == ShaderMaterialBindingId::Material)
       buffer = FindMaterialBuffer(rendererData, vulkanShaderMaterial.mBufferId).mBuffer;
 
