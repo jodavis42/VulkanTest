@@ -176,6 +176,16 @@ void VulkanRenderer::CleanupResources()
   }
 }
 
+void VulkanRenderer::Shutdown()
+{
+  for(size_t i = 0; i < mInternal->mMaxFramesInFlight; i++)
+  {
+    vkDestroyFence(mInternal->mDevice, mInternal->mSyncObjects.mInFlightFences[i], nullptr);
+    vkDestroySemaphore(mInternal->mDevice, mInternal->mSyncObjects.mRenderFinishedSemaphores[i], nullptr);
+    vkDestroySemaphore(mInternal->mDevice, mInternal->mSyncObjects.mImageAvailableSemaphores[i], nullptr);
+  }
+}
+
 void VulkanRenderer::Destroy()
 {
   delete mInternal;

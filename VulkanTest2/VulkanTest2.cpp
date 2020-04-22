@@ -122,7 +122,6 @@ private:
     mRenderer.Initialize(initData);
 
     mDeviceLimits = internal->mDeviceLimits;
-    mSyncObjects = internal->mSyncObjects;
   }
 
   void populateMaterialBuffer()
@@ -324,7 +323,6 @@ private:
       mRenderer.UpdateShaderMaterial(&shaderMaterial);
     }
     
-    mSyncObjects = mRenderer.mInternal->mSyncObjects;
   }
 
   void LoadVulkanMesh(const String& name, Mesh* mesh)
@@ -533,13 +531,7 @@ private:
       mRenderer.DestroyTexture(texture);
     }
     mRenderer.CleanupResources();
-
-    for(size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-    {
-      vkDestroyFence(mRenderer.mInternal->mDevice, mSyncObjects.mInFlightFences[i], nullptr);
-      vkDestroySemaphore(mRenderer.mInternal->mDevice, mSyncObjects.mRenderFinishedSemaphores[i], nullptr);
-      vkDestroySemaphore(mRenderer.mInternal->mDevice, mSyncObjects.mImageAvailableSemaphores[i], nullptr);
-    }
+    mRenderer.Shutdown();
 
     if(enableValidationLayers)
       DestroyDebugUtilsMessengerEXT(mRenderer.mInternal->mInstance, mRenderer.mInternal->mDebugMessenger, nullptr);
@@ -566,8 +558,6 @@ private:
 
   GLFWwindow* mWindow;
   PhysicalDeviceLimits mDeviceLimits;
-
-  SyncObjects mSyncObjects;
 
   bool mFramebufferResized = false;
 

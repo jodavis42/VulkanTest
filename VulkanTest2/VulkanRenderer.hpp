@@ -95,6 +95,7 @@ public:
   void Initialize(const VulkanInitializationData& initData);
   void Cleanup();
   void CleanupResources();
+  void Shutdown();
   void Destroy();
 
   void CreateMesh(const Mesh* mesh);
