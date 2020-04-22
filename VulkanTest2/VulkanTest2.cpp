@@ -482,19 +482,16 @@ private:
 
   void drawFrame()
   {
-    vkWaitForFences(mRenderer.mInternal->mDevice, 1, &mSyncObjects.mInFlightFences[mCurrentFrame], VK_TRUE, UINT64_MAX);
-
-    uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(mRenderer.mInternal->mDevice, mRenderer.mInternal->mSwapChain.mSwapChain, UINT64_MAX, mSyncObjects.mImageAvailableSemaphores[mCurrentFrame], VK_NULL_HANDLE, &imageIndex);
-    if(result == VK_ERROR_OUT_OF_DATE_KHR)
+    RenderFrame* renderFrame = nullptr;
+    RenderFrameStatus status = mRenderer.BeginFrame(renderFrame);
+    if(status == RenderFrameStatus::OutOfDate)
     {
       mFramebufferResized = false;
       recreateSwapChain();
       return;
     }
-    else if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
-      throw std::runtime_error("failed to acquire swap chain image!");
 
+    uint32_t imageIndex = renderFrame->mId;
     auto& uniformBuffers = *mRenderer.RequestUniformBuffer(0);
     FrameData frameData;
     frameData.mIndex = imageIndex;
@@ -502,50 +499,12 @@ private:
     frameData.mFramebuffer = mRenderer.mInternal->mRenderFrames[imageIndex].mFrameBuffer;
     prepareFrame(frameData);
 
-    if(mSyncObjects.mImagesInFlight[imageIndex] != VK_NULL_HANDLE) {
-      vkWaitForFences(mRenderer.mInternal->mDevice, 1, &mSyncObjects.mImagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
-    }
-    mSyncObjects.mImagesInFlight[imageIndex] = mSyncObjects.mInFlightFences[mCurrentFrame];
 
-    VkSubmitInfo submitInfo = {};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-    VkSemaphore waitSemaphores[] = {mSyncObjects.mImageAvailableSemaphores[mCurrentFrame]};
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = waitSemaphores;
-    submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &frameData.mCommandBuffer;
-
-    VkSemaphore signalSemaphores[] = {mSyncObjects.mRenderFinishedSemaphores[mCurrentFrame]};
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = signalSemaphores;
-
-    vkResetFences(mRenderer.mInternal->mDevice, 1, &mSyncObjects.mInFlightFences[mCurrentFrame]);
-
-    if(vkQueueSubmit(mRenderer.mInternal->mGraphicsQueue, 1, &submitInfo, mSyncObjects.mInFlightFences[mCurrentFrame]) != VK_SUCCESS)
-      throw std::runtime_error("failed to submit draw command buffer!");
-
-    VkPresentInfoKHR presentInfo = {};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = signalSemaphores;
-
-    VkSwapchainKHR swapChains[] = {mRenderer.mInternal->mSwapChain.mSwapChain};
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapChains;
-    presentInfo.pImageIndices = &imageIndex;
-    presentInfo.pResults = nullptr; // Optional
-
-    result = vkQueuePresentKHR(mRenderer.mInternal->mPresentQueue, &presentInfo);
-    if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+    status = mRenderer.EndFrame(renderFrame);
+    if(status == RenderFrameStatus::OutOfDate || status == RenderFrameStatus::SubOptimal)
       recreateSwapChain();
-    else if(result != VK_SUCCESS)
+    else if(status != RenderFrameStatus::Success)
       throw std::runtime_error("failed to present swap chain image!");
-
-    mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
   }
 
   void cleanup() 
@@ -609,7 +568,6 @@ private:
   PhysicalDeviceLimits mDeviceLimits;
 
   SyncObjects mSyncObjects;
-  size_t mCurrentFrame = 0;
 
   bool mFramebufferResized = false;
 

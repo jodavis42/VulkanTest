@@ -22,6 +22,14 @@ struct RenderFrame;
 struct VulkanShaderMaterial;
 struct VulkanUniformBuffers;
 
+enum class RenderFrameStatus
+{
+  Success = 0,
+  OutOfDate,
+  SubOptimal,
+  Error
+};
+
 template <typename T>
 struct Factory
 {
@@ -36,14 +44,14 @@ struct Factory
 struct RenderTarget
 {
   RenderFrame* mRenderFrame = nullptr;
-  size_t mId = 0;
+  uint32_t mId = 0;
 };
 
 struct RenderPass
 {
   RenderTarget* mTarget = nullptr;
   RenderFrame* mRenderFrame = nullptr;
-  size_t mId = 0;
+  uint32_t mId = 0;
 };
 
 struct CommandBuffer
@@ -54,12 +62,12 @@ struct CommandBuffer
   void EndRenderPass(RenderPass* renderPass);
 
   RenderFrame* mRenderFrame = nullptr;
-  size_t mId = 0;
+  uint32_t mId = 0;
 };
 
 struct RenderFrame
 {
-  RenderFrame(VulkanRenderer* renderer, size_t id);
+  RenderFrame(VulkanRenderer* renderer, uint32_t id);
   RenderPass* GetFinalRenderPass();
 
   RenderTarget* GetFinalRenderTarget();
@@ -69,14 +77,13 @@ struct RenderFrame
   CommandBuffer* CreateCommandBuffer();
 
   VulkanRenderer* mRenderer = nullptr;
-  size_t mId = 0;
+  uint32_t mId = 0;
 
 
   // Private
   CommandBuffer mCommandBuffer;
   RenderTarget mRenderTarget;
   RenderPass mRenderPass;
-
 };
 
 class VulkanRenderer
@@ -103,8 +110,8 @@ public:
   void UpdateShaderMaterial(const ShaderMaterialBinding* shaderMaterialBinding);
   void DestroyShaderMaterial(const ShaderBinding* shaderMaterial);
 
-  RenderFrame* BeginFrame();
-  void EndFrame(RenderFrame* frame);
+  RenderFrameStatus BeginFrame(RenderFrame*& frame);
+  RenderFrameStatus EndFrame(RenderFrame*& frame);
   
   void Resize(size_t width, size_t height);
 

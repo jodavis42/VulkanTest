@@ -82,7 +82,7 @@ void CommandBuffer::EndRenderPass(RenderPass* renderPass)
   vkCmdEndRenderPass(vkCommandBuffer);
 }
 
-RenderFrame::RenderFrame(VulkanRenderer* renderer, size_t id)
+RenderFrame::RenderFrame(VulkanRenderer* renderer, uint32_t id)
 {
   mRenderer = renderer;
   mId = id;
@@ -299,25 +299,80 @@ void VulkanRenderer::DestroyShaderMaterial(const ShaderBinding* shaderBinding)
   delete vulkanShaderMaterial;
 }
 
-RenderFrame* VulkanRenderer::BeginFrame()
+RenderFrameStatus VulkanRenderer::BeginFrame(RenderFrame*& frame)
 {
+  uint32_t& currentFrame = mInternal->mCurrentFrame;
+  auto& syncObjects = mInternal->mSyncObjects;
+
+  vkWaitForFences(mInternal->mDevice, 1, &syncObjects.mInFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+
   uint32_t imageIndex;
-  VkResult result = vkAcquireNextImageKHR(mInternal->mDevice, mInternal->mSwapChain.mSwapChain, UINT64_MAX, mInternal->mSyncObjects.mImageAvailableSemaphores[mInternal->mCurrentFrame], VK_NULL_HANDLE, &imageIndex);
-  if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || mInternal->mResized)
-  {
-    mInternal->mResized = false;
-    RecreateFramesInternal();
-  }
+  VkResult result = vkAcquireNextImageKHR(mInternal->mDevice, mInternal->mSwapChain.mSwapChain, UINT64_MAX, syncObjects.mImageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+  if(result == VK_ERROR_OUT_OF_DATE_KHR)
+    return RenderFrameStatus::OutOfDate;
   else if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
-    throw std::runtime_error("failed to acquire swap chain image!");
+    return RenderFrameStatus::Error;
   
-  RenderFrame* frame = new RenderFrame(this, imageIndex);
-  return frame;
+  frame = new RenderFrame(this, imageIndex);
+  return RenderFrameStatus::Success;
 }
 
-void VulkanRenderer::EndFrame(RenderFrame* frame)
+RenderFrameStatus VulkanRenderer::EndFrame(RenderFrame*& frame)
 {
+  uint32_t imageIndex = frame->mId;
   delete frame;
+  frame = nullptr;
+
+  uint32_t& currentFrame = mInternal->mCurrentFrame;
+  VulkanRenderFrame& vulkanRenderFrame = mInternal->mRenderFrames[imageIndex];
+  auto& syncObjects = mInternal->mSyncObjects;
+  if(syncObjects.mImagesInFlight[imageIndex] != VK_NULL_HANDLE)
+    vkWaitForFences(mInternal->mDevice, 1, &syncObjects.mImagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
+  
+  syncObjects.mImagesInFlight[imageIndex] = syncObjects.mInFlightFences[currentFrame];
+
+  VkSubmitInfo submitInfo = {};
+  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+  VkSemaphore waitSemaphores[] = {syncObjects.mImageAvailableSemaphores[currentFrame]};
+  VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+  submitInfo.waitSemaphoreCount = 1;
+  submitInfo.pWaitSemaphores = waitSemaphores;
+  submitInfo.pWaitDstStageMask = waitStages;
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers = &vulkanRenderFrame.mCommandBuffer;
+
+  VkSemaphore signalSemaphores[] = {syncObjects.mRenderFinishedSemaphores[currentFrame]};
+  submitInfo.signalSemaphoreCount = 1;
+  submitInfo.pSignalSemaphores = signalSemaphores;
+
+  vkResetFences(mInternal->mDevice, 1, &syncObjects.mInFlightFences[currentFrame]);
+
+  if(vkQueueSubmit(mInternal->mGraphicsQueue, 1, &submitInfo, syncObjects.mInFlightFences[currentFrame]) != VK_SUCCESS)
+    return RenderFrameStatus::Error;
+
+  VkPresentInfoKHR presentInfo = {};
+  presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+  presentInfo.waitSemaphoreCount = 1;
+  presentInfo.pWaitSemaphores = signalSemaphores;
+
+  VkSwapchainKHR swapChains[] = {mInternal->mSwapChain.mSwapChain};
+  presentInfo.swapchainCount = 1;
+  presentInfo.pSwapchains = swapChains;
+  presentInfo.pImageIndices = &imageIndex;
+  presentInfo.pResults = nullptr; // Optional
+
+  VkResult result = vkQueuePresentKHR(mInternal->mPresentQueue, &presentInfo);
+  if(result == VK_ERROR_OUT_OF_DATE_KHR)
+    return RenderFrameStatus::OutOfDate;
+  else if(result == VK_SUBOPTIMAL_KHR)
+    return RenderFrameStatus::SubOptimal;
+  else if(result != VK_SUCCESS)
+    return RenderFrameStatus::Error;
+
+  currentFrame = (currentFrame + 1) % mInternal->mMaxFramesInFlight;
+  return RenderFrameStatus::Success;
 }
 
 void VulkanRenderer::Resize(size_t width, size_t height)
