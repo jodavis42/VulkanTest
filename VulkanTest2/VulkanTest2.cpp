@@ -122,7 +122,125 @@ private:
     mRenderer.Initialize(initData);
   }
 
-  void populateMaterialBuffer()
+  void LoadResources()
+  {
+    mTextureManager.Load();
+    mShaderManager.Load();
+    mMaterialManager.Load();
+    mMeshManager.Load();
+    LoadLevel("Level");
+    LoadShadersAndMaterials();
+  }
+
+  void LoadVulkanResources()
+  {
+    LoadVulkanImages();
+    LoadVulkanShaders();
+    LoadVulkanMaterials();
+    LoadVulkanMeshes();
+  }
+
+  void LoadShadersAndMaterials()
+  {
+    for(auto pair : mShaderManager.mShaderMap)
+    {
+      String shaderName = pair.first;
+      Shader* shader = pair.second;
+
+      ShaderBinding& shaderBinding = mShaderBindings[shaderName];
+      shaderBinding.AddBinding("PerCameraData", MaterialDescriptorType::Uniform, ShaderMaterialBindingId::Global);
+      shaderBinding.AddBinding("PerObjectData", MaterialDescriptorType::UniformDynamic, ShaderMaterialBindingId::Global);
+      shaderBinding.Initialize(shader, MaterialDescriptorType::Uniform, ShaderMaterialBindingId::Material);
+      shaderBinding.CompileBindings();
+    }
+
+    for(auto pair : mMaterialManager.mMaterialMap)
+    {
+      String materialName = pair.first;
+      Material* material = pair.second;
+
+      Shader* shader = mShaderManager.Find(material->mShaderName);
+      ShaderBinding& shaderBinding = mShaderBindings[material->mShaderName];
+      ShaderMaterialBinding& binding = mShaderMaterialBindings[shader];
+      binding.CompileBindings(shaderBinding, *material);
+    }
+  }
+
+  void LoadLevel(const String& levelName)
+  {
+    String filePath = String("data/") + levelName + String(".level");
+    JsonLoader loader;
+    loader.LoadFromFile(filePath);
+
+    size_t objCount;
+    loader.BeginArray(objCount);
+    for(size_t objIndex = 0; objIndex < objCount; ++objIndex)
+    {
+      loader.BeginArrayItem(objIndex);
+
+      Model* model = new Model();
+      LoadModel(loader, model);
+      mModels.emplace_back(model);
+
+      loader.EndArrayItem();
+    }
+  }
+
+  void LoadVulkanMeshes()
+  {
+    for(auto pair : mMeshManager.mMeshMap)
+    {
+      Mesh* mesh = pair.second;
+      mRenderer.CreateMesh(mesh);
+    }
+  }
+
+  void LoadVulkanImages()
+  {
+    for(auto pair : mTextureManager.mTextureMap)
+    {
+      mRenderer.CreateTexture(pair.second);
+    }
+  }
+
+  void LoadVulkanShaders()
+  {
+    for(auto pair : mShaderManager.mShaderMap)
+    {
+      Shader* shader = pair.second;
+      mRenderer.CreateShader(shader);
+      mRenderer.CreateShaderMaterial(&mShaderBindings[pair.first]);
+    }
+  }
+
+  void LoadVulkanMaterial(Material* material)
+  {
+    Shader* shader = mShaderManager.Find(material->mShaderName);
+    ShaderMaterialBinding& shaderMaterial = mShaderMaterialBindings[shader];
+
+    mRenderer.UpdateShaderMaterial(&mShaderMaterialBindings[shader]);
+
+    uint32_t offset = 0;
+    for(auto pair : shaderMaterial.mShaderBinding->mBindings)
+    {
+      ShaderResourceBinding* shaderBinding = pair.second;
+      if(shaderBinding->mMaterialBindingId == ShaderMaterialBindingId::Material)
+      {
+        shaderBinding->mBufferOffset = offset;
+        offset += static_cast<uint32_t>(shaderBinding->mBoundResource->mSizeInBytes);
+      }
+    }
+  }
+
+  void LoadVulkanMaterials()
+  {
+    for(auto pair : mMaterialManager.mMaterialMap)
+    {
+      LoadVulkanMaterial(pair.second);
+    }
+  }
+
+  void PopulateMaterialBuffer()
   {
     struct BufferSortData
     {
@@ -181,106 +299,13 @@ private:
     }
   }
 
-  void LoadVulkanImages()
-  {
-    for(auto pair : mTextureManager.mTextureMap)
-    {
-      mRenderer.CreateTexture(pair.second);
-    }
-  }
-
-  void LoadVulkanShader(const String& name, Shader* shader)
-  {
-    mRenderer.CreateShader(shader);
-  }
-
-  void LoadVulkanShaders()
-  {
-    for(auto pair : mShaderManager.mShaderMap)
-    {
-      Shader* shader = pair.second;
-      mRenderer.CreateShader(shader);
-      mRenderer.CreateShaderMaterial(&mShaderBindings[pair.first]);
-    }
-  }
-
-  void LoadVulkanMaterial(Material* material)
-  {
-    Shader* shader = mShaderManager.Find(material->mShaderName);
-    ShaderMaterialBinding& shaderMaterial = mShaderMaterialBindings[shader];
-
-    mRenderer.UpdateShaderMaterial(&mShaderMaterialBindings[shader]);
-
-    uint32_t offset = 0;
-    for(auto pair : shaderMaterial.mShaderBinding->mBindings)
-    {
-      ShaderResourceBinding* shaderBinding = pair.second;
-      if(shaderBinding->mMaterialBindingId == ShaderMaterialBindingId::Material)
-      {
-        shaderBinding->mBufferOffset = offset;
-        offset += static_cast<uint32_t>(shaderBinding->mBoundResource->mSizeInBytes);
-      }
-    }
-  }
-
-  void LoadVulkanMaterials()
-  {
-    for(auto pair : mMaterialManager.mMaterialMap)
-    {
-      LoadVulkanMaterial(pair.second);
-    }
-  }
-
-  void LoadShadersAndMaterials()
-  {
-    for(auto pair : mShaderManager.mShaderMap)
-    {
-      String shaderName = pair.first;
-      Shader* shader = pair.second;
-
-      ShaderBinding& shaderBinding = mShaderBindings[shaderName];
-      shaderBinding.AddBinding("PerCameraData", MaterialDescriptorType::Uniform, ShaderMaterialBindingId::Global);
-      shaderBinding.AddBinding("PerObjectData", MaterialDescriptorType::UniformDynamic, ShaderMaterialBindingId::Global);
-      shaderBinding.Initialize(shader, MaterialDescriptorType::Uniform, ShaderMaterialBindingId::Material);
-      shaderBinding.CompileBindings();
-    }
-
-    for(auto pair : mMaterialManager.mMaterialMap)
-    {
-      String materialName = pair.first;
-      Material* material = pair.second;
-
-      Shader* shader = mShaderManager.Find(material->mShaderName);
-      ShaderBinding& shaderBinding = mShaderBindings[material->mShaderName];
-      ShaderMaterialBinding& binding = mShaderMaterialBindings[shader];
-      binding.CompileBindings(shaderBinding, *material);
-    }
-  }
-
-  void LoadModelsAndBuffersAndTextures()
-  {
-    mTextureManager.Load();
-    mShaderManager.Load();
-    mMaterialManager.Load();
-    mMeshManager.Load();
-    LoadShadersAndMaterials();
-
-    LoadLevel("Level");
-
-    String name = "Test";
-    LoadVulkanMeshes();
-    LoadVulkanImages();
-    LoadVulkanShaders();
-    LoadVulkanMaterials();
-
-    populateMaterialBuffer();
-  }
-
   void initVulkan()
   {
     GlobalSetup();
 
-    LoadModelsAndBuffersAndTextures();
+    LoadResources();
+    LoadVulkanResources();
+    PopulateMaterialBuffer();
   }
 
   void cleanupSwapChain()
@@ -320,41 +345,11 @@ private:
       mRenderer.CreateShaderMaterial(shaderMaterial.mShaderBinding);
       mRenderer.UpdateShaderMaterial(&shaderMaterial);
     }
-    
   }
 
-  void LoadVulkanMesh(const String& name, Mesh* mesh)
-  {
-    mRenderer.CreateMesh(mesh);
-  }
+  
 
-  void LoadVulkanMeshes()
-  {
-    for(auto pair : mMeshManager.mMeshMap)
-    {
-      LoadVulkanMesh(pair.first, pair.second);
-    }
-  }
-
-  void LoadLevel(const String& levelName)
-  {
-    String filePath = String("data/") + levelName + String(".level");
-    JsonLoader loader;
-    loader.LoadFromFile(filePath);
-
-    size_t objCount;
-    loader.BeginArray(objCount);
-    for(size_t objIndex = 0; objIndex < objCount; ++objIndex)
-    {
-      loader.BeginArrayItem(objIndex);
-
-      Model* model = new Model();
-      LoadModel(loader, model);
-      mModels.emplace_back(model);
-
-      loader.EndArrayItem();
-    }
-  }
+  
 
   size_t AlignUniformBufferOffset(size_t offset)
   {
@@ -466,7 +461,8 @@ private:
     mRenderer.UnMapUniformBufferMemory(UniformBufferType::Global, 0, frameData.mIndex);
   }
 
-  void mainLoop() {
+  void mainLoop()
+  {
     while(!glfwWindowShouldClose(mWindow))
     {
       glfwPollEvents();
