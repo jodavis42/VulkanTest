@@ -1,5 +1,8 @@
 #pragma once
 
+#include <stdint.h>
+#include <utility>
+
 struct Vec2
 {
   static constexpr size_t Count = 2;
@@ -97,6 +100,79 @@ struct Integer2
   }
 
   scalar x, y;
+};
+
+struct Matrix3
+{
+  typedef float scalar;
+
+  Matrix3()
+  {
+    SetIdentity();
+  }
+
+  void Load(scalar* data)
+  {
+    for(size_t i = 0; i < 9; ++i)
+      array[i] = data[i];
+  }
+
+  const Vec3& operator[](uint32_t index) const
+  {
+    return ((Vec3*)this)[index];
+  }
+  Vec3& operator[](uint32_t index)
+  {
+    return ((Vec3*)this)[index];
+  }
+
+  scalar operator()(uint32_t r, uint32_t c) const
+  {
+    return array[c + r * 3];
+  }
+
+  scalar& operator()(uint32_t r, uint32_t c)
+  {
+    return array[c + r * 3];
+  }
+
+  /// Set all elements to 0.
+  void ZeroOut()
+  {
+    for(size_t i = 0; i < 9; ++i)
+      array[i] = 0.0f;
+  }
+
+  /// Set the matrix to the identity.
+  void SetIdentity()
+  {
+    m00 = 1.0f; m01 = 0.0f; m02 = 0.0f;
+    m10 = 0.0f; m11 = 1.0f; m12 = 0.0f;
+    m20 = 0.0f; m21 = 0.0f; m22 = 1.0f;
+  }
+
+  /// Return the transpose of the given matrix.
+  static Matrix3 Transposed(const Matrix3& mat)
+  {
+    Matrix3 result = mat;
+    std::swap(result.m01, result.m10);
+    std::swap(result.m02, result.m20);
+    std::swap(result.m12, result.m21);
+    return result;
+  }
+
+  union
+  {
+    struct
+    {
+      scalar m00, m01, m02,
+        m10, m11, m12,
+        m20, m21, m22,
+        m30, m31, m32;
+    };
+
+    scalar array[9];
+  };
 };
 
 struct Matrix4
