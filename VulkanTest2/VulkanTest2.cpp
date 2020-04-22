@@ -120,8 +120,6 @@ private:
     initData.mSurfaceCreationCallback.mCallbackFn = &HelloTriangleApplication::SurfaceCreationCallback;
     initData.mSurfaceCreationCallback.mUserData = this;
     mRenderer.Initialize(initData);
-
-    mDeviceLimits = internal->mDeviceLimits;
   }
 
   void populateMaterialBuffer()
@@ -360,7 +358,7 @@ private:
 
   size_t AlignUniformBufferOffset(size_t offset)
   {
-    return ::AlignUniformBufferOffset(mDeviceLimits, offset);
+    return ::AlignUniformBufferOffset(mRenderer.mInternal->mDeviceLimits, offset);
   }
 
   struct FrameData
@@ -557,7 +555,6 @@ private:
   }
 
   GLFWwindow* mWindow;
-  PhysicalDeviceLimits mDeviceLimits;
 
   bool mFramebufferResized = false;
 
