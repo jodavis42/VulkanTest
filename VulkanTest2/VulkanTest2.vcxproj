@@ -169,6 +169,8 @@
   <ItemGroup>
     <ClInclude Include="Helpers\Enums.hpp" />
     <ClInclude Include="Helpers\File.hpp" />
+    <ClInclude Include="Helpers\GraphicsEngine.hpp" />
+    <ClInclude Include="Helpers\GraphicsSpace.hpp" />
     <ClInclude Include="Helpers\Material.hpp" />
     <ClInclude Include="Helpers\MaterialBinding.hpp" />
     <ClInclude Include="Helpers\Math.hpp" />
@@ -200,6 +202,8 @@
     <ClInclude Include="VulkanValidationLayers.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Helpers\GraphicsEngine.cpp" />
+    <ClCompile Include="Helpers\GraphicsSpace.cpp" />
     <ClCompile Include="Helpers\Material.cpp" />
     <ClCompile Include="Helpers\MaterialBinding.cpp" />
     <ClCompile Include="Helpers\Mesh.cpp" />

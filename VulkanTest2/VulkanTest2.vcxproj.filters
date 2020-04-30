@@ -120,6 +120,12 @@
     <ClInclude Include="Helpers\Model.hpp">
       <Filter>Helpers</Filter>
     </ClInclude>
+    <ClInclude Include="Helpers\GraphicsSpace.hpp">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="Helpers\GraphicsEngine.hpp">
+      <Filter>Helpers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -159,6 +165,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Helpers\Model.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\GraphicsSpace.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="Helpers\GraphicsEngine.cpp">
       <Filter>Helpers</Filter>
     </ClCompile>
   </ItemGroup>

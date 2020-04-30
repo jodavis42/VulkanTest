@@ -477,6 +477,11 @@ void VulkanRenderer::DestroyUniformBuffer(uint32_t bufferId)
   mInternal->mUniformBufferMap.erase(bufferId);
 }
 
+size_t VulkanRenderer::AlignUniformBufferOffset(size_t offset)
+{
+  return ::AlignUniformBufferOffset(mInternal->mDeviceLimits, offset);
+}
+
 void VulkanRenderer::RecreateFramesInternal()
 {
   DestroyRenderFramesInternal();
