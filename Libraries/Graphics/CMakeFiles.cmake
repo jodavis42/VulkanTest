@@ -1,0 +1,25 @@
+target_sources(Graphics
+  PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/GraphicsEngine.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/GraphicsEngine.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/GraphicsSpace.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/GraphicsSpace.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/Material.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Material.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MaterialBinding.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MaterialBinding.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/Math.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/Mesh.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Mesh.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/Model.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Model.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/Precompiled.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Precompiled.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/Shader.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Shader.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/ShaderEnumTypes.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ShaderEnumTypes.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/Texture.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Texture.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/Vertex.hpp
+)
