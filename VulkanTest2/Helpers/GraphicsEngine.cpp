@@ -104,7 +104,7 @@ void GraphicsEngine::LoadShadersAndMaterials()
     String shaderName = pair.first;
     Shader* shader = pair.second;
 
-    UniqueShaderMaterial& uniqueShaderMaterial = mUniqueShaderMaterials[shaderName];
+    UniqueShaderMaterial& uniqueShaderMaterial = mUniqueShaderMaterialNameMap[shaderName];
     uniqueShaderMaterial.AddBinding("PerCameraData", MaterialDescriptorType::Uniform, ShaderMaterialBindingId::Global);
     uniqueShaderMaterial.AddBinding("PerObjectData", MaterialDescriptorType::UniformDynamic, ShaderMaterialBindingId::Global);
     uniqueShaderMaterial.Initialize(shader, MaterialDescriptorType::Uniform, ShaderMaterialBindingId::Material);
@@ -118,8 +118,8 @@ void GraphicsEngine::LoadShadersAndMaterials()
     Material* material = pair.second;
 
     Shader* shader = mShaderManager.Find(material->mShaderName);
-    UniqueShaderMaterial& uniqueShaderMaterial = mUniqueShaderMaterials[material->mShaderName];
-    ShaderMaterialInstance& materialInstance = mShaderMaterialInstances[shader];
+    UniqueShaderMaterial& uniqueShaderMaterial = mUniqueShaderMaterialNameMap[material->mShaderName];
+    ShaderMaterialInstance& materialInstance = mShaderMaterialInstanceNameMap[material->mMaterialName];
     materialInstance.CompileBindings(uniqueShaderMaterial, *material);
   }
 }
@@ -151,15 +151,16 @@ void GraphicsEngine::LoadVulkanShaders()
   for(auto pair : mShaderManager.mShaderMap)
   {
     Shader* shader = pair.second;
+    UniqueShaderMaterial& uniqueShaderMaterial = mUniqueShaderMaterialNameMap[pair.first];
     mRenderer.CreateShader(shader);
-    mRenderer.CreateShaderMaterial(&mUniqueShaderMaterials[pair.first]);
+    mRenderer.CreateShaderMaterial(&uniqueShaderMaterial);
   }
 }
 
 void GraphicsEngine::LoadVulkanMaterial(Material* material)
 {
   Shader* shader = mShaderManager.Find(material->mShaderName);
-  ShaderMaterialInstance& shaderMaterialInstance = mShaderMaterialInstances[shader];
+  ShaderMaterialInstance& shaderMaterialInstance = mShaderMaterialInstanceNameMap[material->mMaterialName];
 
   mRenderer.UpdateShaderMaterialInstance(&shaderMaterialInstance);
 
@@ -210,7 +211,7 @@ void GraphicsEngine::PopulateMaterialBuffer()
   {
     Material* material = pair.second;
     Shader* shader = mShaderManager.Find(material->mShaderName);
-    ShaderMaterialInstance& shaderMaterialInstance = mShaderMaterialInstances[shader];
+    ShaderMaterialInstance& shaderMaterialInstance = mShaderMaterialInstanceNameMap[material->mMaterialName];
     VulkanShaderMaterial* vulkanShaderMaterial = mRenderer.mUniqueShaderMaterialMap[shaderMaterialInstance.mUniqueShaderMaterial];
 
     for(MaterialProperty& materialProp : material->mProperties)
@@ -255,7 +256,7 @@ void GraphicsEngine::CleanupSwapChain()
 {
   mRenderer.DestroyUniformBuffer(0);
 
-  for(auto pair : mShaderMaterialInstances)
+  for(auto pair : mShaderMaterialInstanceNameMap)
   {
     ShaderMaterialInstance& shaderMaterialInstance = pair.second;
     mRenderer.DestroyShaderMaterial(shaderMaterialInstance.mUniqueShaderMaterial);
@@ -278,7 +279,7 @@ void GraphicsEngine::RecreateSwapChain()
   mRenderer.CreateSwapChainInternal();
   mRenderer.CreateRenderFramesInternal();
 
-  for(auto pair : mShaderMaterialInstances)
+  for(auto pair : mShaderMaterialInstanceNameMap)
   {
     ShaderMaterialInstance& shaderMaterialInstance = pair.second;
     mRenderer.CreateShaderMaterial(shaderMaterialInstance.mUniqueShaderMaterial);

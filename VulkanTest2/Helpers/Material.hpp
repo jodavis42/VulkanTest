@@ -30,6 +30,7 @@ struct MaterialProperty
 //-------------------------------------------------------------------Material
 struct Material
 {
+  String mMaterialName;
   String mShaderName;
 
   std::vector<MaterialProperty> mProperties;

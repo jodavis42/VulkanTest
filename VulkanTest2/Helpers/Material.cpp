@@ -118,11 +118,11 @@ void MaterialManager::LoadFromFile(const String& path)
   loader.LoadFromFile(path);
 
   Material* material = new Material();
-  String materialName = LoadDefaultPrimitive(loader, "Name", String());
+  material->mMaterialName = LoadDefaultPrimitive(loader, "Name", String());
   material->mShaderName = LoadDefaultPrimitive(loader, "ShaderName", String());
   
   LoadMaterialProperties(material, loader);
-  mMaterialMap[materialName] = material;
+  mMaterialMap[material->mMaterialName] = material;
 }
 
 void MaterialManager::Add(const String& name, Material* material)
