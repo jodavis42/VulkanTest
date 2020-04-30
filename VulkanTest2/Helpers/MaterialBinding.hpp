@@ -36,8 +36,11 @@ struct ShaderResourceBinding
   std::unordered_map<String, ShaderFieldBinding> mFieldBindings;
 };
 
-//-------------------------------------------------------------------ShaderBinding
-struct ShaderBinding
+//-------------------------------------------------------------------UniqueShaderMaterial
+/// Lots of shaders can map to the same unique permutation (same uniforms, constants, images, etc...).
+/// In particular, this is true as there can be lots of different materials (different values or instances) that use the same shader.
+/// This information is the unique mapping for how any of those make it into a shader pipeline.
+struct UniqueShaderMaterial
 {
   void Initialize(const Shader* shader, MaterialDescriptorType undefinedDescriptorTypes, ShaderMaterialBindingId::Enum undefinedBindingId);
 
@@ -52,12 +55,15 @@ struct ShaderBinding
   std::unordered_map<String, ShaderFieldBinding*> mFieldNameMap;
 };
 
-//-------------------------------------------------------------------ShaderMaterialBinding
-struct ShaderMaterialBinding
+//-------------------------------------------------------------------ShaderMaterialInstance
+/// The mappings for a unique instance of a material. This contains information for how an
+/// individual material (and its properties) are mapped to the unique shader material so
+/// that the buffers, constants, images, etc... can be filled out easily.
+struct ShaderMaterialInstance
 {
-  void CompileBindings(const ShaderBinding& shaderBinding, const Material& material);
+  void CompileBindings(const UniqueShaderMaterial& uniqueShaderBinding, const Material& material);
 
-  const ShaderBinding* mShaderBinding = nullptr;
+  const UniqueShaderMaterial* mUniqueShaderMaterial = nullptr;
   const Material* mMaterial = nullptr;
   std::unordered_map<String, ShaderFieldBinding*> mMaterialNameMap;
 };

@@ -9,8 +9,8 @@ struct Mesh;
 struct Texture;
 struct Shader;
 struct Material;
-struct ShaderBinding;
-struct ShaderMaterialBinding;
+struct UniqueShaderMaterial;
+struct ShaderMaterialInstance;
 
 struct VulkanMesh;
 struct VulkanShader;
@@ -107,9 +107,9 @@ public:
   void CreateShader(const Shader* shader);
   void DestroyShader(const Shader* shader);
 
-  void CreateShaderMaterial(const ShaderBinding* shaderMaterial);
-  void UpdateShaderMaterial(const ShaderMaterialBinding* shaderMaterialBinding);
-  void DestroyShaderMaterial(const ShaderBinding* shaderMaterial);
+  void CreateShaderMaterial(const UniqueShaderMaterial* uniqueShaderMaterial);
+  void UpdateShaderMaterialInstance(const ShaderMaterialInstance* shaderMaterialInstance);
+  void DestroyShaderMaterial(const UniqueShaderMaterial* uniqueShaderMaterial);
 
   RenderFrameStatus BeginFrame(RenderFrame*& frame);
   RenderFrameStatus EndFrame(RenderFrame*& frame);
@@ -158,5 +158,5 @@ public:
   std::unordered_map<const Texture*, VulkanImage*> mTextureMap;
   std::unordered_map<String, VulkanImage*> mTextureNameMap;
   std::unordered_map<const Shader*, VulkanShader*> mShaderMap;
-  std::unordered_map<const ShaderBinding*, VulkanShaderMaterial*> mShaderMaterialMap;
+  std::unordered_map<const UniqueShaderMaterial*, VulkanShaderMaterial*> mUniqueShaderMaterialMap;
 };

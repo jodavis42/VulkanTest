@@ -165,9 +165,9 @@ void VulkanRenderer::CleanupResources()
     DestroyShader(mShaderMap.begin()->first);
   mShaderMap.clear();
 
-  while(!mShaderMaterialMap.empty())
-    DestroyShaderMaterial(mShaderMaterialMap.begin()->first);
-  mShaderMaterialMap.clear();
+  while(!mUniqueShaderMaterialMap.empty())
+    DestroyShaderMaterial(mUniqueShaderMaterialMap.begin()->first);
+  mUniqueShaderMaterialMap.clear();
 
   for(auto pair : mInternal->mMaterialBuffers)
   {
@@ -268,33 +268,35 @@ void VulkanRenderer::DestroyShader(const Shader* shader)
   vkDestroyShaderModule(mInternal->mDevice, vulkanShader->mVertexShaderModule, nullptr);
 }
 
-void VulkanRenderer::CreateShaderMaterial(const ShaderBinding* shaderBinding)
+void VulkanRenderer::CreateShaderMaterial(const UniqueShaderMaterial* uniqueShaderMaterial)
 {
   VulkanShaderMaterial* vulkanShaderMaterial = new VulkanShaderMaterial();
 
   RendererData rendererData{this, mInternal};
-  CreateMaterialDescriptorSetLayouts(rendererData, *shaderBinding, *vulkanShaderMaterial);
-  CreateMaterialDescriptorPool(rendererData, *shaderBinding, *vulkanShaderMaterial);
-  CreateMaterialDescriptorSets(rendererData, *shaderBinding, *vulkanShaderMaterial);
+  CreateMaterialDescriptorSetLayouts(rendererData, *uniqueShaderMaterial, *vulkanShaderMaterial);
+  CreateMaterialDescriptorPool(rendererData, *uniqueShaderMaterial, *vulkanShaderMaterial);
+  CreateMaterialDescriptorSets(rendererData, *vulkanShaderMaterial);
   
-  mShaderMaterialMap[shaderBinding] = vulkanShaderMaterial;
+  mUniqueShaderMaterialMap[uniqueShaderMaterial] = vulkanShaderMaterial;
 }
 
-void VulkanRenderer::UpdateShaderMaterial(const ShaderMaterialBinding* shaderMaterialBinding)
+void VulkanRenderer::UpdateShaderMaterialInstance(const ShaderMaterialInstance* shaderMaterialInstance)
 {
-  const Shader* shader = shaderMaterialBinding->mShaderBinding->mShader;
-  VulkanShaderMaterial* vulkanShaderMaterial = mShaderMaterialMap[shaderMaterialBinding->mShaderBinding];
+  const UniqueShaderMaterial* uniqueShaderMaterial = shaderMaterialInstance->mUniqueShaderMaterial;
+  const Shader* shader = uniqueShaderMaterial->mShader;
+  
+  VulkanShaderMaterial* vulkanShaderMaterial = mUniqueShaderMaterialMap[uniqueShaderMaterial];
   VulkanShader* vulkanShader = mShaderMap[shader];
 
   RendererData rendererData{this, mInternal};
-  UpdateMaterialDescriptorSets(rendererData, *shaderMaterialBinding, *vulkanShaderMaterial);
+  UpdateMaterialDescriptorSets(rendererData, *shaderMaterialInstance, *vulkanShaderMaterial);
   CreateGraphicsPipeline(rendererData, *vulkanShader, *vulkanShaderMaterial);
 }
 
-void VulkanRenderer::DestroyShaderMaterial(const ShaderBinding* shaderBinding)
+void VulkanRenderer::DestroyShaderMaterial(const UniqueShaderMaterial* uniqueShaderMaterial)
 {
-  VulkanShaderMaterial* vulkanShaderMaterial = mShaderMaterialMap[shaderBinding];
-  mShaderMaterialMap.erase(shaderBinding);
+  VulkanShaderMaterial* vulkanShaderMaterial = mUniqueShaderMaterialMap[uniqueShaderMaterial];
+  mUniqueShaderMaterialMap.erase(uniqueShaderMaterial);
 
   vkDestroyPipeline(mInternal->mDevice, vulkanShaderMaterial->mPipeline, nullptr);
   vkDestroyPipelineLayout(mInternal->mDevice, vulkanShaderMaterial->mPipelineLayout, nullptr);

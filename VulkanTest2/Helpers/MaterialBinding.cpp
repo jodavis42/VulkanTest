@@ -1,17 +1,16 @@
 #include "pch.h"
 
-#pragma optimize("", off)
 #include "MaterialBinding.hpp"
 
-//-------------------------------------------------------------------ShaderBinding
-void ShaderBinding::Initialize(const Shader* shader, MaterialDescriptorType undefinedDescriptorTypes, ShaderMaterialBindingId::Enum undefinedBindingId)
+//-------------------------------------------------------------------UniqueShaderMaterial
+void UniqueShaderMaterial::Initialize(const Shader* shader, MaterialDescriptorType undefinedDescriptorTypes, ShaderMaterialBindingId::Enum undefinedBindingId)
 {
   mShader = shader;
   mUndefinedDescriptorTypes = undefinedDescriptorTypes;
   mUndefinedBindingId = undefinedBindingId;
 }
 
-void ShaderBinding::AddBinding(const String& name, MaterialDescriptorType descriptorType, ShaderMaterialBindingId::Enum bindingId)
+void UniqueShaderMaterial::AddBinding(const String& name, MaterialDescriptorType descriptorType, ShaderMaterialBindingId::Enum bindingId)
 {
   ShaderResourceBinding& binding = mPredefinedBindings[name];
   binding.mBindingName = name;
@@ -19,7 +18,7 @@ void ShaderBinding::AddBinding(const String& name, MaterialDescriptorType descri
   binding.mMaterialBindingId = bindingId;
 }
 
-void ShaderBinding::CompileBindings()
+void UniqueShaderMaterial::CompileBindings()
 {
   std::unordered_map<String, const ShaderResource*> shaderResourceNameMap;
 
@@ -94,16 +93,16 @@ void ShaderBinding::CompileBindings()
   }
 }
 
-//-------------------------------------------------------------------ShaderMaterialBinding
-void ShaderMaterialBinding::CompileBindings(const ShaderBinding& shaderBinding, const Material& material)
+//-------------------------------------------------------------------ShaderMaterialInstance
+void ShaderMaterialInstance::CompileBindings(const UniqueShaderMaterial& uniqueShaderMaterial, const Material& material)
 {
-  mShaderBinding = &shaderBinding;
+  mUniqueShaderMaterial = &uniqueShaderMaterial;
   mMaterial = &material;
 
   for(const MaterialProperty& materialProp : material.mProperties)
   {
-    auto it = mShaderBinding->mFieldNameMap.find(materialProp.mPropertyName);
-    if(it == mShaderBinding->mFieldNameMap.end())
+    auto it = mUniqueShaderMaterial->mFieldNameMap.find(materialProp.mPropertyName);
+    if(it == mUniqueShaderMaterial->mFieldNameMap.end())
       continue;
 
     ShaderFieldBinding* fieldBinding = it->second;

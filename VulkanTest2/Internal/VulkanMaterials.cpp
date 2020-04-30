@@ -20,7 +20,7 @@ void AllocateUniformBuffer(VulkanRuntimeData* runtimeData, VulkanUniformBuffer& 
   CreateBuffer(vulkanData, buffer.mAllocatedSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, usageFlags, buffer.mBuffer, buffer.mBufferMemory);
 }
 
-uint32_t FindMaterialBufferIdFor(RendererData& rendererData, const ShaderBinding& shaderMaterial)
+uint32_t FindMaterialBufferIdFor(RendererData& rendererData, const UniqueShaderMaterial& uniqueShaderMaterial)
 {
   uint32_t& lastBufferId = rendererData.mRuntimeData->mLastUsedMaterialBufferId;
   auto& materialBuffers = rendererData.mRuntimeData->mMaterialBuffers;
@@ -32,7 +32,7 @@ uint32_t FindMaterialBufferIdFor(RendererData& rendererData, const ShaderBinding
   }
 
   VkDeviceSize requiredSize = 0;
-  for(auto pair : shaderMaterial.mBindings)
+  for(auto pair : uniqueShaderMaterial.mBindings)
   {
     ShaderResourceBinding* shaderResource = pair.second;
     if(shaderResource->mMaterialBindingId == ShaderMaterialBindingId::Material)
@@ -61,14 +61,13 @@ VulkanUniformBuffer& FindMaterialBuffer(RendererData& rendererData, uint32_t buf
   return buffer;
 }
 
-void CreateMaterialDescriptorSetLayouts(RendererData& rendererData, const ShaderBinding& shaderMaterial, VulkanShaderMaterial& vulkanShaderMaterial)
+void CreateMaterialDescriptorSetLayouts(RendererData& rendererData, const UniqueShaderMaterial& uniqueShaderMaterial, VulkanShaderMaterial& vulkanShaderMaterial)
 {
-  const ShaderBinding* shaderBinding = &shaderMaterial;;
   std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
-  layoutBindings.resize(shaderBinding->mBindings.size());
+  layoutBindings.resize(uniqueShaderMaterial.mBindings.size());
   
   size_t index = 0;
-  for(auto pair : shaderBinding->mBindings)
+  for(auto pair : uniqueShaderMaterial.mBindings)
   {
     const ShaderResourceBinding* shaderResourceBinding = pair.second;
     const ShaderResource* shaderResource = shaderResourceBinding->mBoundResource;
@@ -91,19 +90,18 @@ void CreateMaterialDescriptorSetLayouts(RendererData& rendererData, const Shader
   if(vkCreateDescriptorSetLayout(rendererData.mRuntimeData->mDevice, &layoutInfo, nullptr, &vulkanShaderMaterial.mDescriptorSetLayout) != VK_SUCCESS)
     result.MarkFailed("failed to create descriptor set layout!");
 
-  vulkanShaderMaterial.mBufferId = FindMaterialBufferIdFor(rendererData, shaderMaterial);
+  vulkanShaderMaterial.mBufferId = FindMaterialBufferIdFor(rendererData, uniqueShaderMaterial);
 }
 
-void CreateMaterialDescriptorPool(RendererData& rendererData, const ShaderBinding& shaderMaterial, VulkanShaderMaterial& vulkanShaderMaterial)
+void CreateMaterialDescriptorPool(RendererData& rendererData, const UniqueShaderMaterial& uniqueShaderMaterial, VulkanShaderMaterial& vulkanShaderMaterial)
 {
-  const ShaderBinding* shaderBinding = &shaderMaterial;
   VulkanRuntimeData* runtimeData = rendererData.mRuntimeData;
   uint32_t frameCount = runtimeData->mSwapChain.GetCount();
 
   std::array<uint32_t, VK_DESCRIPTOR_TYPE_RANGE_SIZE> poolCounts = {};
 
   size_t index = 0;
-  for(auto pair : shaderBinding->mBindings)
+  for(auto pair : uniqueShaderMaterial.mBindings)
   {
     ShaderResourceBinding* resourceBinding = pair.second;
     if(resourceBinding->mDescriptorType == MaterialDescriptorType::Uniform)
@@ -138,9 +136,8 @@ void CreateMaterialDescriptorPool(RendererData& rendererData, const ShaderBindin
     status.MarkFailed("failed to create descriptor pool!");
 }
 
-void CreateMaterialDescriptorSets(RendererData& rendererData, const ShaderBinding& shaderMaterial, VulkanShaderMaterial& vulkanShaderMaterial)
+void CreateMaterialDescriptorSets(RendererData& rendererData, VulkanShaderMaterial& vulkanShaderMaterial)
 {
-  const ShaderBinding* shaderBinding = &shaderMaterial;
   VulkanRuntimeData* runtimeData = rendererData.mRuntimeData;
   uint32_t frameCount = runtimeData->mSwapChain.GetCount();
 
@@ -158,18 +155,18 @@ void CreateMaterialDescriptorSets(RendererData& rendererData, const ShaderBindin
     status.MarkFailed("failed to allocate descriptor sets!");
 }
 
-void UpdateMaterialDescriptorSet(RendererData& rendererData, const ShaderMaterialBinding& shaderMaterialBinding, VulkanShaderMaterial& vulkanShaderMaterial, size_t frameIndex, VkDescriptorSet descriptorSet)
+void UpdateMaterialDescriptorSet(RendererData& rendererData, const ShaderMaterialInstance& shaderMaterialInstance, VulkanShaderMaterial& vulkanShaderMaterial, size_t frameIndex, VkDescriptorSet descriptorSet)
 {
-  const ShaderBinding* shaderBinding = shaderMaterialBinding.mShaderBinding;
+  const UniqueShaderMaterial* uniqueShaderMaterial = shaderMaterialInstance.mUniqueShaderMaterial;
   VulkanRuntimeData* runtimeData = rendererData.mRuntimeData;
-  size_t totalCount = shaderBinding->mBindings.size();
+  size_t totalCount = uniqueShaderMaterial->mBindings.size();
 
   std::vector<VkDescriptorBufferInfo> bufferInfos(totalCount);
   std::vector<VkDescriptorImageInfo> imageInfos(totalCount);
   std::vector<VkWriteDescriptorSet> descriptorWrites(totalCount);
 
   size_t index = 0;
-  for(auto pair : shaderBinding->mBindings)
+  for(auto pair : uniqueShaderMaterial->mBindings)
   {
     ShaderResourceBinding* resourceBinding = pair.second;
 
@@ -205,7 +202,7 @@ void UpdateMaterialDescriptorSet(RendererData& rendererData, const ShaderMateria
     }
     else if(resourceBinding->mDescriptorType == MaterialDescriptorType::SampledImage)
     {
-      auto it = shaderMaterialBinding.mMaterialNameMap.find(resourceBinding->mBindingName);
+      auto it = shaderMaterialInstance.mMaterialNameMap.find(resourceBinding->mBindingName);
       const MaterialProperty* materialProp = it->second->mMaterialProperty;
       String textureName((const char*)materialProp->mData.data());
       VulkanImage* vulkanImage = rendererData.mRenderer->mTextureNameMap[textureName];
@@ -224,11 +221,11 @@ void UpdateMaterialDescriptorSet(RendererData& rendererData, const ShaderMateria
   vkUpdateDescriptorSets(runtimeData->mDevice, descriptorsCount, descriptorWrites.data(), 0, nullptr);
 }
 
-void UpdateMaterialDescriptorSets(RendererData& rendererData, const ShaderMaterialBinding& shaderMaterialBinding, VulkanShaderMaterial& vulkanShaderMaterial)
+void UpdateMaterialDescriptorSets(RendererData& rendererData, const ShaderMaterialInstance& shaderMaterialInstance, VulkanShaderMaterial& vulkanShaderMaterial)
 {
   VulkanRuntimeData* runtimeData = rendererData.mRuntimeData;
   for(size_t i = 0; i < runtimeData->mSwapChain.GetCount(); ++i)
-    UpdateMaterialDescriptorSet(rendererData, shaderMaterialBinding, vulkanShaderMaterial, i, vulkanShaderMaterial.mDescriptorSets[i]);
+    UpdateMaterialDescriptorSet(rendererData, shaderMaterialInstance, vulkanShaderMaterial, i, vulkanShaderMaterial.mDescriptorSets[i]);
 }
 
 void CreateGraphicsPipeline(RendererData& rendererData, const VulkanShader& vulkanShader, VulkanShaderMaterial& vulkanShaderMaterial)

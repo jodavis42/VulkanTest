@@ -81,8 +81,8 @@ void GraphicsSpace::Draw(UpdateEvent& toSend)
 
 VulkanShaderMaterial* GetVulkanShaderMaterial(GraphicsSpace* space, Material* material)
 {
-  ShaderBinding& shaderBinding = space->mEngine->mShaderBindings[material->mShaderName];
-  return space->mEngine->mRenderer.mShaderMaterialMap[&shaderBinding];
+  UniqueShaderMaterial& uniqueShaderMaterial = space->mEngine->mUniqueShaderMaterials[material->mShaderName];
+  return space->mEngine->mRenderer.mUniqueShaderMaterialMap[&uniqueShaderMaterial];
 }
 
 void GraphicsSpace::PrepareFrame(RenderFrame& renderFrame)

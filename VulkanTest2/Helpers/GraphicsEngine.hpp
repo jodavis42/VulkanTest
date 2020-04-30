@@ -52,6 +52,6 @@ public:
   MaterialManager mMaterialManager;
   VulkanRenderer mRenderer;
 
-  std::unordered_map<String, ShaderBinding> mShaderBindings;
-  std::unordered_map<Shader*, ShaderMaterialBinding> mShaderMaterialBindings;
+  std::unordered_map<String, UniqueShaderMaterial> mUniqueShaderMaterials;
+  std::unordered_map<Shader*, ShaderMaterialInstance> mShaderMaterialInstances;
 };
