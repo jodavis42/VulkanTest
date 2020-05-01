@@ -8,7 +8,6 @@ target_sources(Graphics
     ${CMAKE_CURRENT_LIST_DIR}/Material.hpp
     ${CMAKE_CURRENT_LIST_DIR}/MaterialBinding.cpp
     ${CMAKE_CURRENT_LIST_DIR}/MaterialBinding.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/Math.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Mesh.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Mesh.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Model.cpp

@@ -7,14 +7,6 @@
 #include "VulkanInitialization.hpp"
 #include "VulkanCommandBuffer.hpp"
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/vec4.hpp>
-#include <glm/mat4x4.hpp>
-
 void GraphicsSpace::Update(UpdateEvent& e)
 {
   mTotalTimeElapsed += e.mDt;
@@ -28,11 +20,10 @@ void GraphicsSpace::UpdateGlobalBuffer(uint32_t frameId)
   float farDistance = 10.0f;
   VkExtent2D extent = renderer->mInternal->mSwapChain.mExtent;
   float aspectRatio = extent.width / (float)extent.height;
-  float fov = glm::radians(45.0f);
-  auto lookAt = glm::lookAt(glm::vec3(5.0f, 5.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+  float fov = ToRadians(45.0f);
 
   PerCameraData perCameraData;
-  perCameraData.view.Load(&lookAt[0][0]);
+  perCameraData.view = Matrix4::GenerateLookAt(Vec3(5.0f, 5.0f, 5.0f), Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, 1.0f));;
   perCameraData.proj = renderer->BuildPerspectiveMatrix(fov, aspectRatio, nearDistance, farDistance);
 
   byte* data = static_cast<byte*>(renderer->MapUniformBufferMemory(UniformBufferType::Global, 0, frameId));
@@ -45,10 +36,9 @@ void GraphicsSpace::UpdateGlobalBuffer(uint32_t frameId)
   for(size_t i = 0; i < count; ++i)
   {
     Model* model = mModels[i];
-    glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(model->mScale.x, model->mScale.y, model->mScale.z));
-    glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), mTotalTimeElapsed * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    glm::mat4 translation = glm::translate(glm::mat4(1.0f), glm::vec3(model->mTranslation.x, model->mTranslation.y, model->mTranslation.z));
-    glm::mat4 transform = translation * rotation * scale;
+    Matrix3 rotation = Matrix3::BuildRotation(Vec3(0, 0, 1), mTotalTimeElapsed * ToRadians(90.0f));
+    Matrix4 transform = Matrix4::BuildTransform(model->mScale, rotation, model->mTranslation);
+    transform = Matrix4::Transposed(transform);
     byte* memory = data + offset + renderer->AlignUniformBufferOffset(sizeof(PerObjectData)) * i;
     memcpy(memory, &transform, sizeof(transform));
   }

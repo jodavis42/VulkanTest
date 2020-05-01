@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Graphics/Math.hpp"
+#include "Math.hpp"
 #include "VulkanStatus.hpp"
 #include "VulkanDeviceQueries.hpp"
 #include "VulkanImages.hpp"

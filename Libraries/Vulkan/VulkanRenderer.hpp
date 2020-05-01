@@ -2,7 +2,7 @@
 
 #include <unordered_map>
 #include "VulkanRendererInit.hpp"
-#include "Graphics/Math.hpp"
+#include "Math.hpp"
 
 struct VulkanRuntimeData;
 struct Mesh;

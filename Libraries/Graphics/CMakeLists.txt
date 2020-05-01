@@ -20,10 +20,10 @@ Set_Common_TargetCompileOptions(Graphics)
 target_link_libraries(Graphics
                       PUBLIC
                       Utilities
+                      Math
                       Vulkan
                       StbImage
                       TinyObjLoader
-                      GLM
                       GLFW
                       VulkanSDK
                       SPIRV-Cross
