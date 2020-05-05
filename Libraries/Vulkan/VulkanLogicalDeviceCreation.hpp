@@ -8,7 +8,7 @@ struct LogicalDeviceCreationData
 {
   VkPhysicalDevice mPhysicalDevice;
   VkSurfaceKHR mSurface;
-  std::vector<const char*> mDeviceExtensions;
+  Array<const char*> mDeviceExtensions;
 };
 
 struct LogicalDeviceResultData
@@ -22,7 +22,7 @@ inline void CreateLogicalDevice(LogicalDeviceCreationData& creationData, Logical
 {
   QueueFamilyIndices indices = FindQueueFamilies(creationData.mPhysicalDevice, creationData.mSurface);
 
-  std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+  Array<VkDeviceQueueCreateInfo> queueCreateInfos;
   std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
   float queuePriority = 1.0f;
@@ -33,7 +33,7 @@ inline void CreateLogicalDevice(LogicalDeviceCreationData& creationData, Logical
     queueCreateInfo.queueFamilyIndex = queueFamily;
     queueCreateInfo.queueCount = 1;
     queueCreateInfo.pQueuePriorities = &queuePriority;
-    queueCreateInfos.push_back(queueCreateInfo);
+    queueCreateInfos.PushBack(queueCreateInfo);
   }
 
   VkDeviceQueueCreateInfo queueCreateInfo = {};
@@ -46,17 +46,17 @@ inline void CreateLogicalDevice(LogicalDeviceCreationData& creationData, Logical
 
   VkDeviceCreateInfo createInfo = {};
   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-  createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-  createInfo.pQueueCreateInfos = queueCreateInfos.data();
+  createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.Size());
+  createInfo.pQueueCreateInfos = queueCreateInfos.Data();
 
   createInfo.pEnabledFeatures = &deviceFeatures;
-  createInfo.enabledExtensionCount = static_cast<uint32_t>(creationData.mDeviceExtensions.size());
-  createInfo.ppEnabledExtensionNames = creationData.mDeviceExtensions.data();
+  createInfo.enabledExtensionCount = static_cast<uint32_t>(creationData.mDeviceExtensions.Size());
+  createInfo.ppEnabledExtensionNames = creationData.mDeviceExtensions.Data();
 
   if(enableValidationLayers)
   {
-    createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-    createInfo.ppEnabledLayerNames = validationLayers.data();
+    createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.Size());
+    createInfo.ppEnabledLayerNames = validationLayers.Data();
   }
   else
   {

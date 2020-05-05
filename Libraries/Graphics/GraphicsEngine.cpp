@@ -19,14 +19,12 @@ void GraphicsEngine::Initialize()
 void GraphicsEngine::Shutdown()
 {
   CleanupSwapChain();
-  for(auto pair : mMeshManager.mMeshMap)
+  for(Mesh* mesh : mMeshManager.mMeshMap.Values())
   {
-    Mesh* mesh = pair.second;
     mRenderer.DestroyMesh(mesh);
   }
-  for(auto pair : mShaderManager.mShaderMap)
+  for(Shader* shader : mShaderManager.mShaderMap.Values())
   {
-    Shader* shader = pair.second;
     mRenderer.DestroyShader(shader);
   }
   //for(auto pair : mMaterialManager.mMaterialMap)
@@ -34,9 +32,8 @@ void GraphicsEngine::Shutdown()
   //  Material* material = pair.second;
   //  mRenderer.DestroyShaderMaterial(shader);
   //}
-  for(auto pair : mTextureManager.mTextureMap)
+  for(Texture* texture : mTextureManager.mTextureMap.Values())
   {
-    Texture* texture = pair.second;
     mRenderer.DestroyTexture(texture);
   }
   mRenderer.CleanupResources();
@@ -57,13 +54,13 @@ GraphicsSpace* GraphicsEngine::CreateSpace(const String& name)
   GraphicsSpace* space = new GraphicsSpace();
   space->mName = name;
   space->mEngine = this;
-  mSpaces.push_back(space);
+  mSpaces.PushBack(space);
   return space;
 }
 
 GraphicsSpace* GraphicsEngine::FindSpace(const String& name)
 {
-  for(size_t i = 0; i < mSpaces.size(); ++i)
+  for(size_t i = 0; i < mSpaces.Size(); ++i)
   {
     if(mSpaces[i]->mName == name)
       return mSpaces[i];
@@ -79,7 +76,7 @@ void GraphicsEngine::DestroySpace(const String& name)
     if(space->mName == name)
     {
       delete space;
-      mSpaces.erase(it);
+      mSpaces.Erase(it);
     }
   }
 }
@@ -91,7 +88,7 @@ void GraphicsEngine::DestroySpace(GraphicsSpace* space)
     if(*it == space)
     {
       delete space;
-      mSpaces.erase(it);
+      mSpaces.Erase(it);
     }
   }
 }
@@ -99,7 +96,7 @@ void GraphicsEngine::DestroySpace(GraphicsSpace* space)
 void GraphicsEngine::LoadShadersAndMaterials()
 {
   // Build the unique shader bindings for each shader
-  for(auto pair : mShaderManager.mShaderMap)
+  for(auto pair : mShaderManager.mShaderMap.All())
   {
     String shaderName = pair.first;
     Shader* shader = pair.second;
@@ -112,7 +109,7 @@ void GraphicsEngine::LoadShadersAndMaterials()
   }
 
   // For each material, bind it to the unique shader
-  for(auto pair : mMaterialManager.mMaterialMap)
+  for(auto pair : mMaterialManager.mMaterialMap.All())
   {
     String materialName = pair.first;
     Material* material = pair.second;
@@ -140,15 +137,15 @@ void GraphicsEngine::InitializeRenderer(GraphicsEngineRendererInitData& renderer
 
 void GraphicsEngine::LoadVulkanImages()
 {
-  for(auto pair : mTextureManager.mTextureMap)
+  for(Texture* texture : mTextureManager.mTextureMap.Values())
   {
-    mRenderer.CreateTexture(pair.second);
+    mRenderer.CreateTexture(texture);
   }
 }
 
 void GraphicsEngine::LoadVulkanShaders()
 {
-  for(auto pair : mShaderManager.mShaderMap)
+  for(auto pair : mShaderManager.mShaderMap.All())
   {
     Shader* shader = pair.second;
     UniqueShaderMaterial& uniqueShaderMaterial = mUniqueShaderMaterialNameMap[pair.first];
@@ -165,7 +162,7 @@ void GraphicsEngine::LoadVulkanMaterial(Material* material)
   mRenderer.UpdateShaderMaterialInstance(&shaderMaterialInstance);
 
   uint32_t offset = 0;
-  for(auto pair : shaderMaterialInstance.mUniqueShaderMaterial->mBindings)
+  for(auto pair : shaderMaterialInstance.mUniqueShaderMaterial->mBindings.All())
   {
     ShaderResourceBinding* shaderBinding = pair.second;
     if(shaderBinding->mMaterialBindingId == ShaderMaterialBindingId::Material)
@@ -178,17 +175,16 @@ void GraphicsEngine::LoadVulkanMaterial(Material* material)
 
 void GraphicsEngine::LoadVulkanMaterials()
 {
-  for(auto pair : mMaterialManager.mMaterialMap)
+  for(Material* material : mMaterialManager.mMaterialMap.Values())
   {
-    LoadVulkanMaterial(pair.second);
+    LoadVulkanMaterial(material);
   }
 }
 
 void GraphicsEngine::LoadVulkanMeshes()
 {
-  for(auto pair : mMeshManager.mMeshMap)
+  for(Mesh* mesh : mMeshManager.mMeshMap.Values())
   {
-    Mesh* mesh = pair.second;
     mRenderer.CreateMesh(mesh);
   }
 }
@@ -205,9 +201,9 @@ void GraphicsEngine::PopulateMaterialBuffer()
   {
     return rhs.mBufferId < lhs.mBufferId;
   };
-  std::vector<BufferSortData> propertiesByBuffer;
+  Array<BufferSortData> propertiesByBuffer;
 
-  for(auto pair : mMaterialManager.mMaterialMap)
+  for(auto pair : mMaterialManager.mMaterialMap.All())
   {
     Material* material = pair.second;
     Shader* shader = mShaderManager.Find(material->mShaderName);
@@ -216,16 +212,15 @@ void GraphicsEngine::PopulateMaterialBuffer()
 
     for(MaterialProperty& materialProp : material->mProperties)
     {
-      auto it = shaderMaterialInstance.mMaterialNameMap.find(materialProp.mPropertyName);
-      if(it == shaderMaterialInstance.mMaterialNameMap.end())
+      ShaderFieldBinding* fieldBinding = shaderMaterialInstance.mMaterialNameMap.FindValue(materialProp.mPropertyName, nullptr);
+      if(fieldBinding == nullptr)
         continue;
 
-      ShaderFieldBinding* fieldBinding = it->second;
       const ShaderResourceField* fieldResource = fieldBinding->mShaderField;
       if(fieldResource != nullptr)
       {
         BufferSortData sortData{vulkanShaderMaterial->mBufferId, &materialProp, fieldBinding};
-        propertiesByBuffer.emplace_back(sortData);
+        propertiesByBuffer.PushBack(sortData);
       }
     }
   }
@@ -233,7 +228,7 @@ void GraphicsEngine::PopulateMaterialBuffer()
   uint32_t bufferId = static_cast<uint32_t>(-1);
   VkDeviceMemory bufferMemory = VK_NULL_HANDLE;
   byte* byteData = nullptr;
-  for(size_t i = 0; i < propertiesByBuffer.size(); ++i)
+  for(size_t i = 0; i < propertiesByBuffer.Size(); ++i)
   {
     BufferSortData& data = propertiesByBuffer[i];
     if(bufferId != data.mBufferId || byteData == nullptr)
@@ -248,7 +243,7 @@ void GraphicsEngine::PopulateMaterialBuffer()
     MaterialProperty* prop = data.mProperty;
     unsigned char* fieldStart = byteData + data.mFieldBinding->mShaderField->mOffset + data.mFieldBinding->mOwningBinding->mBufferOffset;
     // This might be wrong due to stride, have to figure out how to deal with this...
-    memcpy(fieldStart, prop->mData.data(), prop->mData.size());
+    memcpy(fieldStart, prop->mData.Data(), prop->mData.Size());
   }
 }
 
@@ -256,9 +251,8 @@ void GraphicsEngine::CleanupSwapChain()
 {
   mRenderer.DestroyUniformBuffer(0);
 
-  for(auto pair : mShaderMaterialInstanceNameMap)
+  for(ShaderMaterialInstance& shaderMaterialInstance : mShaderMaterialInstanceNameMap.Values())
   {
-    ShaderMaterialInstance& shaderMaterialInstance = pair.second;
     mRenderer.DestroyShaderMaterial(shaderMaterialInstance.mUniqueShaderMaterial);
   }
   mRenderer.DestroyRenderFramesInternal();
@@ -279,9 +273,8 @@ void GraphicsEngine::RecreateSwapChain()
   mRenderer.CreateSwapChainInternal();
   mRenderer.CreateRenderFramesInternal();
 
-  for(auto pair : mShaderMaterialInstanceNameMap)
+  for(ShaderMaterialInstance& shaderMaterialInstance : mShaderMaterialInstanceNameMap.Values())
   {
-    ShaderMaterialInstance& shaderMaterialInstance = pair.second;
     mRenderer.CreateShaderMaterial(shaderMaterialInstance.mUniqueShaderMaterial);
     mRenderer.UpdateShaderMaterialInstance(&shaderMaterialInstance);
   }

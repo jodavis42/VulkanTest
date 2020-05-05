@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shader.hpp"
+#include "GraphicsStandard.hpp"
 
 typedef unsigned char byte;
 
@@ -17,14 +18,14 @@ enum class MaterialDescriptorType
 struct MaterialBuffer
 {
   size_t mBinding = 0;
-  std::vector<char> mData;
+  Array<char> mData;
 };
 
 struct MaterialProperty
 {
   String mPropertyName;
   ShaderPrimitiveType::Enum mType = ShaderPrimitiveType::Unknown;
-  std::vector<byte> mData;
+  Array<byte> mData;
 };
 
 //-------------------------------------------------------------------Material
@@ -33,7 +34,7 @@ struct Material
   String mMaterialName;
   String mShaderName;
 
-  std::vector<MaterialProperty> mProperties;
+  Array<MaterialProperty> mProperties;
 };
 
 //-------------------------------------------------------------------MaterialManager
@@ -50,5 +51,5 @@ public:
   Material* Find(const String& name);
   void Destroy();
 
-  std::unordered_map<String, Material*> mMaterialMap;
+  HashMap<String, Material*> mMaterialMap;
 };

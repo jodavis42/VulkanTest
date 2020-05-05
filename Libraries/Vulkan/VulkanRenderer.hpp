@@ -38,7 +38,7 @@ struct Factory
     T* mItem = nullptr;
     bool mValid = false;
   };
-  std::vector<Slot> mSlots;
+  Array<Slot> mSlots;
 };
 
 struct RenderTarget
@@ -142,6 +142,10 @@ public:
   
 //private:
 
+  void DestroyMeshInternal(VulkanMesh* vulkanMesh);
+  void DestroyTextureInternal(VulkanImage* vulkanImage);
+  void DestroyShaderInternal(VulkanShader* vulkanShader);
+  void DestroyShaderMaterialInternal(VulkanShaderMaterial* vulkanShaderMaterial);
   void RecreateFramesInternal();
   void CreateSwapChainInternal();
   void DestroySwapChainInternal();
@@ -154,9 +158,9 @@ public:
 
   VulkanRuntimeData* mInternal;
 
-  std::unordered_map<const Mesh*, VulkanMesh*> mMeshMap;
-  std::unordered_map<const Texture*, VulkanImage*> mTextureMap;
-  std::unordered_map<String, VulkanImage*> mTextureNameMap;
-  std::unordered_map<const Shader*, VulkanShader*> mShaderMap;
-  std::unordered_map<const UniqueShaderMaterial*, VulkanShaderMaterial*> mUniqueShaderMaterialMap;
+  HashMap<const Mesh*, VulkanMesh*> mMeshMap;
+  HashMap<const Texture*, VulkanImage*> mTextureMap;
+  HashMap<String, VulkanImage*> mTextureNameMap;
+  HashMap<const Shader*, VulkanShader*> mShaderMap;
+  HashMap<const UniqueShaderMaterial*, VulkanShaderMaterial*> mUniqueShaderMaterialMap;
 };

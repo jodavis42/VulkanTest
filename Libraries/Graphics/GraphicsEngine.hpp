@@ -44,7 +44,7 @@ public:
 
   SurfaceCreationDelegate mSurfaceCreationCallback;
   std::function<void(size_t&, size_t&)> mWindowSizeQueryFn = nullptr;
-  std::vector<GraphicsSpace*> mSpaces;
+  Array<GraphicsSpace*> mSpaces;
 
   MeshManager mMeshManager;
   TextureManager mTextureManager;
@@ -52,6 +52,6 @@ public:
   MaterialManager mMaterialManager;
   VulkanRenderer mRenderer;
 
-  std::unordered_map<String, UniqueShaderMaterial> mUniqueShaderMaterialNameMap;
-  std::unordered_map<String, ShaderMaterialInstance> mShaderMaterialInstanceNameMap;
+  HashMap<String, UniqueShaderMaterial> mUniqueShaderMaterialNameMap;
+  HashMap<String, ShaderMaterialInstance> mShaderMaterialInstanceNameMap;
 };

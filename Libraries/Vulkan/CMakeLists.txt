@@ -23,6 +23,7 @@ target_link_libraries(Vulkan
                       SimpleMath
                       GLFW
                       VulkanSDK
+                      Common
 )
 
 set_target_properties(Vulkan PROPERTIES FOLDER "Libraries")

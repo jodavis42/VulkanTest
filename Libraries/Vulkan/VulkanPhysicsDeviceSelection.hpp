@@ -33,8 +33,8 @@ inline void SelectPhysicsDevice(PhysicsDeviceSelectionData& selectionData, Physi
   if(deviceCount == 0)
     throw std::runtime_error("failed to find GPUs with Vulkan support!");
 
-  std::vector<VkPhysicalDevice> devices(deviceCount);
-  vkEnumeratePhysicalDevices(selectionData.mInstance, &deviceCount, devices.data());
+  Array<VkPhysicalDevice> devices(deviceCount);
+  vkEnumeratePhysicalDevices(selectionData.mInstance, &deviceCount, devices.Data());
 
   for(const auto& device : devices)
   {

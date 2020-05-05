@@ -85,7 +85,7 @@ private:
   void LoadLevel(const String& levelName)
   {
     GraphicsSpace* space = mGraphicsEngine.CreateSpace(levelName);
-    String filePath = String("data/") + levelName + String(".level");
+    String filePath = Zero::BuildString("data/", levelName, ".level");
     JsonLoader loader;
     loader.LoadFromFile(filePath);
 
@@ -97,7 +97,7 @@ private:
 
       Model* model = new Model();
       LoadModel(loader, model);
-      space->mModels.emplace_back(model);
+      space->mModels.PushBack(model);
 
       loader.EndArrayItem();
     }

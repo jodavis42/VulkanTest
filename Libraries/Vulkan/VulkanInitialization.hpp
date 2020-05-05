@@ -26,24 +26,7 @@ struct ConstantSwapChainInfo
 
 struct VulkanRuntimeData
 {
-  const std::vector<const char*> mDeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-  const std::vector<Vertex> mVertices =
-  {
-       {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-    {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-
-    {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-    {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-  };
-
-  const std::vector<uint16_t> mIndices = {
-    0, 1, 2, 2, 3, 0,
-    4, 5, 6, 6, 7, 4
-  };
+  const Array<const char*> mDeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
   static constexpr size_t mMaxFramesInFlight = 2;
   VkInstance mInstance = VK_NULL_HANDLE;
@@ -67,7 +50,7 @@ struct VulkanRuntimeData
   SwapChainData mSwapChain;
 
   
-  std::vector<VulkanRenderFrame> mRenderFrames;
+  Array<VulkanRenderFrame> mRenderFrames;
   
   
   
@@ -79,8 +62,8 @@ struct VulkanRuntimeData
   VkPipeline mGraphicsPipeline;
   
 
-  std::vector<VkFramebuffer> mSwapChainFramebuffers;
-  std::vector<VkCommandBuffer> mCommandBuffers;
+  Array<VkFramebuffer> mSwapChainFramebuffers;
+  Array<VkCommandBuffer> mCommandBuffers;
 
   
   uint32_t mCurrentFrame = 0;
@@ -93,21 +76,22 @@ struct VulkanRuntimeData
   VkDeviceMemory mIndexBufferMemory;
 
   
-  std::unordered_map <uint32_t, VulkanUniformBuffers> mUniformBufferMap;
+  HashMap<uint32_t, VulkanUniformBuffers> mUniformBufferMap;
   uint32_t mLastUsedMaterialBufferId = 0;
-  std::unordered_map<uint32_t, VulkanUniformBuffer> mMaterialBuffers;
+  HashMap<uint32_t, VulkanUniformBuffer> mMaterialBuffers;
 };
 
-inline std::vector<const char*> GetRequiredExtensions()
+inline Array<const char*> GetRequiredExtensions()
 {
   uint32_t glfwExtensionCount = 0;
   const char** glfwExtensions;
   glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-  std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+  Array<const char*> extensions;
+  extensions.Assign(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
   if(enableValidationLayers)
-    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    extensions.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
   return extensions;
 }
@@ -129,8 +113,8 @@ inline VulkanStatus CreateInstance(VkInstance& instance)
   VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
   if(enableValidationLayers)
   {
-    createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-    createInfo.ppEnabledLayerNames = validationLayers.data();
+    createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.Size());
+    createInfo.ppEnabledLayerNames = validationLayers.Data();
     PopulateDebugMessengerCreateInfo(debugCreateInfo);
     createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
   }
@@ -140,8 +124,8 @@ inline VulkanStatus CreateInstance(VkInstance& instance)
     createInfo.pNext = nullptr;
   }
   auto extensions = GetRequiredExtensions();
-  createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-  createInfo.ppEnabledExtensionNames = extensions.data();
+  createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.Size());
+  createInfo.ppEnabledExtensionNames = extensions.Data();
   createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   createInfo.pApplicationInfo = &appInfo;
 
@@ -175,7 +159,7 @@ inline bool IsDeviceSuitable(VkPhysicalDevice physicalDevice, DeviceSuitabilityD
   if(extensionsSupported)
   {
     SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(physicalDevice, data->mSurface);
-    swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+    swapChainAdequate = !swapChainSupport.formats.Empty() && !swapChainSupport.presentModes.Empty();
   }
 
   return indices.isComplete() && extensionsSupported && swapChainAdequate;
@@ -243,20 +227,6 @@ inline void CreateGraphicsPipeline(VulkanRuntimeData& runtimeData)
 
   runtimeData.mGraphicsPipeline = graphicsPipelineData.mGraphicsPipeline;
   runtimeData.mPipelineLayout = graphicsPipelineData.mPipelineLayout;
-}
-
-inline void CreateVertexBuffer(VulkanRuntimeData& runtimeData)
-{
-  VulkanBufferCreationData vulkanData{runtimeData.mPhysicalDevice, runtimeData.mDevice, runtimeData.mGraphicsQueue, runtimeData.mCommandPool};
-  VkDeviceSize bufferSize = sizeof(runtimeData.mVertices[0]) * runtimeData.mVertices.size();
-  CreateBuffer(vulkanData, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, runtimeData.mVertexBuffer, runtimeData.mVertexBufferMemory, runtimeData.mVertices.data(), bufferSize);
-}
-
-inline void CreateIndexBuffer(VulkanRuntimeData& runtimeData)
-{
-  VulkanBufferCreationData vulkanData{runtimeData.mPhysicalDevice, runtimeData.mDevice, runtimeData.mGraphicsQueue, runtimeData.mCommandPool};
-  VkDeviceSize bufferSize = sizeof(runtimeData.mIndices[0]) * runtimeData.mIndices.size();
-  CreateBuffer(vulkanData, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, runtimeData.mIndexBuffer, runtimeData.mIndexBufferMemory, runtimeData.mIndices.data(), bufferSize);
 }
 
 inline VulkanStatus CreateCommandPool(VkPhysicalDevice physicalDevice, VkDevice device, VkSurfaceKHR surface, VkCommandPool& commandPool)

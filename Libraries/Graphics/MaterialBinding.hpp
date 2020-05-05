@@ -33,7 +33,7 @@ struct ShaderResourceBinding
   ShaderMaterialBindingId::Enum mMaterialBindingId = ShaderMaterialBindingId::Unknown;
   uint32_t mBufferOffset = 0;
   const ShaderResource* mBoundResource = nullptr;
-  std::unordered_map<String, ShaderFieldBinding> mFieldBindings;
+  HashMap<String, ShaderFieldBinding> mFieldBindings;
 };
 
 //-------------------------------------------------------------------UniqueShaderMaterial
@@ -50,9 +50,9 @@ struct UniqueShaderMaterial
   const Shader* mShader = nullptr;
   MaterialDescriptorType mUndefinedDescriptorTypes = MaterialDescriptorType::Unknown;
   ShaderMaterialBindingId::Enum mUndefinedBindingId = ShaderMaterialBindingId::Unknown;
-  std::unordered_map<String, ShaderResourceBinding> mPredefinedBindings;
-  std::unordered_map<String, ShaderResourceBinding*> mBindings;
-  std::unordered_map<String, ShaderFieldBinding*> mFieldNameMap;
+  HashMap<String, ShaderResourceBinding> mPredefinedBindings;
+  HashMap<String, ShaderResourceBinding*> mBindings;
+  HashMap<String, ShaderFieldBinding*> mFieldNameMap;
 };
 
 //-------------------------------------------------------------------ShaderMaterialInstance
@@ -65,5 +65,5 @@ struct ShaderMaterialInstance
 
   const UniqueShaderMaterial* mUniqueShaderMaterial = nullptr;
   const Material* mMaterial = nullptr;
-  std::unordered_map<String, ShaderFieldBinding*> mMaterialNameMap;
+  HashMap<String, ShaderFieldBinding*> mMaterialNameMap;
 };

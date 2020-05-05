@@ -4,17 +4,17 @@
 
 struct SyncObjects
 {
-  std::vector<VkSemaphore> mImageAvailableSemaphores;
-  std::vector<VkSemaphore> mRenderFinishedSemaphores;
-  std::vector<VkFence> mInFlightFences;
-  std::vector<VkFence> mImagesInFlight;
+  Array<VkSemaphore> mImageAvailableSemaphores;
+  Array<VkSemaphore> mRenderFinishedSemaphores;
+  Array<VkFence> mInFlightFences;
+  Array<VkFence> mImagesInFlight;
 };
 
 inline VulkanStatus CreateSyncObjects(VkDevice device, size_t maxFrames, SyncObjects& syncObjects)
 {
-  syncObjects.mImageAvailableSemaphores.resize(maxFrames);
-  syncObjects.mRenderFinishedSemaphores.resize(maxFrames);
-  syncObjects.mInFlightFences.resize(maxFrames);
+  syncObjects.mImageAvailableSemaphores.Resize(maxFrames);
+  syncObjects.mRenderFinishedSemaphores.Resize(maxFrames);
+  syncObjects.mInFlightFences.Resize(maxFrames);
 
   VkSemaphoreCreateInfo semaphoreInfo = {};
   semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;

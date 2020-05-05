@@ -2,62 +2,55 @@
 
 #include "ShaderEnumTypes.hpp"
 
-#include <unordered_map>
-
 template <typename MapType, typename EnumType>
 String GetEnumString(const MapType& map, EnumType enumValue)
 {
-  auto it = map.find(enumValue);
-  if(it != map.end())
-    return it->second;
-  return "Error";
+  return map.FindValue(enumValue, "Error");
 }
 
 template <typename EnumType>
-EnumType GetEnumValue(const std::unordered_map<String, EnumType>& map, const String& enumString)
+EnumType GetEnumValue(const HashMap<String, EnumType>& map, const String& enumString)
 {
-  auto it = map.find(enumString);
-  if(it == map.end())
+  EnumType* result = map.FindPointer(enumString);
+  if(result == nullptr)
     // Error, not contained
     __debugbreak();
-  return it->second;
+  return *result;
 }
 
 template <typename MapType, typename EnumType>
 String GetFlagString(const MapType& map, EnumType enumValue)
 {
-  String result;
+  Zero::StringBuilder result;
   for(size_t i = 0; i < EnumType::Count; ++i)
   {
     auto mask = enumValue & (1 << i);
     if(mask == 0)
       continue;
 
-    String enumStr = map.find(enumValue)->second;
-    if(!result.empty())
-      result += "|";
-    result += enumStr;
+    String enumStr = map.FindValue(enumValue, String());
+    if(!result.GetSize() == 0)
+      result.Append("|");
+    result.Append(enumStr);
   }
   
-  return result;
+  return result.ToString();
 }
 
 template <typename EnumStruct, typename EnumType>
-EnumType GetFlagValue(const std::unordered_map<String, EnumType>& map, const String& enumString)
+EnumType GetFlagValue(const HashMap<String, EnumType>& map, const String& enumString)
 {
-  if(enumString.empty())
+  if(enumString.Empty())
     return EnumStruct::All;
 
   EnumType result = EnumStruct::None;
-  size_t startIndex = 0;
-  while(startIndex < enumString.size())
+  Zero::StringSplitRange range = enumString.Split("|");
+  while(!range.Empty())
   {
-    size_t endIndex = enumString.find_first_of('|', startIndex);
-    if(endIndex == String::npos)
-      endIndex = enumString.size();
-    String subStr = enumString.substr(startIndex, endIndex - startIndex);
-    result = static_cast<EnumType>(result | map.find(subStr)->second);
-    startIndex = endIndex + 1;
+    String subStr = range.Front();
+    auto enumValuePtr = map.FindPointer(subStr);
+    result = static_cast<EnumType>(result | *enumValuePtr);
+    range.PopFront();
   }
 
   return result;
@@ -66,7 +59,7 @@ EnumType GetFlagValue(const std::unordered_map<String, EnumType>& map, const Str
 //-------------------------------------------------------------------ShaderPrimitiveType
 String ShaderPrimitiveType::ToString(ShaderPrimitiveType::Enum type)
 {
-  static std::unordered_map<ShaderPrimitiveType::Enum, String> map =
+  static HashMap<ShaderPrimitiveType::Enum, String> map =
   {
     {ShaderPrimitiveType::Unknown, "Unknown"},
     {ShaderPrimitiveType::Byte, "Byte"},
@@ -86,7 +79,7 @@ String ShaderPrimitiveType::ToString(ShaderPrimitiveType::Enum type)
 
 ShaderPrimitiveType::Enum ShaderPrimitiveType::FromString(const String& typeName)
 {
-  static std::unordered_map<String, ShaderPrimitiveType::Enum> map = 
+  static HashMap<String, ShaderPrimitiveType::Enum> map = 
   {
     {"Unknown", ShaderPrimitiveType::Unknown},
     {"Byte", ShaderPrimitiveType::Byte},
@@ -107,7 +100,7 @@ ShaderPrimitiveType::Enum ShaderPrimitiveType::FromString(const String& typeName
 //-------------------------------------------------------------------ShaderResourceType
 String ShaderResourceType::ToString(ShaderResourceType::Enum type)
 {
-  static std::unordered_map<ShaderResourceType::Enum, String> map =
+  static HashMap<ShaderResourceType::Enum, String> map =
   {
     {ShaderResourceType::Uniform, "Uniform"},
     {ShaderResourceType::SampledImage, "SampledImage"},
@@ -117,7 +110,7 @@ String ShaderResourceType::ToString(ShaderResourceType::Enum type)
 
 ShaderResourceType::Enum ShaderResourceType::FromString(const String& typeName)
 {
-  static std::unordered_map<String, ShaderResourceType::Enum> map =
+  static HashMap<String, ShaderResourceType::Enum> map =
   {
     {"Uniform", ShaderResourceType::Uniform},
     {"SampledImage", ShaderResourceType::SampledImage},
@@ -128,7 +121,7 @@ ShaderResourceType::Enum ShaderResourceType::FromString(const String& typeName)
 //-------------------------------------------------------------------ShaderStage
 String ShaderStage::ToString(ShaderStage::Enum type)
 {
-  static std::unordered_map<ShaderStage::Enum, String> map =
+  static HashMap<ShaderStage::Enum, String> map =
   {
     {ShaderStage::Vertex, "Vertex"},
     {ShaderStage::Pixel, "Pixel"},
@@ -138,7 +131,7 @@ String ShaderStage::ToString(ShaderStage::Enum type)
 
 ShaderStage::Enum ShaderStage::FromString(const String& typeName)
 {
-  static std::unordered_map<String, ShaderStage::Enum> map =
+  static HashMap<String, ShaderStage::Enum> map =
   {
     {"Vertex", ShaderStage::Vertex},
     {"Pixel", ShaderStage::Pixel},
@@ -149,7 +142,7 @@ ShaderStage::Enum ShaderStage::FromString(const String& typeName)
 //-------------------------------------------------------------------ShaderStageFlags
 String ShaderStageFlags::ToString(ShaderStageFlags::Enum type)
 {
-  static std::unordered_map<ShaderStageFlags::Enum, String> map =
+  static HashMap<ShaderStageFlags::Enum, String> map =
   {
     {ShaderStageFlags::Vertex, "Vertex"},
     {ShaderStageFlags::Pixel, "Pixel"},
@@ -159,7 +152,7 @@ String ShaderStageFlags::ToString(ShaderStageFlags::Enum type)
 
 ShaderStageFlags::Enum ShaderStageFlags::FromString(const String& typeName)
 {
-  static std::unordered_map<String, ShaderStageFlags::Enum> map =
+  static HashMap<String, ShaderStageFlags::Enum> map =
   {
     {"Vertex", ShaderStageFlags::Vertex},
     {"Pixel", ShaderStageFlags::Pixel},

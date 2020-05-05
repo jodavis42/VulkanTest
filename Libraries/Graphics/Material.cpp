@@ -7,22 +7,22 @@
 #include "Math.hpp"
 
 template <typename T>
-void SetPropertyBuffer(const T& data, std::vector<byte>& buffer)
+void SetPropertyBuffer(const T& data, Array<byte>& buffer)
 {
   constexpr size_t size = sizeof(T);
-  buffer.resize(size);
-  memcpy(buffer.data(), &data, size);
+  buffer.Resize(size);
+  memcpy(buffer.Data(), &data, size);
 }
 
 template <>
-void SetPropertyBuffer<String>(const String& str, std::vector<byte>& buffer)
+void SetPropertyBuffer<String>(const String& str, Array<byte>& buffer)
 {
-  buffer.resize(str.size() + 1);
-  memcpy(buffer.data(), str.data(), str.size());
-  buffer[str.size()] = '\0';
+  buffer.Resize(str.SizeInBytes() + 1);
+  memcpy(buffer.Data(), str.Data(), str.SizeInBytes());
+  buffer[str.SizeInBytes()] = '\0';
 }
 
-void ReadPropertyValue(JsonLoader& loader, ShaderPrimitiveType::Enum& propType, std::vector<byte>& data)
+void ReadPropertyValue(JsonLoader& loader, ShaderPrimitiveType::Enum& propType, Array<byte>& data)
 {
   String propName = "Value";
   switch(propType)
@@ -81,7 +81,7 @@ void LoadMaterialProperties(Material* material, JsonLoader& loader)
   {
     size_t propCount = 0;
     loader.BeginMembers(propCount);
-    material->mProperties.resize(propCount);
+    material->mProperties.Resize(propCount);
     for(size_t i = 0; i < propCount; ++i)
     {
       MaterialProperty& prop = material->mProperties[i];
@@ -132,16 +132,12 @@ void MaterialManager::Add(const String& name, Material* material)
 
 Material* MaterialManager::Find(const String& name)
 {
-  auto it = mMaterialMap.find(name);
-  if(it == mMaterialMap.end())
-    return nullptr;
-  return it->second;
+  return mMaterialMap.FindValue(name, nullptr);
 }
 
 void MaterialManager::Destroy()
 {
-  for(auto pair : mMaterialMap)
-    delete pair.second;
-  
-  mMaterialMap.clear();
+  for(Material* material : mMaterialMap.Values())
+    delete material;
+  mMaterialMap.Clear();
 }

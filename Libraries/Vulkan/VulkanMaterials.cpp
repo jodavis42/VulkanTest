@@ -26,15 +26,14 @@ uint32_t FindMaterialBufferIdFor(RendererData& rendererData, const UniqueShaderM
   auto& materialBuffers = rendererData.mRuntimeData->mMaterialBuffers;
   VulkanUniformBuffer* buffer = nullptr;
 
-  if(materialBuffers.find(lastBufferId) != materialBuffers.end())
+  if(materialBuffers.ContainsKey(lastBufferId))
   {
     buffer = &materialBuffers[lastBufferId];
   }
 
   VkDeviceSize requiredSize = 0;
-  for(auto pair : uniqueShaderMaterial.mBindings)
+  for(ShaderResourceBinding * shaderResource : uniqueShaderMaterial.mBindings.Values())
   {
-    ShaderResourceBinding* shaderResource = pair.second;
     if(shaderResource->mMaterialBindingId == ShaderMaterialBindingId::Material)
       requiredSize += shaderResource->mBoundResource->mSizeInBytes;
   }
@@ -53,23 +52,18 @@ VulkanUniformBuffer& FindMaterialBuffer(RendererData& rendererData, uint32_t buf
   VulkanRuntimeData* runtimeData = rendererData.mRuntimeData;
 
   auto& buffers = runtimeData->mMaterialBuffers;
-  auto it = buffers.find(bufferId);
-  if(it != buffers.end())
-    return it->second;
-
   VulkanUniformBuffer& buffer = buffers[bufferId];
   return buffer;
 }
 
 void CreateMaterialDescriptorSetLayouts(RendererData& rendererData, const UniqueShaderMaterial& uniqueShaderMaterial, VulkanShaderMaterial& vulkanShaderMaterial)
 {
-  std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
-  layoutBindings.resize(uniqueShaderMaterial.mBindings.size());
+  Array<VkDescriptorSetLayoutBinding> layoutBindings;
+  layoutBindings.Resize(uniqueShaderMaterial.mBindings.Size());
   
   size_t index = 0;
-  for(auto pair : uniqueShaderMaterial.mBindings)
+  for(const ShaderResourceBinding* shaderResourceBinding : uniqueShaderMaterial.mBindings.Values())
   {
-    const ShaderResourceBinding* shaderResourceBinding = pair.second;
     const ShaderResource* shaderResource = shaderResourceBinding->mBoundResource;
     VkDescriptorSetLayoutBinding& descriptorSetLayoutBinding = layoutBindings[index];
     ++index;
@@ -83,8 +77,8 @@ void CreateMaterialDescriptorSetLayouts(RendererData& rendererData, const Unique
   
   VkDescriptorSetLayoutCreateInfo layoutInfo = {};
   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
-  layoutInfo.pBindings = layoutBindings.data();
+  layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.Size());
+  layoutInfo.pBindings = layoutBindings.Data();
   
   VulkanStatus result;
   if(vkCreateDescriptorSetLayout(rendererData.mRuntimeData->mDevice, &layoutInfo, nullptr, &vulkanShaderMaterial.mDescriptorSetLayout) != VK_SUCCESS)
@@ -101,9 +95,8 @@ void CreateMaterialDescriptorPool(RendererData& rendererData, const UniqueShader
   std::array<uint32_t, VK_DESCRIPTOR_TYPE_RANGE_SIZE> poolCounts = {};
 
   size_t index = 0;
-  for(auto pair : uniqueShaderMaterial.mBindings)
+  for(ShaderResourceBinding * resourceBinding : uniqueShaderMaterial.mBindings.Values())
   {
-    ShaderResourceBinding* resourceBinding = pair.second;
     if(resourceBinding->mDescriptorType == MaterialDescriptorType::Uniform)
       poolCounts[VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER] += frameCount;
     if(resourceBinding->mDescriptorType == MaterialDescriptorType::SampledImage)
@@ -112,8 +105,8 @@ void CreateMaterialDescriptorPool(RendererData& rendererData, const UniqueShader
       poolCounts[VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC] += frameCount;
   }
 
-  std::vector<VkDescriptorPoolSize> poolSizes;
-  poolSizes.reserve(poolCounts.size());
+  Array<VkDescriptorPoolSize> poolSizes;
+  poolSizes.Reserve(poolCounts.size());
   for(uint32_t i = VK_DESCRIPTOR_TYPE_BEGIN_RANGE; i <= VK_DESCRIPTOR_TYPE_END_RANGE; ++i)
   {
     if(poolCounts[i] != 0)
@@ -121,14 +114,14 @@ void CreateMaterialDescriptorPool(RendererData& rendererData, const UniqueShader
       VkDescriptorPoolSize poolSize;
       poolSize.type = static_cast<VkDescriptorType>(i);
       poolSize.descriptorCount = poolCounts[i];
-      poolSizes.emplace_back(poolSize);
+      poolSizes.PushBack(poolSize);
     }
   }
 
   VkDescriptorPoolCreateInfo poolInfo = {};
   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-  poolInfo.pPoolSizes = poolSizes.data();
+  poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.Size());
+  poolInfo.pPoolSizes = poolSizes.Data();
   poolInfo.maxSets = frameCount;
 
   VulkanStatus status;
@@ -141,17 +134,17 @@ void CreateMaterialDescriptorSets(RendererData& rendererData, VulkanShaderMateri
   VulkanRuntimeData* runtimeData = rendererData.mRuntimeData;
   uint32_t frameCount = runtimeData->mSwapChain.GetCount();
 
-  std::vector<VkDescriptorSetLayout> layouts(frameCount, vulkanShaderMaterial.mDescriptorSetLayout);
+  Array<VkDescriptorSetLayout> layouts(frameCount, vulkanShaderMaterial.mDescriptorSetLayout);
   VkDescriptorSetAllocateInfo allocInfo = {};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   allocInfo.descriptorPool = vulkanShaderMaterial.mDescriptorPool;
   allocInfo.descriptorSetCount = frameCount;
-  allocInfo.pSetLayouts = layouts.data();
+  allocInfo.pSetLayouts = layouts.Data();
 
-  vulkanShaderMaterial.mDescriptorSets.resize(frameCount);
+  vulkanShaderMaterial.mDescriptorSets.Resize(frameCount);
 
   VulkanStatus status;
-  if(vkAllocateDescriptorSets(runtimeData->mDevice, &allocInfo, vulkanShaderMaterial.mDescriptorSets.data()) != VK_SUCCESS)
+  if(vkAllocateDescriptorSets(runtimeData->mDevice, &allocInfo, vulkanShaderMaterial.mDescriptorSets.Data()) != VK_SUCCESS)
     status.MarkFailed("failed to allocate descriptor sets!");
 }
 
@@ -159,17 +152,15 @@ void UpdateMaterialDescriptorSet(RendererData& rendererData, const ShaderMateria
 {
   const UniqueShaderMaterial* uniqueShaderMaterial = shaderMaterialInstance.mUniqueShaderMaterial;
   VulkanRuntimeData* runtimeData = rendererData.mRuntimeData;
-  size_t totalCount = uniqueShaderMaterial->mBindings.size();
+  size_t totalCount = uniqueShaderMaterial->mBindings.Size();
 
-  std::vector<VkDescriptorBufferInfo> bufferInfos(totalCount);
-  std::vector<VkDescriptorImageInfo> imageInfos(totalCount);
-  std::vector<VkWriteDescriptorSet> descriptorWrites(totalCount);
+  Array<VkDescriptorBufferInfo> bufferInfos(totalCount);
+  Array<VkDescriptorImageInfo> imageInfos(totalCount);
+  Array<VkWriteDescriptorSet> descriptorWrites(totalCount);
 
   size_t index = 0;
-  for(auto pair : uniqueShaderMaterial->mBindings)
+  for(ShaderResourceBinding* resourceBinding : uniqueShaderMaterial->mBindings.Values())
   {
-    ShaderResourceBinding* resourceBinding = pair.second;
-
     VulkanUniformBuffers* buffers = rendererData.mRenderer->RequestUniformBuffer(0);
     VkBuffer buffer = buffers->mBuffers[frameIndex].mBuffer;
     if(resourceBinding->mMaterialBindingId == ShaderMaterialBindingId::Material)
@@ -202,9 +193,9 @@ void UpdateMaterialDescriptorSet(RendererData& rendererData, const ShaderMateria
     }
     else if(resourceBinding->mDescriptorType == MaterialDescriptorType::SampledImage)
     {
-      auto it = shaderMaterialInstance.mMaterialNameMap.find(resourceBinding->mBindingName);
-      const MaterialProperty* materialProp = it->second->mMaterialProperty;
-      String textureName((const char*)materialProp->mData.data());
+      ShaderFieldBinding* fieldBinding = shaderMaterialInstance.mMaterialNameMap.FindValue(resourceBinding->mBindingName, nullptr);
+      const MaterialProperty* materialProp = fieldBinding->mMaterialProperty;
+      String textureName((const char*)materialProp->mData.Data());
       VulkanImage* vulkanImage = rendererData.mRenderer->mTextureNameMap[textureName];
 
       VkDescriptorImageInfo& imageInfo = imageInfos[index];
@@ -217,8 +208,8 @@ void UpdateMaterialDescriptorSet(RendererData& rendererData, const ShaderMateria
     ++index;
   }
 
-  uint32_t descriptorsCount = static_cast<uint32_t>(descriptorWrites.size());
-  vkUpdateDescriptorSets(runtimeData->mDevice, descriptorsCount, descriptorWrites.data(), 0, nullptr);
+  uint32_t descriptorsCount = static_cast<uint32_t>(descriptorWrites.Size());
+  vkUpdateDescriptorSets(runtimeData->mDevice, descriptorsCount, descriptorWrites.Data(), 0, nullptr);
 }
 
 void UpdateMaterialDescriptorSets(RendererData& rendererData, const ShaderMaterialInstance& shaderMaterialInstance, VulkanShaderMaterial& vulkanShaderMaterial)

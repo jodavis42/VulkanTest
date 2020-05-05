@@ -1,9 +1,6 @@
 #pragma once
 
-#include <string>
-#include <unordered_map>
-#include <vector>
-using String = std::string;
+#include "GraphicsStandard.hpp"
 
 //-------------------------------------------------------------------TextureFormat
 enum class  TextureFormat
@@ -66,5 +63,5 @@ public:
   Texture* Find(const String& name);
   void Destroy();
 
-  std::unordered_map<String, Texture*> mTextureMap;
+  HashMap<String, Texture*> mTextureMap;
 };

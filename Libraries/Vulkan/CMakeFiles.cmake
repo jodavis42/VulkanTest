@@ -24,4 +24,5 @@ target_sources(Vulkan
     ${CMAKE_CURRENT_LIST_DIR}/VulkanSwapChain.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanSyncronization.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanValidationLayers.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanStandard.hpp
 )

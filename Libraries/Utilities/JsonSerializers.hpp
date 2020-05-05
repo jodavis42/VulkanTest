@@ -1,11 +1,12 @@
 #pragma once
 
-#include <string>
 #include <functional>
+#include "Common/CommonStandard.hpp"
+
+using Zero::String;
+using Zero::Array;
 
 class JsonInternalData;
-
-typedef std::string String;
 
 struct PolymorphicInfo
 {
@@ -41,7 +42,7 @@ public:
   virtual bool EndArray();
   virtual bool EndArrayItem();
 
-  bool WriteKey(const std::string& name);
+  bool WriteKey(const String& name);
   bool WritePrimitive(bool data);
   bool WritePrimitive(char data);
   bool WritePrimitive(int data);
@@ -153,17 +154,18 @@ void LoadAllFilesOfExtension(ManagerType& manager, const String& searchDir, cons
 template <typename ManagerType>
 void LoadAllFilesOfExtension(ManagerType& manager, const String& searchDir, const String& extension, bool recursive = true)
 {
-  for(auto it : std::filesystem::directory_iterator(searchDir))
+  for(auto it : std::filesystem::directory_iterator(searchDir.c_str()))
   {
     if(it.is_directory())
     {
       if(recursive)
-        LoadAllFilesOfExtension(manager, it.path().string(), extension, recursive);
+        LoadAllFilesOfExtension(manager, String(it.path().string().c_str()), extension, recursive);
       continue;
     }
     
     auto filePath = it.path();
-    if(filePath.extension() == extension)
-      manager.LoadFromFile(filePath.string());
+    String fileExt = filePath.extension().string().c_str();
+    if(fileExt == extension)
+      manager.LoadFromFile(filePath.string().c_str());
   }
 }

@@ -1,7 +1,6 @@
 #pragma once
 
-#include <string>
-typedef std::string String;
+#include "GraphicsStandard.hpp"
 
 //-------------------------------------------------------------------ShaderPrimitiveType
 struct ShaderPrimitiveType

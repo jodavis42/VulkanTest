@@ -12,13 +12,13 @@ struct CommandBuffersCreationData
   VkSwapchainKHR mSwapChain;
   VkExtent2D mSwapChainExtent;
   uint32_t mIndexBufferCount;
-  std::vector<VkFramebuffer> mSwapChainFramebuffers;
-  std::vector<VkDescriptorSet> mDescriptorSets;
+  Array<VkFramebuffer> mSwapChainFramebuffers;
+  Array<VkDescriptorSet> mDescriptorSets;
 };
 
 struct CommandBuffersResultData
 {
-  std::vector<VkCommandBuffer> mCommandBuffers;
+  Array<VkCommandBuffer> mCommandBuffers;
 };
 
 struct CommandBufferWriteInfo
@@ -132,10 +132,10 @@ inline VulkanStatus CreateCommandBuffer(VkDevice device, VkCommandPool commandPo
 
 inline void CreateCommandBuffers(CommandBuffersCreationData& creationData, CommandBuffersResultData& resultData)
 {
-  resultData.mCommandBuffers.resize(creationData.mSwapChainFramebuffers.size());
-  CreateCommandBuffer(creationData.mDevice, creationData.mCommandPool, resultData.mCommandBuffers.data(), static_cast<uint32_t>(resultData.mCommandBuffers.size()));
+  resultData.mCommandBuffers.Resize(creationData.mSwapChainFramebuffers.Size());
+  CreateCommandBuffer(creationData.mDevice, creationData.mCommandPool, resultData.mCommandBuffers.Data(), static_cast<uint32_t>(resultData.mCommandBuffers.Size()));
 
-  for(size_t i = 0; i < resultData.mCommandBuffers.size(); i++)
+  for(size_t i = 0; i < resultData.mCommandBuffers.Size(); i++)
   {
     CommandBufferWriteInfo writeInfo;
     writeInfo.mDevice = creationData.mDevice;

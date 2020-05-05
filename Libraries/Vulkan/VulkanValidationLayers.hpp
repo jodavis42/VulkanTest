@@ -6,15 +6,15 @@
 #include "VulkanExtensions.hpp"
 
 const bool enableValidationLayers = true;
-const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
+const Array<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
 
 inline bool CheckValidationLayerSupport()
 {
   uint32_t layerCount;
   vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
-  std::vector<VkLayerProperties> availableLayers(layerCount);
-  vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+  Array<VkLayerProperties> availableLayers(layerCount);
+  vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.Data());
 
   for(const char* layerName : validationLayers)
   {

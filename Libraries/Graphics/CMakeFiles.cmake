@@ -21,4 +21,5 @@ target_sources(Graphics
     ${CMAKE_CURRENT_LIST_DIR}/Texture.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Texture.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Vertex.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/GraphicsStandard.hpp
 )

@@ -153,26 +153,26 @@ void VulkanRenderer::Cleanup()
 
 void VulkanRenderer::CleanupResources()
 {
-  while(!mMeshMap.empty())
-    DestroyMesh(mMeshMap.begin()->first);
-  mMeshMap.clear();
+  for(VulkanMesh* mesh : mMeshMap.Values())
+    DestroyMeshInternal(mesh);
+  mMeshMap.Clear();
 
-  while(!mTextureMap.empty())
-    DestroyTexture(mTextureMap.begin()->first);
-  mTextureMap.clear();
+  for(VulkanImage* image : mTextureMap.Values())
+    DestroyTextureInternal(image);
+  mTextureMap.Clear();
 
-  while(!mShaderMap.empty())
-    DestroyShader(mShaderMap.begin()->first);
-  mShaderMap.clear();
+  for(VulkanShader* shader : mShaderMap.Values())
+    DestroyShaderInternal(shader);
+  mShaderMap.Clear();
 
-  while(!mUniqueShaderMaterialMap.empty())
-    DestroyShaderMaterial(mUniqueShaderMaterialMap.begin()->first);
-  mUniqueShaderMaterialMap.clear();
+  for(VulkanShaderMaterial* shaderMaterial : mUniqueShaderMaterialMap.Values())
+    DestroyShaderMaterialInternal(shaderMaterial);
+  mUniqueShaderMaterialMap.Clear();
 
-  for(auto pair : mInternal->mMaterialBuffers)
+  for(VulkanUniformBuffer& buffer : mInternal->mMaterialBuffers.Values())
   {
-    vkDestroyBuffer(mInternal->mDevice, pair.second.mBuffer, nullptr);
-    vkFreeMemory(mInternal->mDevice, pair.second.mBufferMemory, nullptr);
+    vkDestroyBuffer(mInternal->mDevice, buffer.mBuffer, nullptr);
+    vkFreeMemory(mInternal->mDevice, buffer.mBufferMemory, nullptr);
   }
 }
 
@@ -202,14 +202,14 @@ void VulkanRenderer::CreateMesh(const Mesh* mesh)
   vulkanData.mGraphicsQueue = mInternal->mGraphicsQueue;
 
   {
-    VkDeviceSize bufferSize = sizeof(mesh->mVertices[0]) * mesh->mVertices.size();
-    CreateBuffer(vulkanData, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vulkanMesh->mVertexBuffer, vulkanMesh->mVertexBufferMemory, mesh->mVertices.data(), bufferSize);
+    VkDeviceSize bufferSize = sizeof(mesh->mVertices[0]) * mesh->mVertices.Size();
+    CreateBuffer(vulkanData, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, vulkanMesh->mVertexBuffer, vulkanMesh->mVertexBufferMemory, mesh->mVertices.Data(), bufferSize);
   }
   
   {
-    vulkanMesh->mIndexCount = static_cast<uint32_t>(mesh->mIndices.size());
-    VkDeviceSize bufferSize = sizeof(mesh->mIndices[0]) * mesh->mIndices.size();
-    CreateBuffer(vulkanData, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, vulkanMesh->mIndexBuffer, vulkanMesh->mIndexBufferMemory, mesh->mIndices.data(), bufferSize);
+    vulkanMesh->mIndexCount = static_cast<uint32_t>(mesh->mIndices.Size());
+    VkDeviceSize bufferSize = sizeof(mesh->mIndices[0]) * mesh->mIndices.Size();
+    CreateBuffer(vulkanData, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, vulkanMesh->mIndexBuffer, vulkanMesh->mIndexBufferMemory, mesh->mIndices.Data(), bufferSize);
   }
 
   mMeshMap[mesh] = vulkanMesh;
@@ -218,12 +218,9 @@ void VulkanRenderer::CreateMesh(const Mesh* mesh)
 void VulkanRenderer::DestroyMesh(const Mesh* mesh)
 {
   VulkanMesh* vulkanMesh = mMeshMap[mesh];
-  mMeshMap.erase(mesh);
+  mMeshMap.Erase(mesh);
 
-  vkDestroyBuffer(mInternal->mDevice, vulkanMesh->mIndexBuffer, nullptr);
-  vkFreeMemory(mInternal->mDevice, vulkanMesh->mIndexBufferMemory, nullptr);
-  vkDestroyBuffer(mInternal->mDevice, vulkanMesh->mVertexBuffer, nullptr);
-  vkFreeMemory(mInternal->mDevice, vulkanMesh->mVertexBufferMemory, nullptr);
+  DestroyMeshInternal(vulkanMesh);
 }
 
 void VulkanRenderer::CreateTexture(const Texture* texture)
@@ -240,13 +237,10 @@ void VulkanRenderer::CreateTexture(const Texture* texture)
 void VulkanRenderer::DestroyTexture(const Texture* texture)
 {
   VulkanImage* vulkanImage = mTextureMap[texture];
-  mTextureMap.erase(texture);
-  mTextureNameMap.erase(texture->mName);
+  mTextureMap.Erase(texture);
+  mTextureNameMap.Erase(texture->mName);
 
-  vkDestroySampler(mInternal->mDevice, vulkanImage->mSampler, nullptr);
-  vkDestroyImageView(mInternal->mDevice, vulkanImage->mImageView, nullptr);
-  vkFreeMemory(mInternal->mDevice, vulkanImage->mImageMemory, nullptr);
-  vkDestroyImage(mInternal->mDevice, vulkanImage->mImage, nullptr);
+  DestroyTextureInternal(vulkanImage);
 }
 
 void VulkanRenderer::CreateShader(const Shader* shader)
@@ -264,10 +258,9 @@ void VulkanRenderer::CreateShader(const Shader* shader)
 void VulkanRenderer::DestroyShader(const Shader* shader)
 {
   VulkanShader* vulkanShader = mShaderMap[shader];
-  mShaderMap.erase(shader);
+  mShaderMap.Erase(shader);
 
-  vkDestroyShaderModule(mInternal->mDevice, vulkanShader->mPixelShaderModule, nullptr);
-  vkDestroyShaderModule(mInternal->mDevice, vulkanShader->mVertexShaderModule, nullptr);
+  DestroyShaderInternal(vulkanShader);
 }
 
 void VulkanRenderer::CreateShaderMaterial(const UniqueShaderMaterial* uniqueShaderMaterial)
@@ -298,19 +291,9 @@ void VulkanRenderer::UpdateShaderMaterialInstance(const ShaderMaterialInstance* 
 void VulkanRenderer::DestroyShaderMaterial(const UniqueShaderMaterial* uniqueShaderMaterial)
 {
   VulkanShaderMaterial* vulkanShaderMaterial = mUniqueShaderMaterialMap[uniqueShaderMaterial];
-  mUniqueShaderMaterialMap.erase(uniqueShaderMaterial);
+  mUniqueShaderMaterialMap.Erase(uniqueShaderMaterial);
 
-  vkDestroyPipeline(mInternal->mDevice, vulkanShaderMaterial->mPipeline, nullptr);
-  vkDestroyPipelineLayout(mInternal->mDevice, vulkanShaderMaterial->mPipelineLayout, nullptr);
-  vkDestroyDescriptorPool(mInternal->mDevice, vulkanShaderMaterial->mDescriptorPool, nullptr);
-  vkDestroyDescriptorSetLayout(mInternal->mDevice, vulkanShaderMaterial->mDescriptorSetLayout, nullptr);
-  vulkanShaderMaterial->mPipeline = VK_NULL_HANDLE;
-  vulkanShaderMaterial->mPipelineLayout = VK_NULL_HANDLE;
-  vulkanShaderMaterial->mDescriptorPool = VK_NULL_HANDLE;
-  vulkanShaderMaterial->mDescriptorSetLayout = VK_NULL_HANDLE;
-  vulkanShaderMaterial->mDescriptorSets.clear();
-
-  delete vulkanShaderMaterial;
+  DestroyShaderMaterialInternal(vulkanShaderMaterial);
 }
 
 RenderFrameStatus VulkanRenderer::BeginFrame(RenderFrame*& frame)
@@ -427,15 +410,15 @@ void VulkanRenderer::Draw()
 
 VulkanUniformBuffers* VulkanRenderer::RequestUniformBuffer(uint32_t bufferId)
 {
-  auto it = mInternal->mUniformBufferMap.find(bufferId);
-  if(it != mInternal->mUniformBufferMap.end())
-    return &it->second;
+  VulkanUniformBuffers* buffers = mInternal->mUniformBufferMap.FindPointer(bufferId);
+  if(buffers != nullptr)
+    return buffers;
 
   VkDeviceSize bufferSize = mInternal->mDeviceLimits.mMaxUniformBufferRange;
 
   size_t count = mInternal->mSwapChain.GetCount();
   auto& uniformBuffers = mInternal->mUniformBufferMap[bufferId];
-  uniformBuffers.mBuffers.resize(count);
+  uniformBuffers.mBuffers.Resize(count);
 
   VulkanBufferCreationData vulkanData{mInternal->mPhysicalDevice, mInternal->mDevice, mInternal->mGraphicsQueue, mInternal->mCommandPool};
 
@@ -468,22 +451,58 @@ void VulkanRenderer::UnMapUniformBufferMemory(UniformBufferType::Enum bufferType
 
 void VulkanRenderer::DestroyUniformBuffer(uint32_t bufferId)
 {
-  auto it = mInternal->mUniformBufferMap.find(bufferId);
-  if(it == mInternal->mUniformBufferMap.end())
+  VulkanUniformBuffers* buffersPtr = mInternal->mUniformBufferMap.FindPointer(bufferId);
+  if(buffersPtr == nullptr)
     return;
 
-  auto& uniformBuffers = it->second;
-  for(auto& buffer : uniformBuffers.mBuffers)
+  auto& uniformBuffers = *buffersPtr;
+  for(VulkanUniformBuffer& buffer : uniformBuffers.mBuffers)
   {
     vkDestroyBuffer(mInternal->mDevice, buffer.mBuffer, nullptr);
     vkFreeMemory(mInternal->mDevice, buffer.mBufferMemory, nullptr);
   }
-  mInternal->mUniformBufferMap.erase(bufferId);
+  mInternal->mUniformBufferMap.Erase(bufferId);
 }
 
 size_t VulkanRenderer::AlignUniformBufferOffset(size_t offset)
 {
   return ::AlignUniformBufferOffset(mInternal->mDeviceLimits, offset);
+}
+
+void VulkanRenderer::DestroyMeshInternal(VulkanMesh* vulkanMesh)
+{
+  vkDestroyBuffer(mInternal->mDevice, vulkanMesh->mIndexBuffer, nullptr);
+  vkFreeMemory(mInternal->mDevice, vulkanMesh->mIndexBufferMemory, nullptr);
+  vkDestroyBuffer(mInternal->mDevice, vulkanMesh->mVertexBuffer, nullptr);
+  vkFreeMemory(mInternal->mDevice, vulkanMesh->mVertexBufferMemory, nullptr);
+}
+
+void VulkanRenderer::DestroyTextureInternal(VulkanImage* vulkanImage)
+{
+  vkDestroySampler(mInternal->mDevice, vulkanImage->mSampler, nullptr);
+  vkDestroyImageView(mInternal->mDevice, vulkanImage->mImageView, nullptr);
+  vkFreeMemory(mInternal->mDevice, vulkanImage->mImageMemory, nullptr);
+  vkDestroyImage(mInternal->mDevice, vulkanImage->mImage, nullptr);
+}
+
+void VulkanRenderer::DestroyShaderInternal(VulkanShader* vulkanShader)
+{
+  vkDestroyShaderModule(mInternal->mDevice, vulkanShader->mPixelShaderModule, nullptr);
+  vkDestroyShaderModule(mInternal->mDevice, vulkanShader->mVertexShaderModule, nullptr);
+}
+
+void VulkanRenderer::DestroyShaderMaterialInternal(VulkanShaderMaterial* vulkanShaderMaterial)
+{
+  vkDestroyPipeline(mInternal->mDevice, vulkanShaderMaterial->mPipeline, nullptr);
+  vkDestroyPipelineLayout(mInternal->mDevice, vulkanShaderMaterial->mPipelineLayout, nullptr);
+  vkDestroyDescriptorPool(mInternal->mDevice, vulkanShaderMaterial->mDescriptorPool, nullptr);
+  vkDestroyDescriptorSetLayout(mInternal->mDevice, vulkanShaderMaterial->mDescriptorSetLayout, nullptr);
+  vulkanShaderMaterial->mPipeline = VK_NULL_HANDLE;
+  vulkanShaderMaterial->mPipelineLayout = VK_NULL_HANDLE;
+  vulkanShaderMaterial->mDescriptorPool = VK_NULL_HANDLE;
+  vulkanShaderMaterial->mDescriptorSetLayout = VK_NULL_HANDLE;
+  vulkanShaderMaterial->mDescriptorSets.Clear();
+  delete vulkanShaderMaterial;
 }
 
 void VulkanRenderer::RecreateFramesInternal()
@@ -507,16 +526,16 @@ void VulkanRenderer::CreateSwapChainInternal()
 
   SwapChainResultInfo swapChainResultInfo;
   CreateSwapChainAndViews(swapChainInfo, mInternal->mSwapChain);
-  mInternal->mSyncObjects.mImagesInFlight.resize(mInternal->mSwapChain.GetCount(), VK_NULL_HANDLE);
+  mInternal->mSyncObjects.mImagesInFlight.Resize(mInternal->mSwapChain.GetCount(), VK_NULL_HANDLE);
 }
 
 void VulkanRenderer::CreateRenderFramesInternal()
 {
-  size_t count = mInternal->mSwapChain.mImages.size();
-  mInternal->mRenderFrames.resize(count);
+  size_t count = mInternal->mSwapChain.mImages.Size();
+  mInternal->mRenderFrames.Resize(count);
 
-  std::vector<VkCommandBuffer> commandBuffers(count);
-  CreateCommandBuffer(mInternal->mDevice, mInternal->mCommandPool, commandBuffers.data(), static_cast<uint32_t>(count));
+  Array<VkCommandBuffer> commandBuffers(count);
+  CreateCommandBuffer(mInternal->mDevice, mInternal->mCommandPool, commandBuffers.Data(), static_cast<uint32_t>(count));
   for(size_t i = 0; i < count; ++i)
   {
     VulkanRenderFrame& vulkanFrame = mInternal->mRenderFrames[i];
@@ -551,24 +570,24 @@ void VulkanRenderer::CreateRenderFramesInternal()
 
 void VulkanRenderer::DestroyRenderFramesInternal()
 {
-  size_t count = mInternal->mSwapChain.mImages.size();
+  size_t count = mInternal->mSwapChain.mImages.Size();
   for(VulkanRenderFrame& renderFrame : mInternal->mRenderFrames)
   {
     vkDestroyFramebuffer(mInternal->mDevice, renderFrame.mFrameBuffer, nullptr);
     vkDestroyRenderPass(mInternal->mDevice, renderFrame.mRenderPass, nullptr);
   }
-  mInternal->mRenderFrames.clear();
+  mInternal->mRenderFrames.Clear();
 }
 
 void VulkanRenderer::DestroySwapChainInternal()
 {
-  if(mInternal->mSwapChain.mImageViews.empty())
+  if(mInternal->mSwapChain.mImageViews.Empty())
     return;
 
-  for(auto imageView : mInternal->mSwapChain.mImageViews)
+  for(VkImageView& imageView : mInternal->mSwapChain.mImageViews)
     vkDestroyImageView(mInternal->mDevice, imageView, nullptr);
-  mInternal->mSwapChain.mImageViews.clear();
-  mInternal->mSwapChain.mImages.clear();
+  mInternal->mSwapChain.mImageViews.Clear();
+  mInternal->mSwapChain.mImages.Clear();
 
   vkDestroySwapchainKHR(mInternal->mDevice, mInternal->mSwapChain.mSwapChain, nullptr);
 }

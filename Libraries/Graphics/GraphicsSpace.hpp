@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Math.hpp"
+#include "Common/CommonStandard.hpp"
 
-#include <vector>
-#include <string>
-using String = std::string;
+using Zero::String;
+using Zero::Array;
 
 struct Model;
 struct GraphicsEngine;
@@ -36,7 +36,7 @@ public:
   void PrepareFrame(RenderFrame& renderFrame);
 
   float mTotalTimeElapsed = 0.0;
-  std::vector<Model*> mModels;
+  Array<Model*> mModels;
   String mName;
   GraphicsEngine* mEngine = nullptr;
 };

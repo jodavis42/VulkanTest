@@ -32,7 +32,7 @@ void GraphicsSpace::UpdateGlobalBuffer(uint32_t frameId)
   memcpy(data, &perCameraData, sizeof(perCameraData));
   offset += renderer->AlignUniformBufferOffset(sizeof(perCameraData));
 
-  size_t count = mModels.size();
+  size_t count = mModels.Size();
   for(size_t i = 0; i < count; ++i)
   {
     Model* model = mModels[i];
@@ -103,7 +103,7 @@ void GraphicsSpace::PrepareFrame(RenderFrame& renderFrame)
   writeInfo.mSwapChain = renderer.mInternal->mSwapChain.mSwapChain;
   writeInfo.mSwapChainExtent = renderer.mInternal->mSwapChain.mExtent;
   writeInfo.mSwapChainFramebuffer = vulkanRenderFrame.mFrameBuffer;
-  writeInfo.mDrawCount = static_cast<uint32_t>(mModels.size());
+  writeInfo.mDrawCount = static_cast<uint32_t>(mModels.Size());
   writeInfo.mDynamicOffsetsCount = 1;
   writeInfo.mDynamicOffsetsBase = dynamicOffsetBase;
   writeInfo.mDynamicOffsets = dynamicOffsets;
@@ -112,7 +112,7 @@ void GraphicsSpace::PrepareFrame(RenderFrame& renderFrame)
 
   BeginRenderPass(writeInfo, commandBuffer);
 
-  for(size_t i = 0; i < mModels.size(); ++i)
+  for(size_t i = 0; i < mModels.Size(); ++i)
   {
     VulkanMesh* vulkanMesh = renderer.mMeshMap[mEngine->mMeshManager.Find(mModels[i]->mMeshName)];
     Material* material = mEngine->mMaterialManager.Find(mModels[i]->mMaterialName);

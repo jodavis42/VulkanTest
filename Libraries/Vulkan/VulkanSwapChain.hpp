@@ -23,14 +23,14 @@ struct SwapChainResultInfo
 {
   uint32_t GetCount() const
   {
-    return static_cast<uint32_t>(mImages.size());
+    return static_cast<uint32_t>(mImages.Size());
   }
 
   VkSwapchainKHR mSwapChain;
-  std::vector<VkImage> mImages;
+  Array<VkImage> mImages;
   VkFormat mImageFormat;
   VkExtent2D mExtent;
-  std::vector<VkImageView> mImageViews;
+  Array<VkImageView> mImageViews;
 };
 
 struct SwapChainData : public SwapChainResultInfo
@@ -38,7 +38,7 @@ struct SwapChainData : public SwapChainResultInfo
 
 };
 
-inline VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
+inline VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const Array<VkSurfaceFormatKHR>& availableFormats)
 {
   for(const auto& availableFormat : availableFormats)
   {
@@ -49,7 +49,7 @@ inline VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFor
   return availableFormats[0];
 }
 
-inline VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
+inline VkPresentModeKHR ChooseSwapPresentMode(const Array<VkPresentModeKHR>& availablePresentModes)
 {
   for(const auto& availablePresentMode : availablePresentModes)
   {
@@ -127,8 +127,8 @@ inline VulkanStatus CreateSwapChain(SwapChainCreationInfo& info, SwapChainResult
     return VulkanStatus("failed to create swap chain!");
 
   vkGetSwapchainImagesKHR(info.mDevice, result.mSwapChain, &imageCount, nullptr);
-  result.mImages.resize(imageCount);
-  vkGetSwapchainImagesKHR(info.mDevice, result.mSwapChain, &imageCount, result.mImages.data());
+  result.mImages.Resize(imageCount);
+  vkGetSwapchainImagesKHR(info.mDevice, result.mSwapChain, &imageCount, result.mImages.Data());
 
   result.mImageFormat = surfaceFormat.format;
   result.mExtent = extent;
@@ -140,12 +140,12 @@ struct SwapChainImageViewCreationInfo
   VkDevice mDevice;
   VkFormat mFormat;
   uint32_t mMipLevels;
-  std::vector<VkImage> mImages;
+  Array<VkImage> mImages;
 };
 
 struct SwapChainImageViewResultInfo
 {
-  std::vector<VkImageView> mImageViews;
+  Array<VkImageView> mImageViews;
 };
 
 inline void CreateSwapChainImageView(VkDevice device, VkFormat format, uint32_t mipLevels, VkImage image, VkImageView& outImageView)
@@ -160,8 +160,8 @@ inline void CreateSwapChainImageView(VkDevice device, VkFormat format, uint32_t 
 
 inline void CreateSwapChainImageViews(SwapChainImageViewCreationInfo& info, SwapChainImageViewResultInfo& result)
 {
-  size_t count = info.mImages.size();
-  result.mImageViews.resize(count);
+  size_t count = info.mImages.Size();
+  result.mImageViews.Resize(count);
 
   for(size_t i = 0; i < count; i++)
   {

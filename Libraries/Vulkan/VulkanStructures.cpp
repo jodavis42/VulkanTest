@@ -6,10 +6,10 @@
 #include "VulkanStructures.hpp"
 
 
-std::vector<VkVertexInputBindingDescription> VulkanVertex::getBindingDescription()
+Array<VkVertexInputBindingDescription> VulkanVertex::getBindingDescription()
 {
-  std::vector<VkVertexInputBindingDescription> bindingDescriptions;
-  bindingDescriptions.resize(1);
+  Array<VkVertexInputBindingDescription> bindingDescriptions;
+  bindingDescriptions.Resize(1);
 
   bindingDescriptions[0].binding = 0;
   bindingDescriptions[0].stride = sizeof(Vertex);
@@ -18,10 +18,10 @@ std::vector<VkVertexInputBindingDescription> VulkanVertex::getBindingDescription
   return bindingDescriptions;
 }
 
-std::vector<VkVertexInputAttributeDescription> VulkanVertex::getAttributeDescriptions()
+Array<VkVertexInputAttributeDescription> VulkanVertex::getAttributeDescriptions()
 {
-  std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-  attributeDescriptions.resize(3);
+  Array<VkVertexInputAttributeDescription> attributeDescriptions;
+  attributeDescriptions.Resize(3);
 
   attributeDescriptions[0].binding = 0;
   attributeDescriptions[0].location = 0;

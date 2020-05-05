@@ -1,8 +1,6 @@
 #pragma once
 
-#include <vector>
-#include <string>
-using String = std::string;
+#include "VulkanStandard.hpp"
 
 struct VulkanMesh
 {
@@ -36,14 +34,14 @@ struct VulkanShader
 //  VkPipelineLayout mPipelineLayout;
 //  VkPipeline mPipeline;
 //  VkDescriptorPool mDescriptorPool;
-//  std::vector<VkDescriptorSet> mDescriptorSets;
+//  Array<VkDescriptorSet> mDescriptorSets;
 //};
 
 struct VulkanShaderMaterial
 {
   VkDescriptorSetLayout mDescriptorSetLayout;
   VkPipelineLayout mPipelineLayout;
-  std::vector<VkDescriptorSet> mDescriptorSets;
+  Array<VkDescriptorSet> mDescriptorSets;
   
   VkPipeline mPipeline;
   VkDescriptorPool mDescriptorPool;
@@ -61,13 +59,13 @@ struct VulkanUniformBuffer
 
 struct VulkanUniformBuffers
 {
-  std::vector<VulkanUniformBuffer> mBuffers;
+  Array<VulkanUniformBuffer> mBuffers;
 };
 
 struct VulkanVertex
 {
-  static std::vector<VkVertexInputBindingDescription> getBindingDescription();
-  static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
+  static Array<VkVertexInputBindingDescription> getBindingDescription();
+  static Array<VkVertexInputAttributeDescription> getAttributeDescriptions();
 };
 
 struct VulkanImage

@@ -60,15 +60,12 @@ void TextureManager::LoadTexture(const String& name, const String& path)
 
 Texture* TextureManager::Find(const String& name)
 {
-  auto it = mTextureMap.find(name);
-  if(it == mTextureMap.end())
-    return nullptr;
-  return it->second;
+  return mTextureMap.FindValue(name, nullptr);
 }
 
 void TextureManager::Destroy()
 {
-  for(auto pair : mTextureMap)
-    delete pair.second;
-  mTextureMap.clear();
+  for(Texture* texture : mTextureMap.Values())
+    delete texture;
+  mTextureMap.Clear();
 }

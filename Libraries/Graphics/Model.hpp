@@ -1,9 +1,8 @@
 #pragma once
 
 #include "Math.hpp"
-#include <string>
+#include "GraphicsStandard.hpp"
 
-typedef std::string String;
 class JsonLoader;
 
 struct Model

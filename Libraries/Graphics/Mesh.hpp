@@ -1,15 +1,13 @@
 #pragma once
 
 #include "Vertex.hpp"
-#include <string>
-#include <unordered_map>
-using String = std::string;
+#include "GraphicsStandard.hpp"
 
 //-------------------------------------------------------------------Mesh
 struct Mesh
 {
-  std::vector<Vertex> mVertices;
-  std::vector<uint32_t> mIndices;
+  Array<Vertex> mVertices;
+  Array<uint32_t> mIndices;
 };
 
 //-------------------------------------------------------------------MeshManager
@@ -25,5 +23,5 @@ public:
   Mesh* Find(const String& name);
   void Destroy();
 
-  std::unordered_map<String, Mesh*> mMeshMap;
+  HashMap<String, Mesh*> mMeshMap;
 };

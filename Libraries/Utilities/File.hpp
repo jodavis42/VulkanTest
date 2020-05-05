@@ -1,34 +1,22 @@
 #pragma once
 
-#include <vector>
-#include <fstream>
+#include "Common/CommonStandard.hpp"
+#undef Error
+using Zero::Array;
+using Zero::String;
 
-inline static std::vector<char> readFile(const std::string& filename)
+inline static Array<char> readFile(const String& filename)
 {
-  std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-  if(!file.is_open())
-    throw std::runtime_error("failed to open file!");
-
-  size_t fileSize = (size_t)file.tellg();
-  std::vector<char> buffer(fileSize);
-  file.seekg(0);
-  file.read(buffer.data(), fileSize);
-  file.close();
-
-  return buffer;
+  Zero::DataBlock block = Zero::ReadFileIntoDataBlock(filename.c_str());
+  Array<char> result;
+  result.Resize(block.Size);
+  memcpy(result.Data(), block.Data, block.Size);
+  return result;
 }
 
-inline static void readFile(const std::string& filename, std::vector<char>& data)
+inline static void readFile(const String& filename, Array<char>& data)
 {
-  std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-  if(!file.is_open())
-    throw std::runtime_error("failed to open file!");
-
-  size_t fileSize = (size_t)file.tellg();
-  data.resize(fileSize);
-  file.seekg(0);
-  file.read(data.data(), fileSize);
-  file.close();
+  Zero::DataBlock block = Zero::ReadFileIntoDataBlock(filename.c_str());
+  data.Resize(block.Size);
+  memcpy(data.Data(), block.Data, block.Size);
 }

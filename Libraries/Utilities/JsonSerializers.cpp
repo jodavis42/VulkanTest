@@ -36,7 +36,7 @@ JsonSaver::~JsonSaver()
   delete mData;
 }
 
-std::string JsonSaver::ToString()
+String JsonSaver::ToString()
 {
   return mData->mBuffer.GetString();
 }
@@ -196,13 +196,8 @@ void JsonLoader::Load(const String& jsonData)
 
 void JsonLoader::LoadFromFile(const String& filePath)
 {
-  std::ifstream stream;
-  stream.open(filePath, std::ifstream::in);
-
-  std::stringstream strStream;
-  strStream << stream.rdbuf();
-
-  Load(strStream.str());
+  String fileContents = Zero::ReadFileIntoString(filePath);
+  Load(fileContents);
 }
 
 bool JsonLoader::SerializePrimitive(char* data)

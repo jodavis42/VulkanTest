@@ -1,7 +1,6 @@
 #pragma once
 
-#include <string>
-using String = std::string;
+#include "VulkanStandard.hpp"
 
 #include "Utilities/Asserts.hpp"
 

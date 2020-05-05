@@ -20,7 +20,7 @@ void UniqueShaderMaterial::AddBinding(const String& name, MaterialDescriptorType
 
 void UniqueShaderMaterial::CompileBindings()
 {
-  std::unordered_map<String, const ShaderResource*> shaderResourceNameMap;
+  HashMap<String, const ShaderResource*> shaderResourceNameMap;
 
   auto imageCompileLambda = [this](const ShaderResource& shaderResource)
   {
@@ -36,7 +36,7 @@ void UniqueShaderMaterial::CompileBindings()
       fieldBinding.mOwningBinding = shaderBinding;
 
       // Cannot currently support duplicate field names
-      if(mFieldNameMap.find(shaderBinding->mBindingName) != mFieldNameMap.end())
+      if(mFieldNameMap.ContainsKey(shaderBinding->mBindingName))
         __debugbreak();
 
       mFieldNameMap[shaderBinding->mBindingName] = &fieldBinding;
@@ -53,11 +53,11 @@ void UniqueShaderMaterial::CompileBindings()
     shaderBinding->mBindingName = bindingName;
 
     // See if this is a predefined resource name
-    auto it = mPredefinedBindings.find(bindingName);
-    if(it != mPredefinedBindings.end())
+    ShaderResourceBinding* shaderResourceBinding = mPredefinedBindings.FindPointer(bindingName);
+    if(shaderResourceBinding != nullptr)
     {
-      shaderBinding->mDescriptorType = it->second.mDescriptorType;
-      shaderBinding->mMaterialBindingId = it->second.mMaterialBindingId;
+      shaderBinding->mDescriptorType = shaderResourceBinding->mDescriptorType;
+      shaderBinding->mMaterialBindingId = shaderResourceBinding->mMaterialBindingId;
     }
     else
     {
@@ -66,7 +66,7 @@ void UniqueShaderMaterial::CompileBindings()
     }
 
     // Hookup all field
-    size_t fieldCount = shaderResource.mFields.size();
+    size_t fieldCount = shaderResource.mFields.Size();
     for(size_t i = 0; i < fieldCount; ++i)
     {
       const ShaderResourceField& fieldResource = shaderResource.mFields[i];
@@ -75,7 +75,7 @@ void UniqueShaderMaterial::CompileBindings()
       fieldBinding.mShaderField = &fieldResource;
 
       // Cannot currently support duplicate field names
-      if(mFieldNameMap.find(fieldResource.mName) != mFieldNameMap.end())
+      if(mFieldNameMap.ContainsKey(fieldResource.mName))
         __debugbreak();
 
       mFieldNameMap[fieldResource.mName] = &fieldBinding;
@@ -101,11 +101,10 @@ void ShaderMaterialInstance::CompileBindings(const UniqueShaderMaterial& uniqueS
 
   for(const MaterialProperty& materialProp : material.mProperties)
   {
-    auto it = mUniqueShaderMaterial->mFieldNameMap.find(materialProp.mPropertyName);
-    if(it == mUniqueShaderMaterial->mFieldNameMap.end())
+    ShaderFieldBinding* fieldBinding = mUniqueShaderMaterial->mFieldNameMap.FindValue(materialProp.mPropertyName, nullptr);
+    if(fieldBinding == nullptr)
       continue;
 
-    ShaderFieldBinding* fieldBinding = it->second;
     fieldBinding->mMaterialProperty = &materialProp;
     mMaterialNameMap[materialProp.mPropertyName] = fieldBinding;
   }

@@ -9,8 +9,8 @@ struct GraphicsPipelineCreationInfo
   Vec2 mViewportSize = Vec2(0, 0);
   VkRenderPass mRenderPass;
 
-  std::vector<VkVertexInputBindingDescription> mVertexBindingDescriptions;
-  std::vector<VkVertexInputAttributeDescription> mVertexAttributeDescriptions;
+  Array<VkVertexInputBindingDescription> mVertexBindingDescriptions;
+  Array<VkVertexInputAttributeDescription> mVertexAttributeDescriptions;
 
   VkShaderModule mVertexShaderModule;
   VkShaderModule mPixelShaderModule;
@@ -26,23 +26,23 @@ struct GraphicsPipelineData
   Vec2 mViewportSize;
   VkRenderPass mRenderPass;
 
-  std::vector<char> mVertexShaderCode;
-  std::vector<char> mPixelShaderCode;
+  Array<char> mVertexShaderCode;
+  Array<char> mPixelShaderCode;
 
-  std::vector<VkVertexInputBindingDescription> mVertexBindingDescriptions;
-  std::vector<VkVertexInputAttributeDescription> mVertexAttributeDescriptions;
+  Array<VkVertexInputBindingDescription> mVertexBindingDescriptions;
+  Array<VkVertexInputAttributeDescription> mVertexAttributeDescriptions;
 
   VkPipelineLayout mPipelineLayout;
   VkPipeline mGraphicsPipeline;
   VkDescriptorSetLayout mDescriptorSetLayout;
 };
 
-inline VkShaderModule CreateShaderModule(VkDevice& device, const std::vector<char>& code)
+inline VkShaderModule CreateShaderModule(VkDevice& device, const Array<char>& code)
 {
   VkShaderModuleCreateInfo createInfo = {};
   createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  createInfo.codeSize = code.size();
-  createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+  createInfo.codeSize = code.Size();
+  createInfo.pCode = reinterpret_cast<const uint32_t*>(code.Data());
 
   VkShaderModule shaderModule;
   if(vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
@@ -66,9 +66,9 @@ inline VulkanStatus CreatePipelineLayout(VkDevice device, VkDescriptorSetLayout*
   return result;
 }
 
-inline VulkanStatus CreatePipelineLayout(VkDevice device, std::vector<VkDescriptorSetLayout>& descriptorSetLayouts, VkPipelineLayout& pipelineLayout)
+inline VulkanStatus CreatePipelineLayout(VkDevice device, Array<VkDescriptorSetLayout>& descriptorSetLayouts, VkPipelineLayout& pipelineLayout)
 {
-  return CreatePipelineLayout(device, descriptorSetLayouts.data(), (uint32_t)descriptorSetLayouts.size(), pipelineLayout);
+  return CreatePipelineLayout(device, descriptorSetLayouts.Data(), (uint32_t)descriptorSetLayouts.Size(), pipelineLayout);
 }
 
 inline VulkanStatus CreateGraphicsPipeline(GraphicsPipelineCreationInfo& creationInfo, VkPipeline& resultPipeline)
@@ -89,10 +89,10 @@ inline VulkanStatus CreateGraphicsPipeline(GraphicsPipelineCreationInfo& creatio
 
   VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
   vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(creationInfo.mVertexBindingDescriptions.size());
-  vertexInputInfo.pVertexBindingDescriptions = creationInfo.mVertexBindingDescriptions.data();
-  vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(creationInfo.mVertexAttributeDescriptions.size());
-  vertexInputInfo.pVertexAttributeDescriptions = creationInfo.mVertexAttributeDescriptions.data();
+  vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(creationInfo.mVertexBindingDescriptions.Size());
+  vertexInputInfo.pVertexBindingDescriptions = creationInfo.mVertexBindingDescriptions.Data();
+  vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(creationInfo.mVertexAttributeDescriptions.Size());
+  vertexInputInfo.pVertexAttributeDescriptions = creationInfo.mVertexAttributeDescriptions.Data();
 
   VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
   inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;

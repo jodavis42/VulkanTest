@@ -55,24 +55,24 @@ ShaderPrimitiveType::Enum LoadPrimitiveType(spirv_cross::Compiler& compiler, con
   // Otherwise, assume this is either a primitive type or a struct
   else
   {
-    std::stringstream stream;
+    Zero::StringBuilder builder;
     // Get the base type.
     if(spirvType.basetype == spirv_cross::SPIRType::Float)
-      stream << "Float";
+      builder << "Float";
     else if(spirvType.basetype == spirv_cross::SPIRType::Int)
-      stream << "Int";
+      builder << "Int";
     //else if(spirVType.basetype == spirv_cross::SPIRType::Boolean)
     //  reflectionData.mTypeName = "Boolean";
     else
-      stream << compiler.get_name(spirvType.self).c_str();
+      builder << compiler.get_name(spirvType.self).c_str();
 
     // Append dimensionality
     if(spirvType.columns > 1)
-      stream << spirvType.columns << "x" << spirvType.vecsize;
+      builder << spirvType.columns << "x" << spirvType.vecsize;
     else if(spirvType.vecsize > 1)
-      stream << spirvType.vecsize;
+      builder << spirvType.vecsize;
 
-    String fullName = stream.str();
+    String fullName = builder.ToString();
     return ShaderPrimitiveType::FromString(fullName);
   }
   return ShaderPrimitiveType::Unknown;
@@ -120,23 +120,23 @@ void ShaderManager::LoadShader(const String& name, const ShaderLoadData& shaderD
   mShaderMap[name] = shader;
 }
 
-void ShaderManager::LoadShaderResources(const std::vector<char>& shaderByteCode, ShaderResources& stageResources)
+void ShaderManager::LoadShaderResources(const Array<char>& shaderByteCode, ShaderResources& stageResources)
 {
-  uint32_t* words = (uint32_t*)shaderByteCode.data();
-  uint32_t wordCount = static_cast<uint32_t>(shaderByteCode.size()) / 4;
+  uint32_t* words = (uint32_t*)shaderByteCode.Data();
+  uint32_t wordCount = static_cast<uint32_t>(shaderByteCode.Size()) / 4;
   spirv_cross::Compiler compiler(words, wordCount);
   spirv_cross::ShaderResources resources = compiler.get_shader_resources();
   auto entryPoints = compiler.get_entry_points_and_stages();
   for(auto& entryPoint : entryPoints)
   {
-    stageResources.mEntryPointName = entryPoint.name;
+    stageResources.mEntryPointName = entryPoint.name.c_str();
   }
 
   auto extractFn = [&compiler](spirv_cross::Resource& spirvResource, ShaderResource& shaderResource)
   {
     const spirv_cross::SPIRType& baseType = compiler.get_type(spirvResource.base_type_id);
-    shaderResource.mResourceTypeName = compiler.get_name(spirvResource.base_type_id);
-    shaderResource.mResourceName = compiler.get_name(spirvResource.id);
+    shaderResource.mResourceTypeName = compiler.get_name(spirvResource.base_type_id).c_str();
+    shaderResource.mResourceName = compiler.get_name(spirvResource.id).c_str();
     shaderResource.mBindingId = compiler.get_decoration(spirvResource.id, spv::Decoration::DecorationBinding);
     shaderResource.mLocation = compiler.get_decoration(spirvResource.id, spv::Decoration::DecorationLocation);
     shaderResource.mDescriptorSet = compiler.get_decoration(spirvResource.id, spv::Decoration::DecorationDescriptorSet);
@@ -144,13 +144,13 @@ void ShaderManager::LoadShaderResources(const std::vector<char>& shaderByteCode,
       shaderResource.mSizeInBytes = compiler.get_declared_struct_size(baseType);
 
     uint32_t memberCount = static_cast<uint32_t>(baseType.member_types.size());
-    shaderResource.mFields.resize(memberCount);
+    shaderResource.mFields.Resize(memberCount);
     for(uint32_t memberIndex = 0; memberIndex < memberCount; ++memberIndex)
     {
       ShaderResourceField& resourceField = shaderResource.mFields[memberIndex];
       const spirv_cross::SPIRType& spirvMemberType = compiler.get_type(baseType.member_types[memberIndex]);
       resourceField.mPrimitiveType = LoadPrimitiveType(compiler, spirvMemberType);
-      resourceField.mName = compiler.get_member_name(baseType.self, memberIndex);
+      resourceField.mName = compiler.get_member_name(baseType.self, memberIndex).c_str();
       resourceField.mOffset = compiler.type_struct_member_offset(baseType, memberIndex);
       resourceField.mSizeInBytes = compiler.get_declared_struct_member_size(baseType, memberIndex);
 
@@ -164,13 +164,13 @@ void ShaderManager::LoadShaderResources(const std::vector<char>& shaderByteCode,
     }
   };
 
-  stageResources.mUniformBuffers.resize(resources.uniform_buffers.size());
+  stageResources.mUniformBuffers.Resize(resources.uniform_buffers.size());
   for(size_t i = 0; i < resources.uniform_buffers.size(); ++i)
   {
     stageResources.mUniformBuffers[i].mResourceType = ShaderResourceType::Uniform;
     extractFn(resources.uniform_buffers[i], stageResources.mUniformBuffers[i]);
   }
-  stageResources.mSampledImages.resize(resources.sampled_images.size());
+  stageResources.mSampledImages.Resize(resources.sampled_images.size());
   for(size_t i = 0; i < resources.sampled_images.size(); ++i)
   {
     stageResources.mSampledImages[i].mResourceType = ShaderResourceType::SampledImage;
@@ -180,15 +180,15 @@ void ShaderManager::LoadShaderResources(const std::vector<char>& shaderByteCode,
 
 Shader* ShaderManager::Find(const String& name)
 {
-  auto it = mShaderMap.find(name);
-  if(it == mShaderMap.end())
-    return nullptr;
-  return it->second;
+  return mShaderMap.FindValue(name, nullptr);
 }
 
 void ShaderManager::Destroy()
 {
-  for(auto pair : mShaderMap)
-    delete pair.second;
-  mShaderMap.clear();
+  auto range = mShaderMap.All();
+  for(Shader* shader : mShaderMap.Values())
+  {
+    delete shader;
+  }
+  mShaderMap.Clear();
 }

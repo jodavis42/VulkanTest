@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Vec3.hpp"
+#include "Vec4.hpp"
 #include "Matrix3.hpp"
 
 struct Matrix4

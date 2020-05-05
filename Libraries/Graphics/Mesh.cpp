@@ -1,6 +1,5 @@
 #include "Precompiled.hpp"
 
-#pragma optimize("", on)
 #include "Mesh.hpp"
 
 #include <filesystem>
@@ -35,11 +34,11 @@ void FilloutMesh(Mesh* mesh, std::vector<tinyobj::shape_t>& shapes, tinyobj::att
 
       if(uniqueVertices.count(vertex) == 0)
       {
-        uniqueVertices[vertex] = static_cast<uint32_t>(mesh->mVertices.size());
-        mesh->mVertices.push_back(vertex);
+        uniqueVertices[vertex] = static_cast<uint32_t>(mesh->mVertices.Size());
+        mesh->mVertices.PushBack(vertex);
       }
 
-      mesh->mIndices.push_back(uniqueVertices[vertex]);
+      mesh->mIndices.PushBack(uniqueVertices[vertex]);
     }
   }
 }
@@ -90,17 +89,12 @@ void MeshManager::LoadMesh(const String& name, const String& path)
 
 Mesh* MeshManager::Find(const String& name)
 {
-  auto it = mMeshMap.find(name);
-  if(it == mMeshMap.end())
-    return nullptr;
-  return it->second;
+  return mMeshMap.FindValue(name, nullptr);
 }
 
 void MeshManager::Destroy()
 {
-  for(auto pair : mMeshMap)
-  {
-    delete pair.second;
-  }
-  mMeshMap.clear();
+  for(Mesh* mesh : mMeshMap.Values())
+    delete mesh;
+  mMeshMap.Clear();
 }
