@@ -20,7 +20,6 @@ Set_Common_TargetCompileOptions(Graphics)
 target_link_libraries(Graphics
                       PUBLIC
                       Utilities
-                      SimpleMath
                       Vulkan
                       StbImage
                       TinyObjLoader

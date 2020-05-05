@@ -1,7 +1,8 @@
 #pragma once
 
 #include <vector>
-#include "Math.hpp"
+#include <unordered_map>
+#include "GraphicsStandard.hpp"
 
 //-------------------------------------------------------------------Vertex
 struct Vertex
@@ -18,6 +19,37 @@ struct Vertex
 
 namespace std
 {
+
+inline void hash_combine(size_t& seed, size_t hash)
+{
+  hash += 0x9e3779b9 + (seed << 6) + (seed >> 2);
+  seed ^= hash;
+}
+
+template<> struct hash<Vec2>
+{
+  size_t operator()(const Vec2& v) const
+  {
+    size_t seed = 0;
+    hash<float> hasher;
+    hash_combine(seed, hasher(v.x));
+    hash_combine(seed, hasher(v.y));
+    return seed;
+  }
+};
+
+template<> struct hash<Vec3>
+{
+  size_t operator()(const Vec3& v) const
+  {
+    size_t seed = 0;
+    hash<float> hasher;
+    hash_combine(seed, hasher(v.x));
+    hash_combine(seed, hasher(v.y));
+    hash_combine(seed, hasher(v.z));
+    return seed;
+  }
+};
 
 template<> struct hash<Vertex>
 {

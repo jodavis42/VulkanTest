@@ -7,6 +7,29 @@
 #include "VulkanInitialization.hpp"
 #include "VulkanCommandBuffer.hpp"
 
+static Matrix4 GenerateLookAt(const Vec3& eye, const Vec3& center, const Vec3& worldUp)
+{
+  Vec3 forward = Vec3::Normalized(center - eye);
+  Vec3 right = Vec3::Normalized(Vec3::Cross(forward, worldUp));
+  Vec3 actualUp = Vec3::Cross(right, forward);
+
+  Matrix4 result;
+  result.SetIdentity();
+  result.m00 = right.x;
+  result.m10 = right.y;
+  result.m20 = right.z;
+  result.m01 = actualUp.x;
+  result.m11 = actualUp.y;
+  result.m21 = actualUp.z;
+  result.m02 = -forward.x;
+  result.m12 = -forward.y;
+  result.m22 = -forward.z;
+  result.m30 = -Vec3::Dot(right, eye);
+  result.m31 = -Vec3::Dot(actualUp, eye);
+  result.m32 = Vec3::Dot(forward, eye);
+  return result;
+}
+
 void GraphicsSpace::Update(UpdateEvent& e)
 {
   mTotalTimeElapsed += e.mDt;
@@ -20,10 +43,10 @@ void GraphicsSpace::UpdateGlobalBuffer(uint32_t frameId)
   float farDistance = 10.0f;
   VkExtent2D extent = renderer->mInternal->mSwapChain.mExtent;
   float aspectRatio = extent.width / (float)extent.height;
-  float fov = ToRadians(45.0f);
+  float fov = Math::DegToRad(45.0f);
 
   PerCameraData perCameraData;
-  perCameraData.view = Matrix4::GenerateLookAt(Vec3(5.0f, 5.0f, 5.0f), Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, 1.0f));;
+  perCameraData.view = GenerateLookAt(Vec3(5.0f, 5.0f, 5.0f), Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, 1.0f));
   perCameraData.proj = renderer->BuildPerspectiveMatrix(fov, aspectRatio, nearDistance, farDistance);
 
   byte* data = static_cast<byte*>(renderer->MapUniformBufferMemory(UniformBufferType::Global, 0, frameId));
@@ -36,8 +59,8 @@ void GraphicsSpace::UpdateGlobalBuffer(uint32_t frameId)
   for(size_t i = 0; i < count; ++i)
   {
     Model* model = mModels[i];
-    Matrix3 rotation = Matrix3::BuildRotation(Vec3(0, 0, 1), mTotalTimeElapsed * ToRadians(90.0f));
-    Matrix4 transform = Matrix4::BuildTransform(model->mScale, rotation, model->mTranslation);
+    Matrix3 rotation = Matrix3::GenerateRotation(Vec3(0, 0, 1), mTotalTimeElapsed * Math::DegToRad(90.0f));
+    Matrix4 transform = Matrix4::GenerateTransform(model->mTranslation, rotation, model->mScale);
     transform = Matrix4::Transposed(transform);
     byte* memory = data + offset + renderer->AlignUniformBufferOffset(sizeof(PerObjectData)) * i;
     memcpy(memory, &transform, sizeof(transform));

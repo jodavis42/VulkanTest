@@ -1,10 +1,6 @@
 #pragma once
 
-#include "Math.hpp"
-#include "Common/CommonStandard.hpp"
-
-using Zero::String;
-using Zero::Array;
+#include "GraphicsStandard.hpp"
 
 struct Model;
 struct GraphicsEngine;

@@ -97,7 +97,7 @@ public:
 };
 
 
-template <typename ArrayType, size_t ArraySize = ArrayType::Count>
+template <typename ArrayType, uint ArraySize = ArrayType::Count>
 bool LoadArray(JsonLoader& loader, const String& name, ArrayType& data)
 {
   if(!loader.BeginMember(name))
@@ -105,7 +105,7 @@ bool LoadArray(JsonLoader& loader, const String& name, ArrayType& data)
 
   size_t count;
   loader.BeginArray(count);
-  for(size_t i = 0; i < count; ++i)
+  for(uint i = 0; i < count; ++i)
   {
     loader.BeginArrayItem(i);
     loader.SerializePrimitive(data[i]);

@@ -8,7 +8,7 @@ void LoadModel(JsonLoader& loader, Model* model)
 {
   if(loader.BeginMember("Transform"))
   {
-    LoadArray(loader, "Translation", model->mTranslation);
+    LoadArray<Vec3, 3>(loader, "Translation", model->mTranslation);
     loader.EndMember();
   }
   if(loader.BeginMember("Model"))

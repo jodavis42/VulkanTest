@@ -48,21 +48,21 @@ void ReadPropertyValue(JsonLoader& loader, ShaderPrimitiveType::Enum& propType, 
   case ShaderPrimitiveType::Float2:
   {
     Vec2 value;
-    LoadArray(loader, propName, value);
+    LoadArray<Vec2, 2>(loader, propName, value);
     SetPropertyBuffer(value, data);
     break;
   }
   case ShaderPrimitiveType::Float3:
   {
     Vec3 value;
-    LoadArray(loader, propName, value);
+    LoadArray<Vec3, 3>(loader, propName, value);
     SetPropertyBuffer(value, data);
     break;
   }
   case ShaderPrimitiveType::Float4:
   {
     Vec4 value;
-    LoadArray(loader, propName, value);
+    LoadArray<Vec4, 4>(loader, propName, value);
     SetPropertyBuffer(value, data);
     break;
   }

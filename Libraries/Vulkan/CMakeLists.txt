@@ -20,7 +20,6 @@ Set_Common_TargetCompileOptions(Vulkan)
 
 target_link_libraries(Vulkan
                       PUBLIC
-                      SimpleMath
                       GLFW
                       VulkanSDK
                       Common
