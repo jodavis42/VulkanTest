@@ -136,24 +136,6 @@ DataType LoadDefaultPrimitive(JsonLoader& loader, const String& name, const Data
 template <typename ManagerType>
 void LoadAllFilesOfExtension(ManagerType& manager, const String& searchDir, const String& extension, std::function<void (const String&)> callback, bool recursive = true)
 {
-  for(auto it : std::filesystem::directory_iterator(searchDir))
-  {
-    if(it.is_directory())
-    {
-      if(recursive)
-        LoadAllFilesOfExtension(manager, it.path().string(), extension, recursive);
-      continue;
-    }
-
-    auto filePath = it.path();
-    if(filePath.extension() == extension)
-      callback(filePath.string());
-  }
-}
-
-template <typename ManagerType>
-void LoadAllFilesOfExtension(ManagerType& manager, const String& searchDir, const String& extension, bool recursive = true)
-{
   for(auto it : std::filesystem::directory_iterator(searchDir.c_str()))
   {
     if(it.is_directory())
@@ -162,10 +144,20 @@ void LoadAllFilesOfExtension(ManagerType& manager, const String& searchDir, cons
         LoadAllFilesOfExtension(manager, String(it.path().string().c_str()), extension, recursive);
       continue;
     }
-    
+
     auto filePath = it.path();
     String fileExt = filePath.extension().string().c_str();
     if(fileExt == extension)
-      manager.LoadFromFile(filePath.string().c_str());
+      callback(filePath.string().c_str());
   }
+}
+
+template <typename ManagerType>
+void LoadAllFilesOfExtension(ManagerType& manager, const String& searchDir, const String& extension, bool recursive = true)
+{
+  auto callback = [&manager](const String& filePath)
+  {
+    manager.LoadFromFile(filePath);
+  };
+  LoadAllFilesOfExtension(manager, searchDir, extension, callback, recursive);
 }

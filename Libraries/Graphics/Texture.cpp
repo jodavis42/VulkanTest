@@ -1,6 +1,7 @@
 #include "Precompiled.hpp"
 
 #include "Texture.hpp"
+#undef Error
 
 #include <filesystem>
 #include <algorithm>

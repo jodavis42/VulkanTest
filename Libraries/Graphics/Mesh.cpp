@@ -1,6 +1,7 @@
 #include "Precompiled.hpp"
 
 #include "Mesh.hpp"
+#undef Error
 
 #include <filesystem>
 #include "JsonSerializers.hpp"
