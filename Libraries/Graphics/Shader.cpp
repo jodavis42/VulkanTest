@@ -126,6 +126,11 @@ void ShaderManager::LoadShaderResources(const std::vector<char>& shaderByteCode,
   uint32_t wordCount = static_cast<uint32_t>(shaderByteCode.size()) / 4;
   spirv_cross::Compiler compiler(words, wordCount);
   spirv_cross::ShaderResources resources = compiler.get_shader_resources();
+  auto entryPoints = compiler.get_entry_points_and_stages();
+  for(auto& entryPoint : entryPoints)
+  {
+    stageResources.mEntryPointName = entryPoint.name;
+  }
 
   auto extractFn = [&compiler](spirv_cross::Resource& spirvResource, ShaderResource& shaderResource)
   {

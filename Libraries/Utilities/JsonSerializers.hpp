@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <functional>
 
 class JsonInternalData;
 
@@ -129,6 +130,24 @@ DataType LoadDefaultPrimitive(JsonLoader& loader, const String& name, const Data
   DataType result = defaultValue;
   LoadPrimitive(loader, name, result);
   return result;
+}
+
+template <typename ManagerType>
+void LoadAllFilesOfExtension(ManagerType& manager, const String& searchDir, const String& extension, std::function<void (const String&)> callback, bool recursive = true)
+{
+  for(auto it : std::filesystem::directory_iterator(searchDir))
+  {
+    if(it.is_directory())
+    {
+      if(recursive)
+        LoadAllFilesOfExtension(manager, it.path().string(), extension, recursive);
+      continue;
+    }
+
+    auto filePath = it.path();
+    if(filePath.extension() == extension)
+      callback(filePath.string());
+  }
 }
 
 template <typename ManagerType>

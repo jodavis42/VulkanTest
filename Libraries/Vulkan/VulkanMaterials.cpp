@@ -237,8 +237,8 @@ void CreateGraphicsPipeline(RendererData& rendererData, const VulkanShader& vulk
   GraphicsPipelineCreationInfo creationInfo;
   creationInfo.mVertexShaderModule = vulkanShader.mVertexShaderModule;
   creationInfo.mPixelShaderModule = vulkanShader.mPixelShaderModule;
-  creationInfo.mVertexShaderMainFnName = "main";
-  creationInfo.mPixelShaderMainFnName = "main";
+  creationInfo.mVertexShaderMainFnName = vulkanShader.mVertexEntryPointName;
+  creationInfo.mPixelShaderMainFnName = vulkanShader.mPixelEntryPointName;
   creationInfo.mDevice = runtimeData->mDevice;
   creationInfo.mPipelineLayout = vulkanShaderMaterial.mPipelineLayout;
   creationInfo.mRenderPass = runtimeData->mRenderFrames[0].mRenderPass;

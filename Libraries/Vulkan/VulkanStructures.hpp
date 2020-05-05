@@ -1,6 +1,8 @@
 #pragma once
 
-#include <vector.>
+#include <vector>
+#include <string>
+using String = std::string;
 
 struct VulkanMesh
 {
@@ -16,6 +18,8 @@ struct VulkanShader
 {
   VkShaderModule mVertexShaderModule;
   VkShaderModule mPixelShaderModule;
+  String mVertexEntryPointName;
+  String mPixelEntryPointName;
 };
 
 //struct VulkanMaterial

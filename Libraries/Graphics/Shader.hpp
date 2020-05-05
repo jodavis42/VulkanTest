@@ -38,6 +38,7 @@ struct ShaderResources
 {
   std::vector<ShaderResource> mUniformBuffers;
   std::vector<ShaderResource> mSampledImages;
+  String mEntryPointName;
 };
 
 //-------------------------------------------------------------------ShaderLoadData

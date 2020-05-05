@@ -255,6 +255,8 @@ void VulkanRenderer::CreateShader(const Shader* shader)
 
   vulkanShader->mPixelShaderModule = CreateShaderModule(mInternal->mDevice, shader->mShaderByteCode[ShaderStage::Pixel]);
   vulkanShader->mVertexShaderModule = CreateShaderModule(mInternal->mDevice, shader->mShaderByteCode[ShaderStage::Vertex]);
+  vulkanShader->mVertexEntryPointName = shader->mResources[ShaderStage::Vertex].mEntryPointName;
+  vulkanShader->mPixelEntryPointName = shader->mResources[ShaderStage::Pixel].mEntryPointName;
 
   mShaderMap[shader] = vulkanShader;
 }
