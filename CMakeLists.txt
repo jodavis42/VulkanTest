@@ -41,6 +41,7 @@ set(ResourcesDir ${CMAKE_CURRENT_SOURCE_DIR}/Resources)
 # external libraries
 add_subdirectory(External)
 add_subdirectory(Libraries)
+add_subdirectory(ZilchShaders)
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Application) 
 

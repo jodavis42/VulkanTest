@@ -1,4 +1,4 @@
-target_sources(Math
+target_sources(SimpleMath
   PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/Precompiled.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Precompiled.hpp

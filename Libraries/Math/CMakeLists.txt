@@ -1,25 +1,25 @@
 set(CurrentDirectory ${CMAKE_CURRENT_LIST_DIR})
 
-add_library(Math "")
+add_library(SimpleMath "")
 
 include(${CMAKE_CURRENT_LIST_DIR}/CMakeFiles.cmake)
-target_sources(Math
+target_sources(SimpleMath
     PRIVATE
     ${manualAdditions}
 )
 
-target_include_directories(Math
+target_include_directories(SimpleMath
     PUBLIC
     ${CurrentDirectory}
     ${LibrariesDir}
     $ENV{VULKAN_SDK}/Include
 )
 
-ADD_MSVC_PRECOMPILED_HEADER(Math "Precompiled.hpp" "Precompiled.cpp")
-Set_Common_TargetCompileOptions(Math)
+ADD_MSVC_PRECOMPILED_HEADER(SimpleMath "Precompiled.hpp" "Precompiled.cpp")
+Set_Common_TargetCompileOptions(SimpleMath)
 
-target_link_libraries(Math
+target_link_libraries(SimpleMath
                       PUBLIC
 )
 
-set_target_properties(Math PROPERTIES FOLDER "Libraries")
+set_target_properties(SimpleMath PROPERTIES FOLDER "Libraries")

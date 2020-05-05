@@ -20,13 +20,14 @@ Set_Common_TargetCompileOptions(Graphics)
 target_link_libraries(Graphics
                       PUBLIC
                       Utilities
-                      Math
+                      SimpleMath
                       Vulkan
                       StbImage
                       TinyObjLoader
                       GLFW
                       VulkanSDK
                       SPIRV-Cross
+                      ZilchShaders
 )
 
 set_target_properties(Graphics PROPERTIES FOLDER "Libraries")
