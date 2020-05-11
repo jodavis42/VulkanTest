@@ -70,3 +70,6 @@ struct ShaderStageFlags
   static String ToString(ShaderStageFlags::Enum type);
   static ShaderStageFlags::Enum FromString(const String& typeName);
 };
+
+ShaderStageFlags::Enum operator|(ShaderStageFlags::Enum lhs, ShaderStageFlags::Enum rhs);
+ShaderStageFlags::Enum ShaderStageEnumToFlags(ShaderStage::Enum enumVal);

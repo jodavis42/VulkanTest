@@ -159,3 +159,13 @@ ShaderStageFlags::Enum ShaderStageFlags::FromString(const String& typeName)
   };
   return GetFlagValue<ShaderStageFlags>(map, typeName);
 }
+
+ShaderStageFlags::Enum operator|(ShaderStageFlags::Enum lhs, ShaderStageFlags::Enum rhs)
+{
+  return static_cast<ShaderStageFlags::Enum>((int)lhs | (int)rhs);
+}
+
+ShaderStageFlags::Enum ShaderStageEnumToFlags(ShaderStage::Enum enumVal)
+{
+  return (ShaderStageFlags::Enum)(1 << enumVal);
+}
