@@ -7,9 +7,10 @@ struct Vertex
 
   [StageInput] var LocalPosition : Real3;
   [StageInput] var LocalNormal : Real3;
+  [StageInput][Output] var Uv : Real2;
 
-  [Output] var ViewPosition : Real3;
-  [Output] var ViewNormal : Real3;
+  [StageOutput] var ViewPosition : Real3;
+  [StageOutput] var ViewNormal : Real3;
 
   [HardwareBuiltInOutput] var ApiPerspectivePosition : Real4;
 
@@ -18,9 +19,8 @@ struct Vertex
     var localToView = Math.Multiply(this.WorldToView, this.LocalToWorld);
     var localToPerspective = Math.Multiply(this.ViewToPerspective, localToView);
 
-    var pos =  this.LocalPosition;//Math.Multiply(this.ScaleMat, this.LocalPosition * this.LocalScale);
-    var perspectivePosition = Math.Multiply(localToPerspective, Real4(pos, 1.0));
-
-    this.ApiPerspectivePosition = perspectivePosition;
+    this.ApiPerspectivePosition = Math.Multiply(localToPerspective, Real4(this.LocalPosition, 1.0));
+    this.ViewPosition = Math.MultiplyPoint(localToView, this.LocalPosition);
+    this.ViewNormal = Math.MultiplyPoint(localToView, this.LocalNormal);
   }
 }

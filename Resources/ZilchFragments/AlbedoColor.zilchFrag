@@ -1,0 +1,9 @@
+[Pixel]
+struct AlbedoColor
+{
+  [PropertyInput][Output] var Albedo : Real3 = Real3(1, 0, 0);
+
+  function Main()
+  {
+  }
+}

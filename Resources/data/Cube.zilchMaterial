@@ -1,0 +1,14 @@
+{
+  "Name": "Cube",
+  "Fragments": {
+    "Vertex": {
+    },
+     "NormalColor": {
+      "Properties": {
+      }
+    },
+    "Pixel": {
+      "Properties": {}
+    }
+  }
+}

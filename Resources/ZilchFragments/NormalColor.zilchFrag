@@ -1,0 +1,11 @@
+[Pixel]
+struct NormalColor
+{
+  [Input] var ViewNormal : Real3;
+  [Output] var NormalColor : Real3;
+
+  function Main()
+  {
+    this.NormalColor = Math.Abs(-this.ViewNormal);
+  }
+}
