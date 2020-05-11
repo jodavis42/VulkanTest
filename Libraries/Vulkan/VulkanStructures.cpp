@@ -21,22 +21,37 @@ Array<VkVertexInputBindingDescription> VulkanVertex::getBindingDescription()
 Array<VkVertexInputAttributeDescription> VulkanVertex::getAttributeDescriptions()
 {
   Array<VkVertexInputAttributeDescription> attributeDescriptions;
-  attributeDescriptions.Resize(3);
+  attributeDescriptions.Reserve(5);
 
-  attributeDescriptions[0].binding = 0;
-  attributeDescriptions[0].location = 0;
-  attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-  attributeDescriptions[0].offset = offsetof(Vertex, pos);
+  VkVertexInputAttributeDescription& posDescription = attributeDescriptions.PushBack();
+  posDescription.binding = 0;
+  posDescription.location = static_cast<uint32_t>(attributeDescriptions.Size() - 1);
+  posDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+  posDescription.offset = offsetof(Vertex, pos);
 
-  attributeDescriptions[1].binding = 0;
-  attributeDescriptions[1].location = 1;
-  attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-  attributeDescriptions[1].offset = offsetof(Vertex, color);
+  VkVertexInputAttributeDescription& normalDescription = attributeDescriptions.PushBack();
+  normalDescription.binding = 0;
+  normalDescription.location = static_cast<uint32_t>(attributeDescriptions.Size() - 1);
+  normalDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+  normalDescription.offset = offsetof(Vertex, normal);
 
-  attributeDescriptions[2].binding = 0;
-  attributeDescriptions[2].location = 2;
-  attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-  attributeDescriptions[2].offset = offsetof(Vertex, uv);
+  VkVertexInputAttributeDescription& colorDescription = attributeDescriptions.PushBack();
+  colorDescription.binding = 0;
+  colorDescription.location = static_cast<uint32_t>(attributeDescriptions.Size() - 1);
+  colorDescription.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+  colorDescription.offset = offsetof(Vertex, color);
+
+  VkVertexInputAttributeDescription& uvDescription = attributeDescriptions.PushBack();
+  uvDescription.binding = 0;
+  uvDescription.location = static_cast<uint32_t>(attributeDescriptions.Size() - 1);
+  uvDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+  uvDescription.offset = offsetof(Vertex, uv);
+
+  VkVertexInputAttributeDescription& aux0Description = attributeDescriptions.PushBack();
+  aux0Description.binding = 0;
+  aux0Description.location = static_cast<uint32_t>(attributeDescriptions.Size() - 1);
+  aux0Description.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+  aux0Description.offset = offsetof(Vertex, aux0);
 
   return attributeDescriptions;
 }
