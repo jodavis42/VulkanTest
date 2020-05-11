@@ -21,6 +21,8 @@ public:
   }
 
 private:
+  String mResourcesDir;
+  String mShaderCoreDir;
 
   static void FramebufferResizeCallback(GLFWwindow* window, int width, int height)
   {
@@ -50,8 +52,28 @@ private:
     outHeight = height;
   }
 
+  void InitializeZilch()
+  {
+    Zilch::ZilchSetup* zilchSetup = new Zilch::ZilchSetup();
+
+    Zilch::Module module;
+    Zilch::ExecutableState::CallingState = module.Link();
+  }
+
+  void LoadConfiguration()
+  {
+    Zilch::JsonReader jsonReader;
+    Zilch::CompilationErrors errors;
+    Zilch::JsonValue* json = jsonReader.ReadIntoTreeFromFile(errors, "BuildConfig.data", nullptr);
+    mShaderCoreDir = json->GetMember("ShaderCoreDir")->AsString();
+    mResourcesDir = json->GetMember("ResourcesDir")->AsString();
+  }
+
   void Initialize()
   {
+    InitializeZilch();
+    LoadConfiguration();
+
     mTotalFrameTime = 0;
     mLastFrameTime = std::chrono::high_resolution_clock::now();
 
@@ -68,7 +90,10 @@ private:
     glfwGetFramebufferSize(mWindow, &width, &height);
     auto internal = mGraphicsEngine.mRenderer.GetRuntimeData();
 
-    mGraphicsEngine.Initialize();
+    GraphicsEngineInitData graphicsInitData;
+    graphicsInitData.mResourcesDir = mResourcesDir;
+    graphicsInitData.mShaderCoreDir = mShaderCoreDir;
+    mGraphicsEngine.Initialize(graphicsInitData);
     mGraphicsEngine.mWindowSizeQueryFn = [this](size_t& width, size_t& height) {QueryWindowSize(width, height); };
 
     GraphicsEngineRendererInitData rendererInitData;
@@ -85,7 +110,7 @@ private:
   void LoadLevel(const String& levelName)
   {
     GraphicsSpace* space = mGraphicsEngine.CreateSpace(levelName);
-    String filePath = Zero::BuildString("data/", levelName, ".level");
+    String filePath = Zero::FilePath::CombineWithExtension(Zero::FilePath::Combine(mResourcesDir, "data"), levelName, ".level");
     JsonLoader loader;
     loader.LoadFromFile(filePath);
 

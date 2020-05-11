@@ -3,6 +3,8 @@
 #include "Vertex.hpp"
 #include "GraphicsStandard.hpp"
 
+struct FileLoadData;
+
 //-------------------------------------------------------------------Mesh
 struct Mesh
 {
@@ -17,8 +19,8 @@ public:
   MeshManager();
   ~MeshManager();
 
-  void Load();
-  void LoadFromFile(const String& path);
+  void Load(const String& resourcesDir);
+  void LoadFromFile(const FileLoadData& loadData);
   void LoadMesh(const String& name, const String& path);
   Mesh* Find(const String& name);
   void Destroy();

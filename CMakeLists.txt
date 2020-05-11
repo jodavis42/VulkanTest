@@ -38,6 +38,7 @@ add_definitions(-DPLATFORM_WINDOWS=1 -DPLATFORM_HARDWARE=1 -DPLATFORM_NAME="Win"
 # Call CMakeLists.txt in source folders, adding them to the project non-globally
 ################################################################################
 set(ResourcesDir ${CMAKE_CURRENT_SOURCE_DIR}/Resources)
+set(ShaderCoreDir ${ResourcesDir}/ShaderCore)
 # external libraries
 add_subdirectory(External)
 add_subdirectory(Libraries)

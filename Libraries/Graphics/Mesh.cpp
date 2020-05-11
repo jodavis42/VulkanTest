@@ -55,22 +55,25 @@ MeshManager::~MeshManager()
   Destroy();
 }
 
-void MeshManager::Load()
+void MeshManager::Load(const String& resourcesDir)
 {
-  LoadAllFilesOfExtension(*this, "data", ".mesh");
+  FileSearchData searchData = {resourcesDir, Zero::FilePath::Combine(resourcesDir, "data")};
+  LoadAllFilesOfExtension(*this, searchData, ".mesh");
 }
 
-void MeshManager::LoadFromFile(const String& path)
+void MeshManager::LoadFromFile(const FileLoadData& loadData)
 {
   JsonLoader loader;
-  loader.LoadFromFile(path);
+  loader.LoadFromFile(loadData.mFilePath);
 
   String meshName;
   String meshPath;
 
   LoadPrimitive(loader, "Name", meshName);
   LoadPrimitive(loader, "MeshPath", meshPath);
-  LoadMesh(meshName, meshPath);
+
+  String fullMeshPath = Zero::FilePath::Combine(loadData.mRootResourcesDir, meshPath);
+  LoadMesh(meshName, fullMeshPath);
 }
 
 void MeshManager::LoadMesh(const String& name, const String& path)

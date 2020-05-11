@@ -107,15 +107,16 @@ MaterialManager::~MaterialManager()
   Destroy();
 }
 
-void MaterialManager::Load()
+void MaterialManager::Load(const String& resourcesDir)
 {
-  LoadAllFilesOfExtension(*this, "data", ".material");
+  FileSearchData searchData = {resourcesDir, Zero::FilePath::Combine(resourcesDir, "data")};
+  LoadAllFilesOfExtension(*this, searchData, ".material");
 }
 
-void MaterialManager::LoadFromFile(const String& path)
+void MaterialManager::LoadFromFile(const FileLoadData& loadData)
 {
   JsonLoader loader;
-  loader.LoadFromFile(path);
+  loader.LoadFromFile(loadData.mFilePath);
 
   Material* material = new Material();
   material->mMaterialName = LoadDefaultPrimitive(loader, "Name", String());

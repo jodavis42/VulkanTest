@@ -4,6 +4,8 @@
 
 #include "ShaderEnumTypes.hpp"
 
+struct FileLoadData;
+
 constexpr size_t ShaderStageCount = static_cast<size_t>(ShaderStage::Count);
 
 //-------------------------------------------------------------------ShaderResourceField
@@ -59,8 +61,8 @@ public:
   ShaderManager();
   ~ShaderManager();
 
-  void Load();
-  void LoadFromFile(const String& path);
+  void Load(const String& resourcesDir);
+  void LoadFromFile(const FileLoadData& loadData);
   void LoadShader(const String& name, const ShaderLoadData& shaderData);
   void LoadShaderResources(const Array<char>& shaderByteCode, ShaderResources& resources);
   Shader* Find(const String& name);

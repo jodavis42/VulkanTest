@@ -89,15 +89,16 @@ ShaderManager::~ShaderManager()
   Destroy();
 }
 
-void ShaderManager::Load()
+void ShaderManager::Load(const String& resourcesDir)
 {
-  LoadAllFilesOfExtension(*this, "data", ".shader");
+  FileSearchData searchData = {resourcesDir, Zero::FilePath::Combine(resourcesDir, "data")};
+  LoadAllFilesOfExtension(*this, searchData, ".shader");
 }
 
-void ShaderManager::LoadFromFile(const String& path)
+void ShaderManager::LoadFromFile(const FileLoadData& loadData)
 {
   JsonLoader loader;
-  loader.LoadFromFile(path);
+  loader.LoadFromFile(loadData.mFilePath);
 
   String name;
   ShaderLoadData shaderData;

@@ -18,10 +18,16 @@ struct GraphicsEngineRendererInitData
   size_t mInitialHeight = 0;
 };
 
+struct GraphicsEngineInitData
+{
+  String mResourcesDir;
+  String mShaderCoreDir;
+};
+
 struct GraphicsEngine
 {
 public:
-  void Initialize();
+  void Initialize(const GraphicsEngineInitData& initData);
   void Shutdown();
 
   GraphicsSpace* CreateSpace(const String& name);

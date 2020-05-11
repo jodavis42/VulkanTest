@@ -27,6 +27,7 @@ struct MaterialProperty
   ShaderPrimitiveType::Enum mType = ShaderPrimitiveType::Unknown;
   Array<byte> mData;
 };
+struct FileLoadData;
 
 //-------------------------------------------------------------------Material
 struct Material
@@ -44,8 +45,8 @@ public:
   MaterialManager();
   ~MaterialManager();
 
-  void Load();
-  void LoadFromFile(const String& path);
+  void Load(const String& resourcesDir);
+  void LoadFromFile(const FileLoadData& loadData);
 
   void Add(const String& name, Material* material);
   Material* Find(const String& name);

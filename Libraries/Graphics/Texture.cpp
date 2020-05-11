@@ -21,38 +21,43 @@ TextureManager::~TextureManager()
   Destroy();
 }
 
-void TextureManager::Load()
+void TextureManager::Load(const String& resourcesDir)
 {
-  LoadAllFilesOfExtension(*this, "data", ".texture");
+  FileSearchData searchData = {resourcesDir, Zero::FilePath::Combine(resourcesDir, "data")};
+  LoadAllFilesOfExtension(*this, searchData, ".texture");
 }
 
-void TextureManager::LoadFromFile(const String& path)
+void TextureManager::LoadFromFile(const FileLoadData& loadData)
 {
   JsonLoader loader;
-  loader.LoadFromFile(path);
+  loader.LoadFromFile(loadData.mFilePath);
 
   String textureName;
   String texturePath;
 
   LoadPrimitive(loader, "Name", textureName);
   LoadPrimitive(loader, "TexturePath", texturePath);
-  LoadTexture(textureName, texturePath);
+
+  String fullTexturePath = Zero::FilePath::Combine(loadData.mRootResourcesDir, texturePath);
+  LoadTexture(textureName, fullTexturePath);
 }
 
 void TextureManager::LoadTexture(const String& name, const String& path)
 {
   int texWidth, texHeight, texChannels;
   stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+  ErrorIf(pixels == nullptr, "Failed to load image");
   uint32_t pixelsSize = texWidth * texHeight * 4;
 
   Texture* texture = new Texture();
   texture->mName = name;
+  texture->mFilePath = path;
   texture->mSizeX = texWidth;
   texture->mSizeY = texHeight;
   texture->mMipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
-  texture->mTextureData.resize(pixelsSize);
   texture->mFormat = TextureFormat::SRGB8A8;
-  memcpy(texture->mTextureData.data(), pixels, pixelsSize);
+  texture->mTextureData.Resize(pixelsSize);
+  memcpy(texture->mTextureData.Data(), pixels, pixelsSize);
 
   stbi_image_free(pixels);
 

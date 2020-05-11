@@ -7,12 +7,10 @@
 #include "VulkanInitialization.hpp"
 #include "VulkanCommandBuffer.hpp"
 
-void GraphicsEngine::Initialize()
+void GraphicsEngine::Initialize(const GraphicsEngineInitData& initData)
 {
-  mTextureManager.Load();
-  mShaderManager.Load();
-  mMaterialManager.Load();
-  mMeshManager.Load();
+  mTextureManager.Load(initData.mResourcesDir);
+  mMeshManager.Load(initData.mResourcesDir);
   LoadShadersAndMaterials();
 }
 

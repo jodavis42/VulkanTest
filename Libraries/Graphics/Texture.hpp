@@ -2,6 +2,8 @@
 
 #include "GraphicsStandard.hpp"
 
+struct FileLoadData;
+
 //-------------------------------------------------------------------TextureFormat
 enum class  TextureFormat
 {
@@ -46,8 +48,9 @@ public:
   TextureAddressing mAddressingX = TextureAddressing::Repeat;
   TextureAddressing mAddressingY = TextureAddressing::Repeat;
   size_t mMipLevels = 1;
-  std::vector<float> mTextureData;
   String mName;
+  String mFilePath;
+  Array<float> mTextureData;
 };
 
 //-------------------------------------------------------------------TextureManager
@@ -57,8 +60,8 @@ public:
   TextureManager();
   ~TextureManager();
 
-  void Load();
-  void LoadFromFile(const String& path);
+  void Load(const String& resourcesDir);
+  void LoadFromFile(const FileLoadData& loadData);
   void LoadTexture(const String& name, const String& path);
   Texture* Find(const String& name);
   void Destroy();

@@ -31,3 +31,8 @@ add_custom_command(TARGET Application POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy_directory ${ResourcesDir}/ $<TARGET_FILE_DIR:Application>)
 
 set_target_properties(Application PROPERTIES FOLDER "Libraries")
+
+# Generate a file that points to the resources dir and copy it to each build config
+configure_file(BuildConfig.data BuildConfig.data ESCAPE_QUOTES) 
+add_custom_command(TARGET Application POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE_DIR:Application>/../BuildConfig.data $<TARGET_FILE_DIR:Application>/BuildConfig.data)

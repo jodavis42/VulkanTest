@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <filesystem>
 #include "Common/CommonStandard.hpp"
 
 using Zero::String;
@@ -133,31 +134,53 @@ DataType LoadDefaultPrimitive(JsonLoader& loader, const String& name, const Data
   return result;
 }
 
-template <typename ManagerType>
-void LoadAllFilesOfExtension(ManagerType& manager, const String& searchDir, const String& extension, std::function<void (const String&)> callback, bool recursive = true)
+struct FileSearchData
 {
-  for(auto it : std::filesystem::directory_iterator(searchDir.c_str()))
+  String mRootResourcesDir;
+  String mSearchDir;
+};
+
+struct FileLoadData
+{
+  String mRootResourcesDir;
+  String mFileDirectory;
+  String mFilePath;
+};
+
+template <typename ManagerType>
+void LoadAllFilesOfExtension(ManagerType& manager, const FileSearchData& searchData, const String& extension, std::function<void (const FileLoadData&)> callback, bool recursive = true)
+{
+  for(auto it : std::filesystem::directory_iterator(searchData.mSearchDir.c_str()))
   {
     if(it.is_directory())
     {
       if(recursive)
-        LoadAllFilesOfExtension(manager, String(it.path().string().c_str()), extension, recursive);
+      {
+        FileSearchData subSearchData{searchData.mRootResourcesDir, String(it.path().string().c_str())};
+        LoadAllFilesOfExtension(manager, subSearchData, extension, recursive);
+      }
       continue;
     }
 
     auto filePath = it.path();
     String fileExt = filePath.extension().string().c_str();
     if(fileExt == extension)
-      callback(filePath.string().c_str());
+    {
+      FileLoadData loadData;
+      loadData.mRootResourcesDir = searchData.mRootResourcesDir;
+      loadData.mFileDirectory = filePath.parent_path().string().c_str();
+      loadData.mFilePath = filePath.string().c_str();
+      callback(loadData);
+    }
   }
 }
 
 template <typename ManagerType>
-void LoadAllFilesOfExtension(ManagerType& manager, const String& searchDir, const String& extension, bool recursive = true)
+void LoadAllFilesOfExtension(ManagerType& manager, const FileSearchData& searchData, const String& extension, bool recursive = true)
 {
-  auto callback = [&manager](const String& filePath)
+  auto callback = [&manager](const FileLoadData& loadData)
   {
-    manager.LoadFromFile(filePath);
+    manager.LoadFromFile(loadData);
   };
-  LoadAllFilesOfExtension(manager, searchDir, extension, callback, recursive);
+  LoadAllFilesOfExtension(manager, searchData, extension, callback, recursive);
 }
