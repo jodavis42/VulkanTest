@@ -11,35 +11,18 @@
 
 void FilloutMesh(Mesh* mesh, std::vector<tinyobj::shape_t>& shapes, tinyobj::attrib_t& attrib)
 {
-  std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
-
   for(const auto& shape : shapes)
   {
     for(const auto& index : shape.mesh.indices)
     {
       Vertex vertex = {};
-      vertex.pos =
-      {
-        attrib.vertices[3 * index.vertex_index + 0],
-        attrib.vertices[3 * index.vertex_index + 1],
-        attrib.vertices[3 * index.vertex_index + 2]
-      };
-
-      vertex.uv =
-      {
-         attrib.texcoords[2 * index.texcoord_index + 0],
-         1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-      };
-
-      vertex.color = {1.0f, 1.0f, 1.0f};
-
-      if(uniqueVertices.count(vertex) == 0)
-      {
-        uniqueVertices[vertex] = static_cast<uint32_t>(mesh->mVertices.Size());
-        mesh->mVertices.PushBack(vertex);
-      }
-
-      mesh->mIndices.PushBack(uniqueVertices[vertex]);
+      vertex.pos = Vec3(&attrib.vertices[3 * index.vertex_index]);
+      vertex.normal = Vec3(&attrib.normals[3 * index.normal_index]);
+      vertex.uv = Vec2(&attrib.texcoords[2 * index.texcoord_index]);
+    
+      uint32_t vertexIndex = static_cast<uint32_t>(mesh->mVertices.Size());
+      mesh->mVertices.PushBack(vertex);
+      mesh->mIndices.PushBack(vertexIndex);
     }
   }
 }
