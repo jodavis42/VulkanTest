@@ -1,7 +1,6 @@
 #pragma once
 
-struct UniqueShaderMaterial;
-struct ShaderMaterialInstance;
+struct ZilchShader;
 class VulkanRenderer;
 struct VulkanRuntimeData;
 struct VulkanShaderMaterial;
@@ -13,11 +12,11 @@ struct RendererData
   VulkanRuntimeData* mRuntimeData;
 };
 
-void CreateMaterialDescriptorSetLayouts(RendererData& rendererData, const UniqueShaderMaterial& uniqueShaderMaterial, VulkanShaderMaterial& vulkanShaderMaterial);
-void CreateMaterialDescriptorPool(RendererData& rendererData, const UniqueShaderMaterial& uniqueShaderMaterial, VulkanShaderMaterial& vulkanShaderMaterial);
+void CreateMaterialDescriptorSetLayouts(RendererData& rendererData, const ZilchShader& zilchShader, VulkanShaderMaterial& vulkanShaderMaterial);
+void CreateMaterialDescriptorPool(RendererData& rendererData, const ZilchShader& zilchShader, VulkanShaderMaterial& vulkanShaderMaterial);
 void CreateMaterialDescriptorSets(RendererData& rendererData, VulkanShaderMaterial& vulkanShaderMaterial);
-void UpdateMaterialDescriptorSet(RendererData& rendererData, const ShaderMaterialInstance& shaderMaterialInstance, VulkanShaderMaterial& vulkanShaderMaterial, size_t frameIndex, VkDescriptorSet descriptorSet);
-void UpdateMaterialDescriptorSets(RendererData& rendererData, const ShaderMaterialInstance& shaderMaterialInstance, VulkanShaderMaterial& vulkanShaderMaterial);
+void UpdateMaterialDescriptorSet(RendererData& rendererData, const ZilchShader& zilchShader, const ZilchMaterial& zilchMaterial, VulkanShaderMaterial& vulkanShaderMaterial, size_t frameIndex, VkDescriptorSet descriptorSet);
+void UpdateMaterialDescriptorSets(RendererData& rendererData, const ZilchShader& zilchShader, const ZilchMaterial& zilchMaterial, VulkanShaderMaterial& vulkanShaderMaterial);
 
 void CreateGraphicsPipeline(RendererData& rendererData, const VulkanShader& vulkanShader, VulkanShaderMaterial& vulkanShaderMaterial);
 

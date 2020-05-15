@@ -17,11 +17,6 @@ struct VulkanInitializationData
   SurfaceCreationDelegate mSurfaceCreationCallback;
 };
 
-struct UniformBufferType
-{
-  enum Enum
-  {
-    Global,
-    Material
-  };
-};
+constexpr const char* TransformsBufferName = "Transforms";
+constexpr const char* MaterialBufferName = "Material";
+constexpr const char* GlobalsBufferName = "Globals";

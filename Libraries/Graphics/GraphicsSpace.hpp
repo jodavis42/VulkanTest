@@ -6,17 +6,6 @@ struct Model;
 struct GraphicsEngine;
 struct RenderFrame;
 
-struct PerCameraData
-{
-  alignas(16) Matrix4 view;
-  alignas(16) Matrix4 proj;
-};
-
-struct PerObjectData
-{
-  alignas(16) Matrix4 model;
-};
-
 struct UpdateEvent
 {
   float mDt = 0.0f;

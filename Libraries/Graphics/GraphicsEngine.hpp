@@ -1,11 +1,11 @@
 #pragma once
 
 #include "Mesh.hpp"
-#include "Shader.hpp"
-#include "Material.hpp"
-#include "MaterialBinding.hpp"
 #include "Model.hpp"
 #include "Texture.hpp"
+#include "ZilchFragment.hpp"
+#include "ZilchMaterial.hpp"
+#include "ZilchShader.hpp"
 #include "VulkanRenderer.hpp"
 #include <functional>
 
@@ -35,11 +35,10 @@ public:
   void DestroySpace(const String& name);
   void DestroySpace(GraphicsSpace* space);
 
-  void LoadShadersAndMaterials();
   void InitializeRenderer(GraphicsEngineRendererInitData& rendererInitData);
   void LoadVulkanImages();
   void LoadVulkanShaders();
-  void LoadVulkanMaterial(Material* material);
+  void LoadVulkanMaterial(ZilchMaterial* zilchMaterial);
   void LoadVulkanMaterials();
   void LoadVulkanMeshes();
 
@@ -54,10 +53,8 @@ public:
 
   MeshManager mMeshManager;
   TextureManager mTextureManager;
-  ShaderManager mShaderManager;
-  MaterialManager mMaterialManager;
+  ZilchFragmentFileManager mZilchFragmentFileManager;
+  ZilchMaterialManager mZilchMaterialManager;
+  ZilchShaderManager mZilchShaderManager;
   VulkanRenderer mRenderer;
-
-  HashMap<String, UniqueShaderMaterial> mUniqueShaderMaterialNameMap;
-  HashMap<String, ShaderMaterialInstance> mShaderMaterialInstanceNameMap;
 };

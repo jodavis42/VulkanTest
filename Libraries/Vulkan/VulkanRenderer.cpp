@@ -3,10 +3,9 @@
 #include "VulkanRenderer.hpp"
 
 #include "Graphics/Mesh.hpp"
-#include "Graphics/Material.hpp"
+#include "Graphics/MaterialShared.hpp"
 #include "Graphics/Texture.hpp"
-#include "Graphics/Shader.hpp"
-#include "Graphics/MaterialBinding.hpp"
+#include "Graphics/ZilchShader.hpp"
 #include "VulkanInitialization.hpp"
 #include "VulkanValidationLayers.hpp"
 #include "VulkanStructures.hpp"
@@ -138,6 +137,7 @@ void VulkanRenderer::Initialize(const VulkanInitializationData& initData)
   mInternal->mWidth = static_cast<uint32_t>(initData.mWidth);
   mInternal->mHeight = static_cast<uint32_t>(initData.mHeight);
   mInternal->mSurfaceCreationCallback = initData.mSurfaceCreationCallback;
+  mInternal->mBufferManager.mRuntimeData = mInternal;
   InitializeVulkan(*mInternal);
   CreateDepthResourcesInternal();
   CreateSwapChainInternal();
@@ -161,19 +161,15 @@ void VulkanRenderer::CleanupResources()
     DestroyTextureInternal(image);
   mTextureMap.Clear();
 
-  for(VulkanShader* shader : mShaderMap.Values())
+  for(VulkanShader* shader : mZilchShaderMap.Values())
     DestroyShaderInternal(shader);
-  mShaderMap.Clear();
+  mZilchShaderMap.Clear();
 
-  for(VulkanShaderMaterial* shaderMaterial : mUniqueShaderMaterialMap.Values())
+  for(VulkanShaderMaterial* shaderMaterial : mUniqueZilchShaderMaterialMap.Values())
     DestroyShaderMaterialInternal(shaderMaterial);
-  mUniqueShaderMaterialMap.Clear();
+  mUniqueZilchShaderMaterialMap.Clear();
 
-  for(VulkanUniformBuffer& buffer : mInternal->mMaterialBuffers.Values())
-  {
-    vkDestroyBuffer(mInternal->mDevice, buffer.mBuffer, nullptr);
-    vkFreeMemory(mInternal->mDevice, buffer.mBufferMemory, nullptr);
-  }
+  mInternal->mBufferManager.Destroy();
 }
 
 void VulkanRenderer::Shutdown()
@@ -243,55 +239,58 @@ void VulkanRenderer::DestroyTexture(const Texture* texture)
   DestroyTextureInternal(vulkanImage);
 }
 
-void VulkanRenderer::CreateShader(const Shader* shader)
+void VulkanRenderer::CreateShader(const ZilchShader* zilchShader)
 {
   VulkanShader* vulkanShader = new VulkanShader();
 
-  vulkanShader->mPixelShaderModule = CreateShaderModule(mInternal->mDevice, shader->mShaderByteCode[ShaderStage::Pixel]);
-  vulkanShader->mVertexShaderModule = CreateShaderModule(mInternal->mDevice, shader->mShaderByteCode[ShaderStage::Vertex]);
-  vulkanShader->mVertexEntryPointName = shader->mResources[ShaderStage::Vertex].mEntryPointName;
-  vulkanShader->mPixelEntryPointName = shader->mResources[ShaderStage::Pixel].mEntryPointName;
+  vulkanShader->mPixelShaderModule = CreateShaderModule(mInternal->mDevice, zilchShader->mShaderByteCode[ShaderStage::Pixel]);
+  vulkanShader->mVertexShaderModule = CreateShaderModule(mInternal->mDevice, zilchShader->mShaderByteCode[ShaderStage::Vertex]);
+  vulkanShader->mVertexEntryPointName = zilchShader->mResources[ShaderStage::Vertex].mEntryPointName;
+  vulkanShader->mPixelEntryPointName = zilchShader->mResources[ShaderStage::Pixel].mEntryPointName;
 
-  mShaderMap[shader] = vulkanShader;
+  mZilchShaderMap[zilchShader] = vulkanShader;
 }
 
-void VulkanRenderer::DestroyShader(const Shader* shader)
+void VulkanRenderer::DestroyShader(const ZilchShader* zilchShader)
 {
-  VulkanShader* vulkanShader = mShaderMap[shader];
-  mShaderMap.Erase(shader);
+  VulkanShader* vulkanShader = mZilchShaderMap[zilchShader];
+  mZilchShaderMap.Erase(zilchShader);
 
   DestroyShaderInternal(vulkanShader);
 }
 
-void VulkanRenderer::CreateShaderMaterial(const UniqueShaderMaterial* uniqueShaderMaterial)
+void VulkanRenderer::CreateShaderMaterial(ZilchShader* shaderMaterial)
 {
   VulkanShaderMaterial* vulkanShaderMaterial = new VulkanShaderMaterial();
 
   RendererData rendererData{this, mInternal};
-  CreateMaterialDescriptorSetLayouts(rendererData, *uniqueShaderMaterial, *vulkanShaderMaterial);
-  CreateMaterialDescriptorPool(rendererData, *uniqueShaderMaterial, *vulkanShaderMaterial);
+  CreateMaterialDescriptorSetLayouts(rendererData, *shaderMaterial, *vulkanShaderMaterial);
+  CreateMaterialDescriptorPool(rendererData, *shaderMaterial, *vulkanShaderMaterial);
   CreateMaterialDescriptorSets(rendererData, *vulkanShaderMaterial);
-  
-  mUniqueShaderMaterialMap[uniqueShaderMaterial] = vulkanShaderMaterial;
+
+  for(ZilchMaterialBindingDescriptor& bindingDescriptor : shaderMaterial->mBindingDescriptors)
+  {
+    if(bindingDescriptor.mBufferBindingType == ShaderMaterialBindingId::Material)
+      bindingDescriptor.mOffsetInBytes = vulkanShaderMaterial->mBufferOffset;
+  }
+
+  mUniqueZilchShaderMaterialMap[shaderMaterial] = vulkanShaderMaterial;
 }
 
-void VulkanRenderer::UpdateShaderMaterialInstance(const ShaderMaterialInstance* shaderMaterialInstance)
+void VulkanRenderer::UpdateShaderMaterialInstance(const ZilchShader* zilchShader, const ZilchMaterial* zilchMaterial)
 {
-  const UniqueShaderMaterial* uniqueShaderMaterial = shaderMaterialInstance->mUniqueShaderMaterial;
-  const Shader* shader = uniqueShaderMaterial->mShader;
-  
-  VulkanShaderMaterial* vulkanShaderMaterial = mUniqueShaderMaterialMap[uniqueShaderMaterial];
-  VulkanShader* vulkanShader = mShaderMap[shader];
+  VulkanShaderMaterial* vulkanShaderMaterial = mUniqueZilchShaderMaterialMap[zilchShader];
+  VulkanShader* vulkanShader = mZilchShaderMap[zilchShader];
 
   RendererData rendererData{this, mInternal};
-  UpdateMaterialDescriptorSets(rendererData, *shaderMaterialInstance, *vulkanShaderMaterial);
+  UpdateMaterialDescriptorSets(rendererData, *zilchShader, *zilchMaterial, *vulkanShaderMaterial);
   CreateGraphicsPipeline(rendererData, *vulkanShader, *vulkanShaderMaterial);
 }
 
-void VulkanRenderer::DestroyShaderMaterial(const UniqueShaderMaterial* uniqueShaderMaterial)
+void VulkanRenderer::DestroyShaderMaterial(const ZilchShader* zilchShader)
 {
-  VulkanShaderMaterial* vulkanShaderMaterial = mUniqueShaderMaterialMap[uniqueShaderMaterial];
-  mUniqueShaderMaterialMap.Erase(uniqueShaderMaterial);
+  VulkanShaderMaterial* vulkanShaderMaterial = mUniqueZilchShaderMaterialMap[zilchShader];
+  mUniqueZilchShaderMaterialMap.Erase(zilchShader);
 
   DestroyShaderMaterialInternal(vulkanShaderMaterial);
 }
@@ -408,60 +407,40 @@ void VulkanRenderer::Draw()
 
 }
 
-VulkanUniformBuffers* VulkanRenderer::RequestUniformBuffer(uint32_t bufferId)
+void* VulkanRenderer::MapGlobalUniformBufferMemory(const String& bufferName, uint32_t bufferId)
 {
-  VulkanUniformBuffers* buffers = mInternal->mUniformBufferMap.FindPointer(bufferId);
-  if(buffers != nullptr)
-    return buffers;
+  VulkanUniformBuffer* buffer = mInternal->mBufferManager.FindGlobalBuffer(bufferName, bufferId);
 
-  VkDeviceSize bufferSize = mInternal->mDeviceLimits.mMaxUniformBufferRange;
-
-  size_t count = mInternal->mSwapChain.GetCount();
-  auto& uniformBuffers = mInternal->mUniformBufferMap[bufferId];
-  uniformBuffers.mBuffers.Resize(count);
-
-  VulkanBufferCreationData vulkanData{mInternal->mPhysicalDevice, mInternal->mDevice, mInternal->mGraphicsQueue, mInternal->mCommandPool};
-
-  for(size_t i = 0; i < count; i++)
-  {
-    VulkanUniformBuffer& buffer = uniformBuffers.mBuffers[i];
-    VkImageUsageFlags usageFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    CreateBuffer(vulkanData, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, usageFlags, buffer.mBuffer, buffer.mBufferMemory);
-  }
-  return &uniformBuffers;
-}
-
-void* VulkanRenderer::MapUniformBufferMemory(UniformBufferType::Enum bufferType, uint32_t bufferId, uint32_t frameIndex)
-{
-  VulkanUniformBuffer* buffer = GetUniformBuffer(mInternal, bufferType, bufferId, frameIndex);
-  
   void* data = nullptr;
   if(buffer != nullptr)
     vkMapMemory(mInternal->mDevice, buffer->mBufferMemory, 0, mInternal->mDeviceLimits.mMaxUniformBufferRange, 0, &data);
   return data;
 }
 
-void VulkanRenderer::UnMapUniformBufferMemory(UniformBufferType::Enum bufferType, uint32_t bufferId, uint32_t frameIndex)
+void* VulkanRenderer::MapPerFrameUniformBufferMemory(const String& bufferName, uint32_t bufferId, uint32_t frameIndex)
 {
-  VulkanUniformBuffer* buffer = GetUniformBuffer(mInternal, bufferType, bufferId, frameIndex);
+  VulkanUniformBuffer* buffer = mInternal->mBufferManager.FindOrCreatePerFrameBuffer(bufferName, bufferId, frameIndex);
+
+  void* data = nullptr;
+  if(buffer != nullptr)
+    vkMapMemory(mInternal->mDevice, buffer->mBufferMemory, 0, mInternal->mDeviceLimits.mMaxUniformBufferRange, 0, &data);
+  return data;
+}
+
+void VulkanRenderer::UnMapGlobalUniformBufferMemory(const String& bufferName, uint32_t bufferId)
+{
+  VulkanUniformBuffer* buffer = mInternal->mBufferManager.FindGlobalBuffer(bufferName, bufferId);
 
   if(buffer != nullptr && buffer->mBufferMemory != VK_NULL_HANDLE)
     vkUnmapMemory(mInternal->mDevice, buffer->mBufferMemory);
 }
 
-void VulkanRenderer::DestroyUniformBuffer(uint32_t bufferId)
+void VulkanRenderer::UnMapPerFrameUniformBufferMemory(const String& bufferName, uint32_t bufferId, uint32_t frameIndex)
 {
-  VulkanUniformBuffers* buffersPtr = mInternal->mUniformBufferMap.FindPointer(bufferId);
-  if(buffersPtr == nullptr)
-    return;
+  VulkanUniformBuffer* buffer = mInternal->mBufferManager.FindOrCreatePerFrameBuffer(bufferName, bufferId, frameIndex);
 
-  auto& uniformBuffers = *buffersPtr;
-  for(VulkanUniformBuffer& buffer : uniformBuffers.mBuffers)
-  {
-    vkDestroyBuffer(mInternal->mDevice, buffer.mBuffer, nullptr);
-    vkFreeMemory(mInternal->mDevice, buffer.mBufferMemory, nullptr);
-  }
-  mInternal->mUniformBufferMap.Erase(bufferId);
+  if(buffer != nullptr && buffer->mBufferMemory != VK_NULL_HANDLE)
+    vkUnmapMemory(mInternal->mDevice, buffer->mBufferMemory);
 }
 
 size_t VulkanRenderer::AlignUniformBufferOffset(size_t offset)
@@ -601,8 +580,8 @@ void VulkanRenderer::CreateImageInternal(const Texture* texture, VulkanImage* im
   textureInfo.mGraphicsPipeline = mInternal->mGraphicsPipeline;
   textureInfo.mCommandPool = mInternal->mCommandPool;
   textureInfo.mFormat = GetImageFormat(texture->mFormat);
-  textureInfo.mPixels = texture->mTextureData.data();
-  textureInfo.mPixelsSize = static_cast<uint32_t>(texture->mTextureData.size());
+  textureInfo.mPixels = texture->mTextureData.Data();
+  textureInfo.mPixelsSize = static_cast<uint32_t>(texture->mTextureData.Size());
   textureInfo.mWidth = static_cast<uint32_t>(texture->mSizeX);
   textureInfo.mHeight = static_cast<uint32_t>(texture->mSizeY);
   textureInfo.mMipLevels = static_cast<uint32_t>(texture->mMipLevels);

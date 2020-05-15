@@ -4,29 +4,19 @@
     "Transform" : {
       "Translation" : [0, 0, 0]
     },
-    "Model" : {
-      "Mesh" : "Test",
-      "Material" : "Test"
+    "Model": {
+      "Mesh": "Quad",
+      "Material": "ZilchTest"
     }
   },
   {
     "Name" : "Object2",
     "Transform" : {
-      "Translation" : [3, 0, 0]
+      "Translation" : [0, 1, 0]
     },
-    "Model" : {
-      "Mesh" : "Test",
-      "Material" : "Test"
-    }
-  },
-  {
-    "Name" : "Object3",
-    "Transform" : {
-      "Translation" : [-3, 0, 0]
-    },
-    "Model" : {
-      "Mesh" : "Test",
-      "Material" : "Test"
+    "Model": {
+      "Mesh": "Cube",
+      "Material": "Cube"
     }
   }
 ]

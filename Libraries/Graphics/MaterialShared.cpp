@@ -1,8 +1,7 @@
 #include "Precompiled.hpp"
 
-#include "Material.hpp"
+#include "MaterialShared.hpp"
 
-#include <filesystem>
 #include "JsonSerializers.hpp"
 #include "Math.hpp"
 
@@ -75,70 +74,28 @@ void ReadPropertyValue(JsonLoader& loader, ShaderPrimitiveType::Enum& propType, 
   }
 }
 
-void LoadMaterialProperties(Material* material, JsonLoader& loader)
+void LoadMaterialProperty(JsonLoader& loader, const String& propertyName, MaterialProperty& materialProperty)
+{
+  materialProperty.mPropertyName = propertyName;
+
+  materialProperty.mType = ShaderPrimitiveType::FromString(LoadDefaultPrimitive(loader, "PrimitiveType", String()));
+  ReadPropertyValue(loader, materialProperty.mType, materialProperty.mData);
+}
+
+void LoadMaterialProperties(JsonLoader& loader, Array<MaterialProperty>& materialProperties)
 {
   if(loader.BeginMember("Properties"))
   {
     size_t propCount = 0;
     loader.BeginMembers(propCount);
-    material->mProperties.Resize(propCount);
+    materialProperties.Resize(propCount);
     for(size_t i = 0; i < propCount; ++i)
     {
-      MaterialProperty& prop = material->mProperties[i];
+      MaterialProperty& prop = materialProperties[i];
       loader.BeginMember(i, prop.mPropertyName);
-
-      prop.mType = ShaderPrimitiveType::FromString(LoadDefaultPrimitive(loader, "PrimitiveType", String()));
-      ReadPropertyValue(loader, prop.mType, prop.mData);
-
+      LoadMaterialProperty(loader, prop.mPropertyName, prop);
       loader.EndMember();
     }
     loader.EndMember();
   }
-}
-
-//-------------------------------------------------------------------MaterialManager
-MaterialManager::MaterialManager()
-{
-
-}
-
-MaterialManager::~MaterialManager()
-{
-  Destroy();
-}
-
-void MaterialManager::Load(const String& resourcesDir)
-{
-  FileSearchData searchData = {resourcesDir, Zero::FilePath::Combine(resourcesDir, "data")};
-  LoadAllFilesOfExtension(*this, searchData, ".material");
-}
-
-void MaterialManager::LoadFromFile(const FileLoadData& loadData)
-{
-  JsonLoader loader;
-  loader.LoadFromFile(loadData.mFilePath);
-
-  Material* material = new Material();
-  material->mMaterialName = LoadDefaultPrimitive(loader, "Name", String());
-  material->mShaderName = LoadDefaultPrimitive(loader, "ShaderName", String());
-  
-  LoadMaterialProperties(material, loader);
-  mMaterialMap[material->mMaterialName] = material;
-}
-
-void MaterialManager::Add(const String& name, Material* material)
-{
-  mMaterialMap[name] = material;
-}
-
-Material* MaterialManager::Find(const String& name)
-{
-  return mMaterialMap.FindValue(name, nullptr);
-}
-
-void MaterialManager::Destroy()
-{
-  for(Material* material : mMaterialMap.Values())
-    delete material;
-  mMaterialMap.Clear();
 }

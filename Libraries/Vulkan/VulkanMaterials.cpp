@@ -1,8 +1,9 @@
 #include "Precompiled.hpp"
 
-#include "Graphics/Material.hpp"
-#include "Graphics/MaterialBinding.hpp"
+#include "Graphics/MaterialShared.hpp"
 #include "Graphics/Vertex.hpp"
+#include "Graphics/ZilchShader.hpp"
+#include "Graphics/ZilchMaterial.hpp"
 
 #include <vulkan/vulkan.h>
 #include "EnumConversions.hpp"
@@ -11,68 +12,79 @@
 #include "VulkanStructures.hpp"
 #include "VulkanInitialization.hpp"
 
-void AllocateUniformBuffer(VulkanRuntimeData* runtimeData, VulkanUniformBuffer& buffer)
+struct BufferLocation
 {
-  buffer.mAllocatedSize = runtimeData->mDeviceLimits.mMaxUniformBufferRange;
-  buffer.mUsedSize = 0;
-  VulkanBufferCreationData vulkanData{runtimeData->mPhysicalDevice, runtimeData->mDevice, runtimeData->mGraphicsQueue, runtimeData->mCommandPool};
-  VkBufferUsageFlags usageFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-  CreateBuffer(vulkanData, buffer.mAllocatedSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, usageFlags, buffer.mBuffer, buffer.mBufferMemory);
-}
+  uint32_t mBufferId;
+  size_t mBufferOffset;
+};
 
-uint32_t FindMaterialBufferIdFor(RendererData& rendererData, const UniqueShaderMaterial& uniqueShaderMaterial)
+BufferLocation FindMaterialBufferIdFor(RendererData& rendererData, const ZilchShader& zilchShader)
 {
-  uint32_t& lastBufferId = rendererData.mRuntimeData->mLastUsedMaterialBufferId;
-  auto& materialBuffers = rendererData.mRuntimeData->mMaterialBuffers;
-  VulkanUniformBuffer* buffer = nullptr;
-
-  if(materialBuffers.ContainsKey(lastBufferId))
-  {
-    buffer = &materialBuffers[lastBufferId];
-  }
+  VulkanUniformBufferManager& bufferManager = rendererData.mRuntimeData->mBufferManager;
+  
+  uint32_t lastBufferId = bufferManager.GlobalBufferCount(MaterialBufferName) - 1;
+  VulkanUniformBuffer* buffer = bufferManager.FindGlobalBuffer(MaterialBufferName, lastBufferId);
 
   VkDeviceSize requiredSize = 0;
-  for(ShaderResourceBinding * shaderResource : uniqueShaderMaterial.mBindings.Values())
+  for(const ZilchMaterialBindingDescriptor& bindingDescriptor : zilchShader.mBindingDescriptors)
   {
-    if(shaderResource->mMaterialBindingId == ShaderMaterialBindingId::Material)
-      requiredSize += shaderResource->mBoundResource->mSizeInBytes;
+    if(bindingDescriptor.mBufferBindingType == ShaderMaterialBindingId::Material)
+      requiredSize += bindingDescriptor.mSizeInBytes;
   }
+
+  BufferLocation result;
   if(buffer == nullptr || buffer->mUsedSize + requiredSize >= buffer->mAllocatedSize)
   {
     ++lastBufferId;
-    buffer = &rendererData.mRuntimeData->mMaterialBuffers[lastBufferId];
-    AllocateUniformBuffer(rendererData.mRuntimeData, *buffer);
+    buffer = bufferManager.CreateGlobalBuffer(MaterialBufferName, lastBufferId);
+    result.mBufferOffset = buffer->mUsedSize;
   }
+  else
+    result.mBufferOffset = buffer->mUsedSize;
+  buffer->mUsedSize += rendererData.mRenderer->AlignUniformBufferOffset(requiredSize);
   
-  return lastBufferId;
+  result.mBufferId = lastBufferId;
+  return result;
 }
 
-VulkanUniformBuffer& FindMaterialBuffer(RendererData& rendererData, uint32_t bufferId)
+VkBuffer FindBuffer(RendererData& rendererData, ShaderMaterialBindingId::Enum bufferType, uint32_t frameIndex, uint32_t bufferId)
 {
-  VulkanRuntimeData* runtimeData = rendererData.mRuntimeData;
-
-  auto& buffers = runtimeData->mMaterialBuffers;
-  VulkanUniformBuffer& buffer = buffers[bufferId];
-  return buffer;
+  VulkanUniformBufferManager& bufferManager = rendererData.mRuntimeData->mBufferManager;
+  VulkanUniformBuffer* buffer = nullptr;
+  if(bufferType == ShaderMaterialBindingId::Global)
+    buffer = bufferManager.FindOrCreatePerFrameBuffer(GlobalsBufferName, bufferId, frameIndex);
+  else if(bufferType == ShaderMaterialBindingId::Transforms)
+    buffer = bufferManager.FindOrCreatePerFrameBuffer(TransformsBufferName, bufferId, frameIndex);
+  else if(bufferType == ShaderMaterialBindingId::Material)
+    buffer = bufferManager.FindGlobalBuffer(MaterialBufferName, bufferId);
+  return buffer->mBuffer;
 }
 
-void CreateMaterialDescriptorSetLayouts(RendererData& rendererData, const UniqueShaderMaterial& uniqueShaderMaterial, VulkanShaderMaterial& vulkanShaderMaterial)
+void CreateMaterialDescriptorSetLayouts(RendererData& rendererData, const ZilchShader& zilchShader, VulkanShaderMaterial& vulkanShaderMaterial)
 {
   Array<VkDescriptorSetLayoutBinding> layoutBindings;
-  layoutBindings.Resize(uniqueShaderMaterial.mBindings.Size());
-  
+  layoutBindings.Resize(zilchShader.mBindingDescriptors.Size());
+
+  BufferLocation location = FindMaterialBufferIdFor(rendererData, zilchShader);
+  vulkanShaderMaterial.mBufferId = location.mBufferId;
+  vulkanShaderMaterial.mBufferOffset = location.mBufferOffset;
+
   size_t index = 0;
-  for(const ShaderResourceBinding* shaderResourceBinding : uniqueShaderMaterial.mBindings.Values())
+  for(size_t i = 0; i < zilchShader.mBindingDescriptors.Size(); ++i)
   {
-    const ShaderResource* shaderResource = shaderResourceBinding->mBoundResource;
-    VkDescriptorSetLayoutBinding& descriptorSetLayoutBinding = layoutBindings[index];
-    ++index;
+    const ZilchMaterialBindingDescriptor& bindingDescriptor = zilchShader.mBindingDescriptors[i];
+    VkDescriptorSetLayoutBinding& descriptorSetLayoutBinding = layoutBindings[i];
 
     descriptorSetLayoutBinding.descriptorCount = 1;
-    descriptorSetLayoutBinding.binding = static_cast<uint32_t>(shaderResource->mBindingId);
+    descriptorSetLayoutBinding.binding = bindingDescriptor.mBindingId;
     descriptorSetLayoutBinding.pImmutableSamplers = nullptr;
-    descriptorSetLayoutBinding.descriptorType = ConvertDescriptorType(shaderResourceBinding->mDescriptorType);
-    descriptorSetLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    descriptorSetLayoutBinding.descriptorType = ConvertDescriptorType(bindingDescriptor.mDescriptorType);
+    // This needs to be controller per shader stage
+    descriptorSetLayoutBinding.stageFlags = 0;
+    if(bindingDescriptor.mStageFlags & ShaderStageFlags::Vertex)
+      descriptorSetLayoutBinding.stageFlags |= VK_SHADER_STAGE_VERTEX_BIT;
+    if(bindingDescriptor.mStageFlags  & ShaderStageFlags::Pixel)
+      descriptorSetLayoutBinding.stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
   }
   
   VkDescriptorSetLayoutCreateInfo layoutInfo = {};
@@ -83,11 +95,9 @@ void CreateMaterialDescriptorSetLayouts(RendererData& rendererData, const Unique
   VulkanStatus result;
   if(vkCreateDescriptorSetLayout(rendererData.mRuntimeData->mDevice, &layoutInfo, nullptr, &vulkanShaderMaterial.mDescriptorSetLayout) != VK_SUCCESS)
     result.MarkFailed("failed to create descriptor set layout!");
-
-  vulkanShaderMaterial.mBufferId = FindMaterialBufferIdFor(rendererData, uniqueShaderMaterial);
 }
 
-void CreateMaterialDescriptorPool(RendererData& rendererData, const UniqueShaderMaterial& uniqueShaderMaterial, VulkanShaderMaterial& vulkanShaderMaterial)
+void CreateMaterialDescriptorPool(RendererData& rendererData, const ZilchShader& zilchShader, VulkanShaderMaterial& vulkanShaderMaterial)
 {
   VulkanRuntimeData* runtimeData = rendererData.mRuntimeData;
   uint32_t frameCount = runtimeData->mSwapChain.GetCount();
@@ -95,13 +105,13 @@ void CreateMaterialDescriptorPool(RendererData& rendererData, const UniqueShader
   std::array<uint32_t, VK_DESCRIPTOR_TYPE_RANGE_SIZE> poolCounts = {};
 
   size_t index = 0;
-  for(ShaderResourceBinding * resourceBinding : uniqueShaderMaterial.mBindings.Values())
+  for(const ZilchMaterialBindingDescriptor& bindingDescriptor : zilchShader.mBindingDescriptors)
   {
-    if(resourceBinding->mDescriptorType == MaterialDescriptorType::Uniform)
+    if(bindingDescriptor.mDescriptorType == MaterialDescriptorType::Uniform)
       poolCounts[VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER] += frameCount;
-    if(resourceBinding->mDescriptorType == MaterialDescriptorType::SampledImage)
+    if(bindingDescriptor.mDescriptorType == MaterialDescriptorType::SampledImage)
       poolCounts[VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER] += frameCount;
-    if(resourceBinding->mDescriptorType == MaterialDescriptorType::UniformDynamic)
+    if(bindingDescriptor.mDescriptorType == MaterialDescriptorType::UniformDynamic)
       poolCounts[VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC] += frameCount;
   }
 
@@ -148,56 +158,49 @@ void CreateMaterialDescriptorSets(RendererData& rendererData, VulkanShaderMateri
     status.MarkFailed("failed to allocate descriptor sets!");
 }
 
-void UpdateMaterialDescriptorSet(RendererData& rendererData, const ShaderMaterialInstance& shaderMaterialInstance, VulkanShaderMaterial& vulkanShaderMaterial, size_t frameIndex, VkDescriptorSet descriptorSet)
+void UpdateMaterialDescriptorSet(RendererData& rendererData, const ZilchShader& zilchShader, const ZilchMaterial& zilchMaterial, VulkanShaderMaterial& vulkanShaderMaterial, size_t frameIndex, VkDescriptorSet descriptorSet)
 {
-  const UniqueShaderMaterial* uniqueShaderMaterial = shaderMaterialInstance.mUniqueShaderMaterial;
   VulkanRuntimeData* runtimeData = rendererData.mRuntimeData;
-  size_t totalCount = uniqueShaderMaterial->mBindings.Size();
+  size_t totalCount = zilchShader.mBindingDescriptors.Size();
 
   Array<VkDescriptorBufferInfo> bufferInfos(totalCount);
   Array<VkDescriptorImageInfo> imageInfos(totalCount);
   Array<VkWriteDescriptorSet> descriptorWrites(totalCount);
 
   size_t index = 0;
-  for(ShaderResourceBinding* resourceBinding : uniqueShaderMaterial->mBindings.Values())
+  for(const ZilchMaterialBindingDescriptor& bindingDescriptor: zilchShader.mBindingDescriptors)
   {
-    VulkanUniformBuffers* buffers = rendererData.mRenderer->RequestUniformBuffer(0);
-    VkBuffer buffer = buffers->mBuffers[frameIndex].mBuffer;
-    if(resourceBinding->mMaterialBindingId == ShaderMaterialBindingId::Material)
-      buffer = FindMaterialBuffer(rendererData, vulkanShaderMaterial.mBufferId).mBuffer;
+    VkBuffer buffer = FindBuffer(rendererData, bindingDescriptor.mBufferBindingType, static_cast<uint32_t>(frameIndex), vulkanShaderMaterial.mBufferId);
 
     VkWriteDescriptorSet& writeInfo = descriptorWrites[index];
     writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     writeInfo.dstSet = descriptorSet;
-    writeInfo.dstBinding = static_cast<uint32_t>(resourceBinding->mBoundResource->mBindingId);
+    writeInfo.dstBinding = bindingDescriptor.mBindingId;
     writeInfo.dstArrayElement = 0;
     writeInfo.descriptorCount = 1;
 
-    if(resourceBinding->mDescriptorType == MaterialDescriptorType::Uniform)
+    if(bindingDescriptor.mDescriptorType == MaterialDescriptorType::Uniform)
     {
       VkDescriptorBufferInfo& bufferInfo = bufferInfos[index];
       bufferInfo.buffer = buffer;
-      bufferInfo.offset = resourceBinding->mBufferOffset;
-      bufferInfo.range = resourceBinding->mBoundResource->mSizeInBytes;
+      bufferInfo.offset = bindingDescriptor.mOffsetInBytes;
+      bufferInfo.range = bindingDescriptor.mSizeInBytes;
       writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
       writeInfo.pBufferInfo = &bufferInfo;
     }
-    else if(resourceBinding->mDescriptorType == MaterialDescriptorType::UniformDynamic)
+    else if(bindingDescriptor.mDescriptorType == MaterialDescriptorType::UniformDynamic)
     {
       VkDescriptorBufferInfo& bufferInfo = bufferInfos[index];
       bufferInfo.buffer = buffer;
-      bufferInfo.offset = resourceBinding->mBufferOffset;
-      bufferInfo.range = resourceBinding->mBoundResource->mSizeInBytes;
+      bufferInfo.offset = 0;
+      bufferInfo.range = bindingDescriptor.mSizeInBytes;
       writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
       writeInfo.pBufferInfo = &bufferInfo;
     }
-    else if(resourceBinding->mDescriptorType == MaterialDescriptorType::SampledImage)
+    else if(bindingDescriptor.mDescriptorType == MaterialDescriptorType::SampledImage)
     {
-      ShaderFieldBinding* fieldBinding = shaderMaterialInstance.mMaterialNameMap.FindValue(resourceBinding->mBindingName, nullptr);
-      const MaterialProperty* materialProp = fieldBinding->mMaterialProperty;
-      String textureName((const char*)materialProp->mData.Data());
-      VulkanImage* vulkanImage = rendererData.mRenderer->mTextureNameMap[textureName];
-
+      VulkanImage* vulkanImage = rendererData.mRenderer->mTextureNameMap[bindingDescriptor.mSampledImageName];
+      
       VkDescriptorImageInfo& imageInfo = imageInfos[index];
       imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       imageInfo.imageView = vulkanImage->mImageView;
@@ -212,11 +215,11 @@ void UpdateMaterialDescriptorSet(RendererData& rendererData, const ShaderMateria
   vkUpdateDescriptorSets(runtimeData->mDevice, descriptorsCount, descriptorWrites.Data(), 0, nullptr);
 }
 
-void UpdateMaterialDescriptorSets(RendererData& rendererData, const ShaderMaterialInstance& shaderMaterialInstance, VulkanShaderMaterial& vulkanShaderMaterial)
+void UpdateMaterialDescriptorSets(RendererData& rendererData, const ZilchShader& zilchShader, const ZilchMaterial& zilchMaterial, VulkanShaderMaterial& vulkanShaderMaterial)
 {
   VulkanRuntimeData* runtimeData = rendererData.mRuntimeData;
   for(size_t i = 0; i < runtimeData->mSwapChain.GetCount(); ++i)
-    UpdateMaterialDescriptorSet(rendererData, shaderMaterialInstance, vulkanShaderMaterial, i, vulkanShaderMaterial.mDescriptorSets[i]);
+    UpdateMaterialDescriptorSet(rendererData, zilchShader, zilchMaterial, vulkanShaderMaterial, i, vulkanShaderMaterial.mDescriptorSets[i]);
 }
 
 void CreateGraphicsPipeline(RendererData& rendererData, const VulkanShader& vulkanShader, VulkanShaderMaterial& vulkanShaderMaterial)

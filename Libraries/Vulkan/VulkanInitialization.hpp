@@ -75,10 +75,7 @@ struct VulkanRuntimeData
   VkBuffer mIndexBuffer;
   VkDeviceMemory mIndexBufferMemory;
 
-  
-  HashMap<uint32_t, VulkanUniformBuffers> mUniformBufferMap;
-  uint32_t mLastUsedMaterialBufferId = 0;
-  HashMap<uint32_t, VulkanUniformBuffer> mMaterialBuffers;
+  VulkanUniformBufferManager mBufferManager;
 };
 
 inline Array<const char*> GetRequiredExtensions()
@@ -244,23 +241,6 @@ inline VulkanStatus CreateCommandPool(VkPhysicalDevice physicalDevice, VkDevice 
     result.MarkFailed("failed to create command pool!");
   return result;
 }
-
-inline VulkanUniformBuffer* GetUniformBuffer(VulkanRuntimeData* runtimeData, UniformBufferType::Enum bufferType, uint32_t bufferId, uint32_t frameIndex)
-{
-  VulkanUniformBuffer* buffer = nullptr;
-  if(bufferType == UniformBufferType::Global)
-  {
-    if(frameIndex >= runtimeData->mSwapChain.GetCount())
-      __debugbreak();
-    buffer = &runtimeData->mUniformBufferMap[bufferId].mBuffers[frameIndex];
-  }
-  else if(bufferType == UniformBufferType::Material)
-  {
-    buffer = &runtimeData->mMaterialBuffers[bufferId];
-  }
-  return buffer;
-}
-
 
 inline void InitializeVulkan(VulkanRuntimeData& runtimeData)
 {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Utilities/Asserts.hpp"
+
 struct DeviceSuitabilityData
 {
   VkSurfaceKHR mSurface;
@@ -31,7 +33,7 @@ inline void SelectPhysicsDevice(PhysicsDeviceSelectionData& selectionData, Physi
   vkEnumeratePhysicalDevices(selectionData.mInstance, &deviceCount, nullptr);
 
   if(deviceCount == 0)
-    throw std::runtime_error("failed to find GPUs with Vulkan support!");
+    ErrorIf(true, "failed to find GPUs with Vulkan support!");
 
   Array<VkPhysicalDevice> devices(deviceCount);
   vkEnumeratePhysicalDevices(selectionData.mInstance, &deviceCount, devices.Data());
@@ -47,7 +49,7 @@ inline void SelectPhysicsDevice(PhysicsDeviceSelectionData& selectionData, Physi
   }
 
   if(resultData.mPhysicalDevice == VK_NULL_HANDLE)
-    throw std::runtime_error("failed to find a suitable GPU!");
+    ErrorIf(true, "failed to find a suitable GPU!");
 }
 
 struct PhysicalDeviceLimits

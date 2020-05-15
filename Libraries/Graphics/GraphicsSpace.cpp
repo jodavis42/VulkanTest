@@ -2,6 +2,7 @@
 
 #include "GraphicsSpace.hpp"
 #include "GraphicsEngine.hpp"
+#include "GraphicsBufferTypes.hpp"
 
 #include "VulkanStructures.hpp"
 #include "VulkanInitialization.hpp"
@@ -38,34 +39,56 @@ void GraphicsSpace::Update(UpdateEvent& e)
 void GraphicsSpace::UpdateGlobalBuffer(uint32_t frameId)
 {
   VulkanRenderer* renderer = &mEngine->mRenderer;
-
   float nearDistance = 0.1f;
   float farDistance = 10.0f;
   VkExtent2D extent = renderer->mInternal->mSwapChain.mExtent;
   float aspectRatio = extent.width / (float)extent.height;
   float fov = Math::DegToRad(45.0f);
 
-  PerCameraData perCameraData;
-  perCameraData.view = GenerateLookAt(Vec3(5.0f, 5.0f, 5.0f), Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, 1.0f));
-  perCameraData.proj = renderer->BuildPerspectiveMatrix(fov, aspectRatio, nearDistance, farDistance);
-
-  byte* data = static_cast<byte*>(renderer->MapUniformBufferMemory(UniformBufferType::Global, 0, frameId));
-
-  size_t offset = 0;
-  memcpy(data, &perCameraData, sizeof(perCameraData));
-  offset += renderer->AlignUniformBufferOffset(sizeof(perCameraData));
-
-  size_t count = mModels.Size();
-  for(size_t i = 0; i < count; ++i)
   {
-    Model* model = mModels[i];
-    Matrix3 rotation = Matrix3::GenerateRotation(Vec3(0, 0, 1), mTotalTimeElapsed * Math::DegToRad(90.0f));
-    Matrix4 transform = Matrix4::GenerateTransform(model->mTranslation, rotation, model->mScale);
-    transform = Matrix4::Transposed(transform);
-    byte* memory = data + offset + renderer->AlignUniformBufferOffset(sizeof(PerObjectData)) * i;
-    memcpy(memory, &transform, sizeof(transform));
+    FrameData frameData;
+    frameData.mFrameTime = mTotalTimeElapsed;
+    frameData.mLogicTime = mTotalTimeElapsed;
+    CameraData cameraData;
+    cameraData.mFarPlane = 1;
+    cameraData.mNearPlane = 0;
+    cameraData.mViewportSize = Vec2::cZero;
+    byte* data = static_cast<byte*>(renderer->MapPerFrameUniformBufferMemory(GlobalsBufferName, 0, frameId));
+  
+    size_t offset = 0;
+    memcpy(data, &frameData, sizeof(frameData));
+    offset += renderer->AlignUniformBufferOffset(sizeof(frameData));
+    memcpy(data, &frameData, sizeof(cameraData));
+    offset += renderer->AlignUniformBufferOffset(sizeof(cameraData));
+  
+    renderer->UnMapPerFrameUniformBufferMemory(GlobalsBufferName, 0, frameId);
   }
-  renderer->UnMapUniformBufferMemory(UniformBufferType::Global, 0, frameId);
+  
+  {
+    TransformData transformData;
+
+    transformData.mPerspectiveToApiPerspective.SetIdentity();
+    transformData.mWorldToView = GenerateLookAt(Vec3(5.0f, 5.0f, 5.0f), Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, 1.0f));
+    transformData.mViewToPerspective = renderer->BuildPerspectiveMatrix(fov, aspectRatio, nearDistance, farDistance);
+    transformData.mWorldToView.Transpose();
+    transformData.mViewToPerspective.Transpose();
+
+    byte* data = static_cast<byte*>(renderer->MapPerFrameUniformBufferMemory(TransformsBufferName, 0, frameId));
+
+    size_t offset = 0;
+
+    size_t count = mModels.Size();
+    for(size_t i = 0; i < count; ++i)
+    {
+      Model* model = mModels[i];
+      Matrix3 rotation = Matrix3::GenerateRotation(Vec3(0, 0, 1), 0 * Math::DegToRad(90.0f));
+      Matrix4 transform = Matrix4::GenerateTransform(model->mTranslation, rotation, model->mScale);
+      transformData.mLocalToWorld = transform;
+      byte* memory = data + offset + renderer->AlignUniformBufferOffset(sizeof(TransformData)) * i;
+      memcpy(memory, &transformData, sizeof(transformData));
+    }
+    renderer->UnMapPerFrameUniformBufferMemory(TransformsBufferName, 0, frameId);
+  }
 }
 
 void GraphicsSpace::Draw(UpdateEvent& toSend)
@@ -92,10 +115,10 @@ void GraphicsSpace::Draw(UpdateEvent& toSend)
     throw std::runtime_error("failed to present swap chain image!");
 }
 
-VulkanShaderMaterial* GetVulkanShaderMaterial(GraphicsSpace* space, Material* material)
+VulkanShaderMaterial* GetVulkanShaderMaterial(GraphicsSpace* space, ZilchMaterial* material)
 {
-  UniqueShaderMaterial& uniqueShaderMaterial = space->mEngine->mUniqueShaderMaterialNameMap[material->mShaderName];
-  return space->mEngine->mRenderer.mUniqueShaderMaterialMap[&uniqueShaderMaterial];
+  ZilchShader* zilchShader = space->mEngine->mZilchShaderManager.Find(material->mMaterialName);
+  return space->mEngine->mRenderer.mUniqueZilchShaderMaterialMap[zilchShader];
 }
 
 void GraphicsSpace::PrepareFrame(RenderFrame& renderFrame)
@@ -108,11 +131,12 @@ void GraphicsSpace::PrepareFrame(RenderFrame& renderFrame)
 
   uint32_t dynamicOffsets[1] =
   {
-    static_cast<uint32_t>(renderer.AlignUniformBufferOffset(sizeof(PerObjectData)))
+    static_cast<uint32_t>(renderer.AlignUniformBufferOffset(sizeof(TransformData)))
 
   };
 
-  uint32_t dynamicOffsetBase[1] = {0};
+  uint32_t baseOffset = 0;
+  uint32_t dynamicOffsetBase[1] = {baseOffset};
   CommandBufferWriteInfo writeInfo;
   writeInfo.mDevice = renderer.mInternal->mDevice;
   writeInfo.mCommandPool = renderer.mInternal->mCommandPool;
@@ -138,19 +162,18 @@ void GraphicsSpace::PrepareFrame(RenderFrame& renderFrame)
   for(size_t i = 0; i < mModels.Size(); ++i)
   {
     VulkanMesh* vulkanMesh = renderer.mMeshMap[mEngine->mMeshManager.Find(mModels[i]->mMeshName)];
-    Material* material = mEngine->mMaterialManager.Find(mModels[i]->mMaterialName);
+    ZilchMaterial* material = mEngine->mZilchMaterialManager.Find(mModels[i]->mMaterialName);
     VulkanShaderMaterial* vulkanShaderMaterial = GetVulkanShaderMaterial(this, material);
-    //VulkanMaterialPipeline& materialPipeline = *GetMaterialPipeline(material);
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanShaderMaterial->mPipeline);
-
+    
     VkBuffer vertexBuffers[] = {vulkanMesh->mVertexBuffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(commandBuffer, vulkanMesh->mIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
+    
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanShaderMaterial->mPipelineLayout, 0, 1, &vulkanShaderMaterial->mDescriptorSets[i], writeInfo.mDynamicOffsetsCount, writeInfo.mDynamicOffsetsBase);
     vkCmdDrawIndexed(commandBuffer, vulkanMesh->mIndexCount, 1, 0, 0, 0);
-
+    
     for(size_t j = 0; j < writeInfo.mDynamicOffsetsCount; ++j)
       writeInfo.mDynamicOffsetsBase[j] += writeInfo.mDynamicOffsets[j];
   }

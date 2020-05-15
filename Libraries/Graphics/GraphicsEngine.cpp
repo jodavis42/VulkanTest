@@ -3,15 +3,31 @@
 #include "GraphicsEngine.hpp"
 #include "GraphicsSpace.hpp"
 
+#include "GraphicsBufferTypes.hpp"
 #include "VulkanStructures.hpp"
 #include "VulkanInitialization.hpp"
 #include "VulkanCommandBuffer.hpp"
 
 void GraphicsEngine::Initialize(const GraphicsEngineInitData& initData)
 {
+  Zilch::ZilchGraphicsLibrary::InitializeInstance();
+  auto zilchGraphicsLibrary = Zilch::ZilchGraphicsLibrary::GetLibrary();
+
   mTextureManager.Load(initData.mResourcesDir);
+  mZilchFragmentFileManager.Load(initData.mResourcesDir);
+  mZilchMaterialManager.Load(initData.mResourcesDir);
+
+  // Setup the shader manager with some descriptor types and pointers it needs
+  ZilchShaderInitData shaderInitData{initData.mShaderCoreDir, &mZilchFragmentFileManager, &mZilchMaterialManager};
+  mZilchShaderManager.AddUniformDescriptor(ZilchTypeId(FrameData));
+  mZilchShaderManager.AddUniformDescriptor(ZilchTypeId(CameraData));
+  mZilchShaderManager.AddUniformDescriptor(ZilchTypeId(TransformData));
+  mZilchShaderManager.Initialize(shaderInitData);
+  // Build the fragments from the fragment manager then build the shaders from the materials
+  mZilchShaderManager.BuildFragmentsLibrary();
+  mZilchShaderManager.BuildShadersLibrary();
+  
   mMeshManager.Load(initData.mResourcesDir);
-  LoadShadersAndMaterials();
 }
 
 void GraphicsEngine::Shutdown()
@@ -21,18 +37,13 @@ void GraphicsEngine::Shutdown()
   {
     mRenderer.DestroyMesh(mesh);
   }
-  for(Shader* shader : mShaderManager.mShaderMap.Values())
-  {
-    mRenderer.DestroyShader(shader);
-  }
-  //for(auto pair : mMaterialManager.mMaterialMap)
-  //{
-  //  Material* material = pair.second;
-  //  mRenderer.DestroyShaderMaterial(shader);
-  //}
   for(Texture* texture : mTextureManager.mTextureMap.Values())
   {
     mRenderer.DestroyTexture(texture);
+  }
+  for(ZilchShader* zilchShader : mZilchShaderManager.Values())
+  {
+    mRenderer.DestroyShader(zilchShader);
   }
   mRenderer.CleanupResources();
   mRenderer.Shutdown();
@@ -91,34 +102,6 @@ void GraphicsEngine::DestroySpace(GraphicsSpace* space)
   }
 }
 
-void GraphicsEngine::LoadShadersAndMaterials()
-{
-  // Build the unique shader bindings for each shader
-  for(auto pair : mShaderManager.mShaderMap.All())
-  {
-    String shaderName = pair.first;
-    Shader* shader = pair.second;
-
-    UniqueShaderMaterial& uniqueShaderMaterial = mUniqueShaderMaterialNameMap[shaderName];
-    uniqueShaderMaterial.AddBinding("PerCameraData", MaterialDescriptorType::Uniform, ShaderMaterialBindingId::Global);
-    uniqueShaderMaterial.AddBinding("PerObjectData", MaterialDescriptorType::UniformDynamic, ShaderMaterialBindingId::Global);
-    uniqueShaderMaterial.Initialize(shader, MaterialDescriptorType::Uniform, ShaderMaterialBindingId::Material);
-    uniqueShaderMaterial.CompileBindings();
-  }
-
-  // For each material, bind it to the unique shader
-  for(auto pair : mMaterialManager.mMaterialMap.All())
-  {
-    String materialName = pair.first;
-    Material* material = pair.second;
-
-    Shader* shader = mShaderManager.Find(material->mShaderName);
-    UniqueShaderMaterial& uniqueShaderMaterial = mUniqueShaderMaterialNameMap[material->mShaderName];
-    ShaderMaterialInstance& materialInstance = mShaderMaterialInstanceNameMap[material->mMaterialName];
-    materialInstance.CompileBindings(uniqueShaderMaterial, *material);
-  }
-}
-
 void GraphicsEngine::InitializeRenderer(GraphicsEngineRendererInitData& rendererInitData)
 {
   VulkanInitializationData vulkanInitData;
@@ -143,37 +126,23 @@ void GraphicsEngine::LoadVulkanImages()
 
 void GraphicsEngine::LoadVulkanShaders()
 {
-  for(auto pair : mShaderManager.mShaderMap.All())
+  for(ZilchShader* shader : mZilchShaderManager.Values())
   {
-    Shader* shader = pair.second;
-    UniqueShaderMaterial& uniqueShaderMaterial = mUniqueShaderMaterialNameMap[pair.first];
     mRenderer.CreateShader(shader);
-    mRenderer.CreateShaderMaterial(&uniqueShaderMaterial);
+    mRenderer.CreateShaderMaterial(shader);
   }
 }
 
-void GraphicsEngine::LoadVulkanMaterial(Material* material)
+void GraphicsEngine::LoadVulkanMaterial(ZilchMaterial* zilchMaterial)
 {
-  Shader* shader = mShaderManager.Find(material->mShaderName);
-  ShaderMaterialInstance& shaderMaterialInstance = mShaderMaterialInstanceNameMap[material->mMaterialName];
-
-  mRenderer.UpdateShaderMaterialInstance(&shaderMaterialInstance);
-
-  uint32_t offset = 0;
-  for(auto pair : shaderMaterialInstance.mUniqueShaderMaterial->mBindings.All())
-  {
-    ShaderResourceBinding* shaderBinding = pair.second;
-    if(shaderBinding->mMaterialBindingId == ShaderMaterialBindingId::Material)
-    {
-      shaderBinding->mBufferOffset = offset;
-      offset += static_cast<uint32_t>(shaderBinding->mBoundResource->mSizeInBytes);
-    }
-  }
+  ZilchShader* zilchShader = mZilchShaderManager.Find(zilchMaterial->mMaterialName);
+ 
+  mRenderer.UpdateShaderMaterialInstance(zilchShader, zilchMaterial);
 }
 
 void GraphicsEngine::LoadVulkanMaterials()
 {
-  for(Material* material : mMaterialManager.mMaterialMap.Values())
+  for(ZilchMaterial* material : mZilchMaterialManager.mMaterialMap.Values())
   {
     LoadVulkanMaterial(material);
   }
@@ -192,8 +161,9 @@ void GraphicsEngine::PopulateMaterialBuffer()
   struct BufferSortData
   {
     uint32_t mBufferId;
+    size_t mBufferOffset;
     MaterialProperty* mProperty;
-    ShaderFieldBinding* mFieldBinding;
+    Zero::ShaderResourceReflectionData* mReflectionData;
   };
   auto sortLambda = [](const BufferSortData& rhs, const BufferSortData& lhs)
   {
@@ -201,24 +171,23 @@ void GraphicsEngine::PopulateMaterialBuffer()
   };
   Array<BufferSortData> propertiesByBuffer;
 
-  for(auto pair : mMaterialManager.mMaterialMap.All())
+  for(auto pair : mZilchMaterialManager.mMaterialMap.All())
   {
-    Material* material = pair.second;
-    Shader* shader = mShaderManager.Find(material->mShaderName);
-    ShaderMaterialInstance& shaderMaterialInstance = mShaderMaterialInstanceNameMap[material->mMaterialName];
-    VulkanShaderMaterial* vulkanShaderMaterial = mRenderer.mUniqueShaderMaterialMap[shaderMaterialInstance.mUniqueShaderMaterial];
+    ZilchMaterial* material = pair.second;
+    ZilchShader* shader = mZilchShaderManager.Find(material->mMaterialName);
+    VulkanShaderMaterial* vulkanShaderMaterial = mRenderer.mUniqueZilchShaderMaterialMap[shader];
 
-    for(MaterialProperty& materialProp : material->mProperties)
+    for(MaterialFragment& fragment : material->mFragments)
     {
-      ShaderFieldBinding* fieldBinding = shaderMaterialInstance.mMaterialNameMap.FindValue(materialProp.mPropertyName, nullptr);
-      if(fieldBinding == nullptr)
-        continue;
-
-      const ShaderResourceField* fieldResource = fieldBinding->mShaderField;
-      if(fieldResource != nullptr)
+      Zero::ZilchShaderIRType* fragmentShaderType = mZilchShaderManager.FindFragmentType(fragment.mFragmentName);
+      for(MaterialProperty& materialProp : fragment.mProperties)
       {
-        BufferSortData sortData{vulkanShaderMaterial->mBufferId, &materialProp, fieldBinding};
-        propertiesByBuffer.PushBack(sortData);
+        Zero::ShaderResourceReflectionData* reflectionData = shader->mResources[ShaderStage::Pixel].mReflection->FindUniformReflectionData(fragmentShaderType, materialProp.mPropertyName);
+        if(reflectionData != nullptr)
+        {
+          BufferSortData sortData{vulkanShaderMaterial->mBufferId, vulkanShaderMaterial->mBufferOffset, &materialProp, reflectionData};
+          propertiesByBuffer.PushBack(sortData);
+        }
       }
     }
   }
@@ -232,14 +201,14 @@ void GraphicsEngine::PopulateMaterialBuffer()
     if(bufferId != data.mBufferId || byteData == nullptr)
     {
       if(byteData != nullptr)
-        mRenderer.UnMapUniformBufferMemory(UniformBufferType::Material, bufferId);
+        mRenderer.UnMapGlobalUniformBufferMemory(MaterialBufferName, bufferId);
 
       bufferId = data.mBufferId;
-      byteData = static_cast<byte*>(mRenderer.MapUniformBufferMemory(UniformBufferType::Material, bufferId));
+      byteData = static_cast<byte*>(mRenderer.MapGlobalUniformBufferMemory(MaterialBufferName, bufferId));
     }
 
     MaterialProperty* prop = data.mProperty;
-    unsigned char* fieldStart = byteData + data.mFieldBinding->mShaderField->mOffset + data.mFieldBinding->mOwningBinding->mBufferOffset;
+    unsigned char* fieldStart = byteData + data.mReflectionData->mOffsetInBytes + data.mBufferOffset;
     // This might be wrong due to stride, have to figure out how to deal with this...
     memcpy(fieldStart, prop->mData.Data(), prop->mData.Size());
   }
@@ -247,12 +216,11 @@ void GraphicsEngine::PopulateMaterialBuffer()
 
 void GraphicsEngine::CleanupSwapChain()
 {
-  mRenderer.DestroyUniformBuffer(0);
-
-  for(ShaderMaterialInstance& shaderMaterialInstance : mShaderMaterialInstanceNameMap.Values())
+  for(ZilchShader* zilchShader : mZilchShaderManager.Values())
   {
-    mRenderer.DestroyShaderMaterial(shaderMaterialInstance.mUniqueShaderMaterial);
+    mRenderer.DestroyShaderMaterial(zilchShader);
   }
+
   mRenderer.DestroyRenderFramesInternal();
   mRenderer.DestroySwapChainInternal();
   mRenderer.DestroyDepthResourcesInternal();
@@ -271,10 +239,11 @@ void GraphicsEngine::RecreateSwapChain()
   mRenderer.CreateSwapChainInternal();
   mRenderer.CreateRenderFramesInternal();
 
-  for(ShaderMaterialInstance& shaderMaterialInstance : mShaderMaterialInstanceNameMap.Values())
+  for(ZilchMaterial* zilchMaterial: mZilchMaterialManager.mMaterialMap.Values())
   {
-    mRenderer.CreateShaderMaterial(shaderMaterialInstance.mUniqueShaderMaterial);
-    mRenderer.UpdateShaderMaterialInstance(&shaderMaterialInstance);
+    ZilchShader* zilchShader = mZilchShaderManager.Find(zilchMaterial->mMaterialName);
+    mRenderer.CreateShaderMaterial(zilchShader);
+    mRenderer.UpdateShaderMaterialInstance(zilchShader, zilchMaterial);
   }
 }
 

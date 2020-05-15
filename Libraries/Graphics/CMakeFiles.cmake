@@ -4,18 +4,22 @@ target_sources(Graphics
     ${CMAKE_CURRENT_LIST_DIR}/GraphicsEngine.hpp
     ${CMAKE_CURRENT_LIST_DIR}/GraphicsSpace.cpp
     ${CMAKE_CURRENT_LIST_DIR}/GraphicsSpace.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/Material.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/Material.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/MaterialBinding.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/MaterialBinding.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/GraphicsBufferTypes.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/GraphicsBufferTypes.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MaterialShared.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MaterialShared.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/ZilchMaterial.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ZilchMaterial.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Mesh.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Mesh.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Model.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Model.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Precompiled.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Precompiled.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/Shader.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/Shader.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/ZilchShader.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ZilchShader.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/ZilchFragment.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ZilchFragment.hpp
     ${CMAKE_CURRENT_LIST_DIR}/ShaderEnumTypes.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ShaderEnumTypes.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Texture.cpp

@@ -7,10 +7,10 @@
 struct VulkanRuntimeData;
 struct Mesh;
 struct Texture;
-struct Shader;
-struct Material;
 struct UniqueShaderMaterial;
 struct ShaderMaterialInstance;
+struct ZilchShader;
+struct ZilchMaterial;
 
 struct VulkanMesh;
 struct VulkanShader;
@@ -104,12 +104,12 @@ public:
   void CreateTexture(const Texture* texture);
   void DestroyTexture(const Texture* texture);
 
-  void CreateShader(const Shader* shader);
-  void DestroyShader(const Shader* shader);
+  void CreateShader(const ZilchShader* zilchShader);
+  void DestroyShader(const ZilchShader* zilchShader);
 
-  void CreateShaderMaterial(const UniqueShaderMaterial* uniqueShaderMaterial);
-  void UpdateShaderMaterialInstance(const ShaderMaterialInstance* shaderMaterialInstance);
-  void DestroyShaderMaterial(const UniqueShaderMaterial* uniqueShaderMaterial);
+  void CreateShaderMaterial(ZilchShader* shaderMaterial);
+  void UpdateShaderMaterialInstance(const ZilchShader* zilchShader, const ZilchMaterial* zilchMaterial);
+  void DestroyShaderMaterial(const ZilchShader* zilchShader);
 
   RenderFrameStatus BeginFrame(RenderFrame*& frame);
   RenderFrameStatus EndFrame(RenderFrame*& frame);
@@ -132,10 +132,10 @@ public:
   //virtual ZilchShaderIRBackend* CreateBackend() abstract;
   void Draw();
 
-  VulkanUniformBuffers* RequestUniformBuffer(uint32_t bufferId);
-  void* MapUniformBufferMemory(UniformBufferType::Enum bufferType, uint32_t bufferId, uint32_t frameIndex = static_cast<uint32_t>(-1));
-  void UnMapUniformBufferMemory(UniformBufferType::Enum bufferType, uint32_t bufferId, uint32_t frameIndex = static_cast<uint32_t>(-1));
-  void DestroyUniformBuffer(uint32_t bufferId);
+  void* MapGlobalUniformBufferMemory(const String& bufferName, uint32_t bufferId);
+  void* MapPerFrameUniformBufferMemory(const String& bufferName, uint32_t bufferId, uint32_t frameIndex);
+  void UnMapGlobalUniformBufferMemory(const String& bufferName, uint32_t bufferId);
+  void UnMapPerFrameUniformBufferMemory(const String& bufferName, uint32_t bufferId, uint32_t frameIndex);
   size_t AlignUniformBufferOffset(size_t offset);
 
   VulkanRuntimeData* GetRuntimeData(){return mInternal;}
@@ -161,6 +161,6 @@ public:
   HashMap<const Mesh*, VulkanMesh*> mMeshMap;
   HashMap<const Texture*, VulkanImage*> mTextureMap;
   HashMap<String, VulkanImage*> mTextureNameMap;
-  HashMap<const Shader*, VulkanShader*> mShaderMap;
-  HashMap<const UniqueShaderMaterial*, VulkanShaderMaterial*> mUniqueShaderMaterialMap;
+  HashMap<const ZilchShader*, VulkanShader*> mZilchShaderMap;
+  HashMap<const ZilchShader*, VulkanShaderMaterial*> mUniqueZilchShaderMaterialMap;
 };

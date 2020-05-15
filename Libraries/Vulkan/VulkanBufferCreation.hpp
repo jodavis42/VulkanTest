@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 #include "VulkanStatus.hpp"
 #include "VulkanPhysicsDeviceSelection.hpp"
+#include <stdexcept>
 
 struct VulkanBufferCreationData
 {

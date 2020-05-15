@@ -2,6 +2,8 @@
 
 #include "VulkanStandard.hpp"
 
+struct VulkanRuntimeData;
+
 struct VulkanMesh
 {
   VkBuffer mVertexBuffer;
@@ -46,7 +48,8 @@ struct VulkanShaderMaterial
   VkPipeline mPipeline;
   VkDescriptorPool mDescriptorPool;
   
-  uint32_t mBufferId;
+  uint32_t mBufferId = 0;
+  size_t mBufferOffset = 0;
 };
 
 struct VulkanUniformBuffer
@@ -57,9 +60,37 @@ struct VulkanUniformBuffer
   VkDeviceSize mAllocatedSize = 0;
 };
 
-struct VulkanUniformBuffers
+struct VulkanGlobalUniformBuffers
 {
-  Array<VulkanUniformBuffer> mBuffers;
+  HashMap<uint32_t, VulkanUniformBuffer> mBuffersById;
+};
+
+struct VulkanPerFrameBuffers
+{
+  struct FrameBuffers
+  {
+    Array<VulkanUniformBuffer> mBuffers;
+  };
+  HashMap<uint32_t, FrameBuffers> mBuffersById;
+};
+
+struct VulkanUniformBufferManager
+{
+  ~VulkanUniformBufferManager();
+  void Destroy();
+
+  VulkanPerFrameBuffers::FrameBuffers* CreatePerFrameBuffer(const String& name, uint32_t bufferId);
+  VulkanUniformBuffer* FindPerFrameBuffer(const String& name, uint32_t bufferId, uint32_t frameId);
+  VulkanUniformBuffer* FindOrCreatePerFrameBuffer(const String& name, uint32_t bufferId, uint32_t frameId);
+
+  uint32_t GlobalBufferCount(const String& name);
+  VulkanUniformBuffer* CreateGlobalBuffer(const String& name, uint32_t bufferId);
+  VulkanUniformBuffer* FindGlobalBuffer(const String& name, uint32_t bufferId);
+  
+
+  HashMap<String, VulkanPerFrameBuffers> mNamedPerFrameBuffers;
+  HashMap<String, VulkanGlobalUniformBuffers> mNamedGlobalBuffers;
+  VulkanRuntimeData* mRuntimeData = nullptr;
 };
 
 struct VulkanVertex
