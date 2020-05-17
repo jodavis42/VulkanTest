@@ -41,10 +41,6 @@ void GraphicsEngine::Shutdown()
   {
     mRenderer.DestroyTexture(texture);
   }
-  for(ZilchShader* zilchShader : mZilchShaderManager.Values())
-  {
-    mRenderer.DestroyShader(zilchShader);
-  }
   mRenderer.CleanupResources();
   mRenderer.Shutdown();
 
@@ -192,7 +188,8 @@ void GraphicsEngine::PopulateMaterialBuffer()
     }
   }
 
-  uint32_t bufferId = static_cast<uint32_t>(-1);
+  uint32_t invalidBufferId = static_cast<uint32_t>(-1);
+  uint32_t bufferId = invalidBufferId;
   VkDeviceMemory bufferMemory = VK_NULL_HANDLE;
   byte* byteData = nullptr;
   for(size_t i = 0; i < propertiesByBuffer.Size(); ++i)
@@ -212,13 +209,19 @@ void GraphicsEngine::PopulateMaterialBuffer()
     // This might be wrong due to stride, have to figure out how to deal with this...
     memcpy(fieldStart, prop->mData.Data(), prop->mData.Size());
   }
+  if(bufferId != invalidBufferId)
+  {
+    mRenderer.UnMapGlobalUniformBufferMemory(MaterialBufferName, bufferId);
+  }
 }
 
 void GraphicsEngine::CleanupSwapChain()
 {
-  for(ZilchShader* zilchShader : mZilchShaderManager.Values())
+  for(ZilchMaterial* zilchMaterial : mZilchMaterialManager.mMaterialMap.Values())
   {
+    ZilchShader* zilchShader = mZilchShaderManager.Find(zilchMaterial->mMaterialName);
     mRenderer.DestroyShaderMaterial(zilchShader);
+    mRenderer.DestroyShader(zilchShader);
   }
 
   mRenderer.DestroyRenderFramesInternal();
@@ -239,12 +242,10 @@ void GraphicsEngine::RecreateSwapChain()
   mRenderer.CreateSwapChainInternal();
   mRenderer.CreateRenderFramesInternal();
 
-  for(ZilchMaterial* zilchMaterial: mZilchMaterialManager.mMaterialMap.Values())
-  {
-    ZilchShader* zilchShader = mZilchShaderManager.Find(zilchMaterial->mMaterialName);
-    mRenderer.CreateShaderMaterial(zilchShader);
-    mRenderer.UpdateShaderMaterialInstance(zilchShader, zilchMaterial);
-  }
+  // This is heavier than needs to happen as a lot of the shader's don't have to be destroyed (modules, etc...). For simplicity do everything right now.
+  LoadVulkanShaders();
+  LoadVulkanMaterials();
+  PopulateMaterialBuffer();
 }
 
 void GraphicsEngine::WaitIdle()
