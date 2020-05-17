@@ -4,10 +4,6 @@
 #include "GraphicsEngine.hpp"
 #include "GraphicsBufferTypes.hpp"
 
-#include "VulkanStructures.hpp"
-#include "VulkanInitialization.hpp"
-#include "VulkanCommandBuffer.hpp"
-
 static Matrix4 GenerateLookAt(const Vec3& eye, const Vec3& center, const Vec3& worldUp)
 {
   Vec3 forward = Vec3::Normalized(center - eye);
@@ -55,7 +51,9 @@ void GraphicsSpace::Draw(UpdateEvent& toSend)
   if(status == RenderFrameStatus::OutOfDate || status == RenderFrameStatus::SubOptimal)
     mEngine->RecreateSwapChain();
   else if(status != RenderFrameStatus::Success)
-    throw std::runtime_error("failed to present swap chain image!");
+  {
+    ErrorIf(true, "failed to present swap chain image!");
+  }
 }
 
 VulkanShaderMaterial* GetVulkanShaderMaterial(GraphicsSpace* space, ZilchMaterial* material)
