@@ -36,11 +36,11 @@ public:
   void DestroySpace(GraphicsSpace* space);
 
   void InitializeRenderer(GraphicsEngineRendererInitData& rendererInitData);
-  void LoadVulkanImages();
-  void LoadVulkanShaders();
-  void LoadVulkanMaterial(ZilchMaterial* zilchMaterial);
-  void LoadVulkanMaterials();
-  void LoadVulkanMeshes();
+  void UploadImages();
+  void UploadShaders();
+  void UploadMaterial(ZilchMaterial* zilchMaterial);
+  void UploadMaterials();
+  void UploadMeshes();
 
   void PopulateMaterialBuffer();
   void CleanupSwapChain();

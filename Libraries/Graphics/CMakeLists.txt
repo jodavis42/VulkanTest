@@ -24,7 +24,6 @@ target_link_libraries(Graphics
                       StbImage
                       TinyObjLoader
                       GLFW
-                      VulkanSDK
                       SPIRV-Cross
                       ZilchShaders
 )

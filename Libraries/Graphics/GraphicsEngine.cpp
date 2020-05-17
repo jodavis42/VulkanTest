@@ -4,9 +4,6 @@
 #include "GraphicsSpace.hpp"
 
 #include "GraphicsBufferTypes.hpp"
-#include "VulkanStructures.hpp"
-#include "VulkanInitialization.hpp"
-#include "VulkanCommandBuffer.hpp"
 
 void GraphicsEngine::Initialize(const GraphicsEngineInitData& initData)
 {
@@ -43,15 +40,6 @@ void GraphicsEngine::Shutdown()
   }
   mRenderer.CleanupResources();
   mRenderer.Shutdown();
-
-  if(enableValidationLayers)
-    DestroyDebugUtilsMessengerEXT(mRenderer.mInternal->mInstance, mRenderer.mInternal->mDebugMessenger, nullptr);
-
-  vkDestroyCommandPool(mRenderer.mInternal->mDevice, mRenderer.mInternal->mCommandPool, nullptr);
-
-  vkDestroyDevice(mRenderer.mInternal->mDevice, nullptr);
-  vkDestroySurfaceKHR(mRenderer.mInternal->mInstance, mRenderer.mInternal->mSurface, nullptr);
-  vkDestroyInstance(mRenderer.mInternal->mInstance, nullptr);
 }
 
 GraphicsSpace* GraphicsEngine::CreateSpace(const String& name)
@@ -106,13 +94,13 @@ void GraphicsEngine::InitializeRenderer(GraphicsEngineRendererInitData& renderer
   vulkanInitData.mSurfaceCreationCallback = rendererInitData.mSurfaceCreationCallback;
   mRenderer.Initialize(vulkanInitData);
 
-  LoadVulkanImages();
-  LoadVulkanShaders();
-  LoadVulkanMaterials();
-  LoadVulkanMeshes();
+  UploadImages();
+  UploadShaders();
+  UploadMaterials();
+  UploadMeshes();
 }
 
-void GraphicsEngine::LoadVulkanImages()
+void GraphicsEngine::UploadImages()
 {
   for(Texture* texture : mTextureManager.mTextureMap.Values())
   {
@@ -120,7 +108,7 @@ void GraphicsEngine::LoadVulkanImages()
   }
 }
 
-void GraphicsEngine::LoadVulkanShaders()
+void GraphicsEngine::UploadShaders()
 {
   for(ZilchShader* shader : mZilchShaderManager.Values())
   {
@@ -129,22 +117,22 @@ void GraphicsEngine::LoadVulkanShaders()
   }
 }
 
-void GraphicsEngine::LoadVulkanMaterial(ZilchMaterial* zilchMaterial)
+void GraphicsEngine::UploadMaterial(ZilchMaterial* zilchMaterial)
 {
   ZilchShader* zilchShader = mZilchShaderManager.Find(zilchMaterial->mMaterialName);
  
   mRenderer.UpdateShaderMaterialInstance(zilchShader, zilchMaterial);
 }
 
-void GraphicsEngine::LoadVulkanMaterials()
+void GraphicsEngine::UploadMaterials()
 {
   for(ZilchMaterial* material : mZilchMaterialManager.mMaterialMap.Values())
   {
-    LoadVulkanMaterial(material);
+    UploadMaterial(material);
   }
 }
 
-void GraphicsEngine::LoadVulkanMeshes()
+void GraphicsEngine::UploadMeshes()
 {
   for(Mesh* mesh : mMeshManager.mMeshMap.Values())
   {
@@ -185,7 +173,7 @@ void GraphicsEngine::RecreateSwapChain()
   size_t width, height;
   mWindowSizeQueryFn(width, height);
 
-  vkDeviceWaitIdle(mRenderer.mInternal->mDevice);
+  WaitIdle();
 
   CleanupSwapChain();
   mRenderer.Resize(width, height);
@@ -194,12 +182,12 @@ void GraphicsEngine::RecreateSwapChain()
   mRenderer.CreateRenderFramesInternal();
 
   // This is heavier than needs to happen as a lot of the shader's don't have to be destroyed (modules, etc...). For simplicity do everything right now.
-  LoadVulkanShaders();
-  LoadVulkanMaterials();
+  UploadShaders();
+  UploadMaterials();
   PopulateMaterialBuffer();
 }
 
 void GraphicsEngine::WaitIdle()
 {
-  vkDeviceWaitIdle(mRenderer.mInternal->mDevice);
+  mRenderer.WaitForIdle();
 }

@@ -56,12 +56,6 @@ void GraphicsSpace::Draw(UpdateEvent& toSend)
   }
 }
 
-VulkanShaderMaterial* GetVulkanShaderMaterial(GraphicsSpace* space, ZilchMaterial* material)
-{
-  ZilchShader* zilchShader = space->mEngine->mZilchShaderManager.Find(material->mMaterialName);
-  return space->mEngine->mRenderer.mUniqueZilchShaderMaterialMap[zilchShader];
-}
-
 void GraphicsSpace::PrepareAndDrawFrame(RenderFrame& renderFrame)
 {
   VulkanRenderer& renderer = mEngine->mRenderer;

@@ -181,6 +181,14 @@ void VulkanRenderer::Shutdown()
     vkDestroySemaphore(mInternal->mDevice, mInternal->mSyncObjects.mRenderFinishedSemaphores[i], nullptr);
     vkDestroySemaphore(mInternal->mDevice, mInternal->mSyncObjects.mImageAvailableSemaphores[i], nullptr);
   }
+  if(enableValidationLayers)
+    DestroyDebugUtilsMessengerEXT(mInternal->mInstance, mInternal->mDebugMessenger, nullptr);
+
+  vkDestroyCommandPool(mInternal->mDevice, mInternal->mCommandPool, nullptr);
+
+  vkDestroyDevice(mInternal->mDevice, nullptr);
+  vkDestroySurfaceKHR(mInternal->mInstance, mInternal->mSurface, nullptr);
+  vkDestroyInstance(mInternal->mInstance, nullptr);
 }
 
 void VulkanRenderer::Destroy()
@@ -394,6 +402,11 @@ void VulkanRenderer::Draw(const RenderBatchDrawData& batchDrawData)
   PopulateTransformBuffers(rendererData, transformBufferData);
   DrawModels(rendererData, transformBufferData);
   mModelRenderData.Clear();
+}
+
+void VulkanRenderer::WaitForIdle()
+{
+  vkDeviceWaitIdle(mInternal->mDevice);
 }
 
 void VulkanRenderer::Resize(size_t width, size_t height)

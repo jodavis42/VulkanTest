@@ -149,7 +149,8 @@ public:
   RenderFrameStatus EndFrame(RenderFrame*& frame);
   void QueueDraw(const ModelRenderData& renderData);
   void Draw(const RenderBatchDrawData& batchDrawData);
-  
+  void WaitForIdle();
+
   void Resize(size_t width, size_t height);
   void GetSize(size_t& width, size_t& height);
 
