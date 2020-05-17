@@ -107,6 +107,7 @@ public:
 
   ZilchShader* Find(const String& name);
   Zero::ZilchShaderIRType* FindFragmentType(const String& fragmentTypeName);
+  const Zero::ZilchShaderIRType* FindFragmentType(const String& fragmentTypeName) const;
   HashMap<String, ZilchShader*>::valuerange Values();
   void Destroy();
 
@@ -115,7 +116,7 @@ public:
 
 private:
   Zero::ZilchShaderSpirVSettings* CreateZilchShaderSettings(Zero::SpirVNameSettings& nameSettings);
-  void ComposeZilchMaterialShader(ZilchMaterial* zilchMaterial);
+  void ComposeZilchMaterialShader(const ZilchMaterial* zilchMaterial);
   void CreateZilchMaterialShader(ZilchMaterial* zilchMaterial);
   void ExtractMaterialDescriptors(ZilchShader* zilchShader);
 

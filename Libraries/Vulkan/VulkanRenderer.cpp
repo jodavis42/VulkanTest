@@ -288,6 +288,12 @@ void VulkanRenderer::UpdateShaderMaterialInstance(const ZilchShader* zilchShader
   CreateGraphicsPipeline(rendererData, *vulkanShader, *vulkanShaderMaterial);
 }
 
+void VulkanRenderer::UploadShaderMaterialInstances(MaterialBatchUploadData& materialBatchUploadData)
+{
+  RendererData rendererData{this, mInternal};
+  PopulateMaterialBuffers(rendererData, materialBatchUploadData);
+}
+
 void VulkanRenderer::DestroyShaderMaterial(const ZilchShader* zilchShader)
 {
   VulkanShaderMaterial* vulkanShaderMaterial = mUniqueZilchShaderMaterialMap[zilchShader];

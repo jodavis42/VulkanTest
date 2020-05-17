@@ -12,6 +12,8 @@ struct UniqueShaderMaterial;
 struct ShaderMaterialInstance;
 struct ZilchShader;
 struct ZilchMaterial;
+struct ZilchShaderManager;
+struct ZilchMaterialManager;
 struct Model;
 
 struct VulkanMesh;
@@ -88,6 +90,18 @@ struct RenderFrame
   RenderPass mRenderPass;
 };
 
+struct MaterialBatchUploadData
+{
+  struct MaterialData
+  {
+    const ZilchShader* mZilchShader = nullptr;
+    const ZilchMaterial* mZilchMaterial = nullptr;
+  };
+  const ZilchShaderManager* mZilchShaderManager = nullptr;
+  const ZilchMaterialManager* mZilchMaterialManager = nullptr;
+  Array<MaterialData> mMaterials;
+};
+
 struct ModelRenderData
 {
   const Model* mModel = nullptr;
@@ -128,6 +142,7 @@ public:
 
   void CreateShaderMaterial(ZilchShader* shaderMaterial);
   void UpdateShaderMaterialInstance(const ZilchShader* zilchShader, const ZilchMaterial* zilchMaterial);
+  void UploadShaderMaterialInstances(MaterialBatchUploadData& materialBatchUploadData);
   void DestroyShaderMaterial(const ZilchShader* zilchShader);
 
   RenderFrameStatus BeginFrame(RenderFrame*& frame);

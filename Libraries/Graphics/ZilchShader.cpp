@@ -85,6 +85,11 @@ Zero::ZilchShaderIRType* ZilchShaderManager::FindFragmentType(const String& frag
   return mShaderIRGenerator->FindFragmentType(fragmentTypeName);
 }
 
+const Zero::ZilchShaderIRType* ZilchShaderManager::FindFragmentType(const String& fragmentTypeName) const
+{
+  return mShaderIRGenerator->FindFragmentType(fragmentTypeName);
+}
+
 HashMap<String, ZilchShader*>::valuerange ZilchShaderManager::Values()
 {
   return mZilchShaderMap.Values();
@@ -180,14 +185,14 @@ Zero::ZilchShaderSpirVSettings* ZilchShaderManager::CreateZilchShaderSettings(Ze
   return settings;
 }
 
-void ZilchShaderManager::ComposeZilchMaterialShader(ZilchMaterial* zilchMaterial)
+void ZilchShaderManager::ComposeZilchMaterialShader(const ZilchMaterial* zilchMaterial)
 {
   Zero::ZilchShaderIRCompositor::ShaderDefinition shaderDef;
   shaderDef.mShaderName = zilchMaterial->mMaterialName;
   // Colllect the fragment types described in the material
-  for(MaterialFragment& materialFrag : zilchMaterial->mFragments)
+  for(const MaterialFragment& materialFrag : zilchMaterial->mFragments)
   {
-    Zero::ZilchShaderIRType* zilchFragment = mShaderIRGenerator->FindFragmentType(materialFrag.mFragmentName);
+    const Zero::ZilchShaderIRType* zilchFragment = mShaderIRGenerator->FindFragmentType(materialFrag.mFragmentName);
     if(zilchFragment == nullptr)
     {
       ErrorIf(true, "Failed to find fragment '%s'", materialFrag.mFragmentName.c_str());
@@ -256,15 +261,15 @@ void ZilchShaderManager::ExtractMaterialDescriptors(ZilchShader* zilchShader)
 
   HashMap<String, String> sampledImageValues;
   ZilchMaterial* zilchMaterial = zilchShader->mMaterial;
-  for(MaterialFragment& fragment : zilchMaterial->mFragments)
+  for(const MaterialFragment& fragment : zilchMaterial->mFragments)
   {
-    Zero::ZilchShaderIRType* fragmentShaderType = mShaderIRGenerator->FindFragmentType(fragment.mFragmentName);
+    const Zero::ZilchShaderIRType* fragmentShaderType = mShaderIRGenerator->FindFragmentType(fragment.mFragmentName);
     ZilchShaderResources& shaderResources = zilchShader->mResources[fragmentShaderType->mMeta->mFragmentType];
-    for(MaterialProperty& prop : fragment.mProperties)
+    for(const MaterialProperty& prop : fragment.mProperties)
     {
       if(prop.mType == ShaderPrimitiveType::SampledImage)
       {
-        Array<Zero::ShaderResourceReflectionData*> results;
+        Array<const Zero::ShaderResourceReflectionData*> results;
         shaderResources.mReflection->FindSampledImageReflectionData(fragmentShaderType, prop.mPropertyName, results);
         for(size_t i = 0; i < results.Size(); ++i)
           sampledImageValues[results[i]->mInstanceName] = String((const char*)prop.mData.Data());

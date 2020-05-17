@@ -154,65 +154,16 @@ void GraphicsEngine::LoadVulkanMeshes()
 
 void GraphicsEngine::PopulateMaterialBuffer()
 {
-  struct BufferSortData
+  MaterialBatchUploadData materialBatchUploadData;
+  materialBatchUploadData.mZilchMaterialManager = &mZilchMaterialManager;
+  materialBatchUploadData.mZilchShaderManager = &mZilchShaderManager;
+  for(ZilchMaterial* zilchMaterial : mZilchMaterialManager.mMaterialMap.Values())
   {
-    uint32_t mBufferId;
-    size_t mBufferOffset;
-    MaterialProperty* mProperty;
-    Zero::ShaderResourceReflectionData* mReflectionData;
-  };
-  auto sortLambda = [](const BufferSortData& rhs, const BufferSortData& lhs)
-  {
-    return rhs.mBufferId < lhs.mBufferId;
-  };
-  Array<BufferSortData> propertiesByBuffer;
-
-  for(auto pair : mZilchMaterialManager.mMaterialMap.All())
-  {
-    ZilchMaterial* material = pair.second;
-    ZilchShader* shader = mZilchShaderManager.Find(material->mMaterialName);
-    VulkanShaderMaterial* vulkanShaderMaterial = mRenderer.mUniqueZilchShaderMaterialMap[shader];
-
-    for(MaterialFragment& fragment : material->mFragments)
-    {
-      Zero::ZilchShaderIRType* fragmentShaderType = mZilchShaderManager.FindFragmentType(fragment.mFragmentName);
-      for(MaterialProperty& materialProp : fragment.mProperties)
-      {
-        Zero::ShaderResourceReflectionData* reflectionData = shader->mResources[ShaderStage::Pixel].mReflection->FindUniformReflectionData(fragmentShaderType, materialProp.mPropertyName);
-        if(reflectionData != nullptr)
-        {
-          BufferSortData sortData{vulkanShaderMaterial->mBufferId, vulkanShaderMaterial->mBufferOffset, &materialProp, reflectionData};
-          propertiesByBuffer.PushBack(sortData);
-        }
-      }
-    }
+    MaterialBatchUploadData::MaterialData& materialData = materialBatchUploadData.mMaterials.PushBack();
+    materialData.mZilchMaterial = zilchMaterial;
+    materialData.mZilchShader = mZilchShaderManager.Find(zilchMaterial->mMaterialName);
   }
-
-  uint32_t invalidBufferId = static_cast<uint32_t>(-1);
-  uint32_t bufferId = invalidBufferId;
-  VkDeviceMemory bufferMemory = VK_NULL_HANDLE;
-  byte* byteData = nullptr;
-  for(size_t i = 0; i < propertiesByBuffer.Size(); ++i)
-  {
-    BufferSortData& data = propertiesByBuffer[i];
-    if(bufferId != data.mBufferId || byteData == nullptr)
-    {
-      if(byteData != nullptr)
-        mRenderer.UnMapGlobalUniformBufferMemory(MaterialBufferName, bufferId);
-
-      bufferId = data.mBufferId;
-      byteData = static_cast<byte*>(mRenderer.MapGlobalUniformBufferMemory(MaterialBufferName, bufferId));
-    }
-
-    MaterialProperty* prop = data.mProperty;
-    unsigned char* fieldStart = byteData + data.mReflectionData->mOffsetInBytes + data.mBufferOffset;
-    // This might be wrong due to stride, have to figure out how to deal with this...
-    memcpy(fieldStart, prop->mData.Data(), prop->mData.Size());
-  }
-  if(bufferId != invalidBufferId)
-  {
-    mRenderer.UnMapGlobalUniformBufferMemory(MaterialBufferName, bufferId);
-  }
+  mRenderer.UploadShaderMaterialInstances(materialBatchUploadData);
 }
 
 void GraphicsEngine::CleanupSwapChain()

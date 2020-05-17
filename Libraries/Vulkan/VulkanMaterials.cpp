@@ -242,6 +242,70 @@ void CreateGraphicsPipeline(RendererData& rendererData, const VulkanShader& vulk
   CreateGraphicsPipeline(creationInfo, vulkanShaderMaterial.mPipeline);
 }
 
+void PopulateMaterialBuffers(RendererData& rendererData, MaterialBatchUploadData& materialBatchData)
+{
+  VulkanRenderer& renderer = *rendererData.mRenderer;
+  struct BufferSortData
+  {
+    uint32_t mBufferId;
+    size_t mBufferOffset;
+    const MaterialProperty* mProperty;
+    const Zero::ShaderResourceReflectionData* mReflectionData;
+  };
+  auto sortLambda = [](const BufferSortData& rhs, const BufferSortData& lhs)
+  {
+    return rhs.mBufferId < lhs.mBufferId;
+  };
+  Array<BufferSortData> propertiesByBuffer;
+
+  for(auto materialData : materialBatchData.mMaterials)
+  {
+    const ZilchMaterial* material = materialData.mZilchMaterial;
+    const ZilchShader* shader = materialData.mZilchShader;
+    VulkanShaderMaterial* vulkanShaderMaterial = renderer.mUniqueZilchShaderMaterialMap[shader];
+
+    for(const MaterialFragment& fragment : material->mFragments)
+    {
+      const Zero::ZilchShaderIRType* fragmentShaderType = materialBatchData.mZilchShaderManager->FindFragmentType(fragment.mFragmentName);
+      for(const MaterialProperty& materialProp : fragment.mProperties)
+      {
+        const Zero::ShaderResourceReflectionData* reflectionData = shader->mResources[ShaderStage::Pixel].mReflection->FindUniformReflectionData(fragmentShaderType, materialProp.mPropertyName);
+        if(reflectionData != nullptr)
+        {
+          BufferSortData sortData{vulkanShaderMaterial->mBufferId, vulkanShaderMaterial->mBufferOffset, &materialProp, reflectionData};
+          propertiesByBuffer.PushBack(sortData);
+        }
+      }
+    }
+  }
+
+  uint32_t invalidBufferId = static_cast<uint32_t>(-1);
+  uint32_t bufferId = invalidBufferId;
+  VkDeviceMemory bufferMemory = VK_NULL_HANDLE;
+  byte* byteData = nullptr;
+  for(size_t i = 0; i < propertiesByBuffer.Size(); ++i)
+  {
+    BufferSortData& data = propertiesByBuffer[i];
+    if(bufferId != data.mBufferId || byteData == nullptr)
+    {
+      if(byteData != nullptr)
+        renderer.UnMapGlobalUniformBufferMemory(MaterialBufferName, bufferId);
+
+      bufferId = data.mBufferId;
+      byteData = static_cast<byte*>(renderer.MapGlobalUniformBufferMemory(MaterialBufferName, bufferId));
+    }
+
+    const MaterialProperty* prop = data.mProperty;
+    unsigned char* fieldStart = byteData + data.mReflectionData->mOffsetInBytes + data.mBufferOffset;
+    // This might be wrong due to stride, have to figure out how to deal with this...
+    memcpy(fieldStart, prop->mData.Data(), prop->mData.Size());
+  }
+  if(bufferId != invalidBufferId)
+  {
+    renderer.UnMapGlobalUniformBufferMemory(MaterialBufferName, bufferId);
+  }
+}
+
 //void DestroyVulkanPipeline(RendererData& rendererData, VulkanMaterialPipeline* vulkanPipeline)
 //{
 //  vkDestroyPipeline(rendererData.mRuntimeData->mDevice, vulkanPipeline->mPipeline, nullptr);
