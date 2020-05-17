@@ -409,17 +409,18 @@ void VulkanRenderer::WaitForIdle()
   vkDeviceWaitIdle(mInternal->mDevice);
 }
 
-void VulkanRenderer::Resize(size_t width, size_t height)
+void VulkanRenderer::Reshape(size_t width, size_t height, float aspectRatio)
 {
   mInternal->mWidth = static_cast<uint32_t>(width);
   mInternal->mHeight = static_cast<uint32_t>(height);
   mInternal->mResized = true;
 }
 
-void VulkanRenderer::GetSize(size_t& width, size_t& height)
+void VulkanRenderer::GetShape(size_t& width, size_t& height, float& aspectRatio)
 {
   width = mInternal->mWidth;
   height = mInternal->mHeight;
+  aspectRatio = width / (float)height;
 }
 
 Matrix4 VulkanRenderer::BuildPerspectiveMatrix(float verticalFov, float aspectRatio, float nearDistance, float farDistance)
@@ -444,11 +445,6 @@ Matrix4 VulkanRenderer::BuildPerspectiveMatrix(float verticalFov, float aspectRa
   m[2][3] = -1.0f;
 
   return m;
-}
-
-void VulkanRenderer::Draw()
-{
-
 }
 
 void* VulkanRenderer::MapGlobalUniformBufferMemory(const String& bufferName, uint32_t bufferId)

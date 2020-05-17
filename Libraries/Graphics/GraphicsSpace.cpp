@@ -83,8 +83,8 @@ void GraphicsSpace::PrepareAndDrawFrame(RenderFrame& renderFrame)
   float nearDistance = 0.1f;
   float farDistance = 10.0f;
   size_t width, height;
-  renderer.GetSize(width, height);
-  float aspectRatio = width / (float)height;
+  float aspectRatio;
+  renderer.GetShape(width, height, aspectRatio);
   float fov = Math::DegToRad(45.0f);
 
   FrameData& frameData = batchDrawData.mFrameData;

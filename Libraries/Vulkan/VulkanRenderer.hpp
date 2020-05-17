@@ -1,6 +1,5 @@
 #pragma once
 
-#include <unordered_map>
 #include "VulkanRendererInit.hpp"
 #include "Math.hpp"
 #include "Graphics/GraphicsBufferTypes.hpp"
@@ -32,17 +31,6 @@ enum class RenderFrameStatus
   OutOfDate,
   SubOptimal,
   Error
-};
-
-template <typename T>
-struct Factory
-{
-  struct Slot
-  {
-    T* mItem = nullptr;
-    bool mValid = false;
-  };
-  Array<Slot> mSlots;
 };
 
 struct RenderTarget
@@ -151,24 +139,10 @@ public:
   void Draw(const RenderBatchDrawData& batchDrawData);
   void WaitForIdle();
 
-  void Resize(size_t width, size_t height);
-  void GetSize(size_t& width, size_t& height);
+  void Reshape(size_t width, size_t height, float aspectRatio);
+  void GetShape(size_t& width, size_t& height, float& aspectRatio);
 
-  //
-  //virtual BufferRenderData CreateBuffer(BufferCreationData& creationData, BufferType::Enum bufferType) { return BufferRenderData(); };
-  //virtual void UploadBuffer(BufferRenderData& renderData, ByteBuffer& data) {};
-  //virtual void* MapBuffer(BufferRenderData& renderData, size_t offset, size_t sizeInBytes, BufferMappingType::Enum mappingTypes) { return nullptr; };
-  //virtual void UnMapBuffer(BufferRenderData& renderData) {};
-  //virtual void DestroyBuffer(BufferRenderData& renderData) {};
-  //
-  //virtual void ClearTarget() {};
-  //virtual void Draw(ObjectData& objData) {};
-  //virtual void DispatchCompute(ObjectData& objData, int x, int y, int z) {};
-  //
-  //virtual void Reshape(int width, int height, float aspectRatio) {};
   virtual Matrix4 BuildPerspectiveMatrix(float verticalFov, float aspectRatio, float nearDistance, float farDistance);
-  //virtual ZilchShaderIRBackend* CreateBackend() abstract;
-  void Draw();
 
   void* MapGlobalUniformBufferMemory(const String& bufferName, uint32_t bufferId);
   void* MapPerFrameUniformBufferMemory(const String& bufferName, uint32_t bufferId, uint32_t frameIndex);

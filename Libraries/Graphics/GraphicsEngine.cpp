@@ -176,7 +176,7 @@ void GraphicsEngine::RecreateSwapChain()
   WaitIdle();
 
   CleanupSwapChain();
-  mRenderer.Resize(width, height);
+  mRenderer.Reshape(width, height, width / (float)height);
   mRenderer.CreateDepthResourcesInternal();
   mRenderer.CreateSwapChainInternal();
   mRenderer.CreateRenderFramesInternal();
