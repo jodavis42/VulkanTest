@@ -16,6 +16,8 @@ target_sources(Vulkan
     ${CMAKE_CURRENT_LIST_DIR}/VulkanPipeline.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanRenderer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanRenderer.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanRendering.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanRendering.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanRendererInit.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanRenderPass.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanStatus.hpp

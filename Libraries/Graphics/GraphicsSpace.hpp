@@ -16,9 +16,8 @@ class GraphicsSpace
 {
 public:
   void Update(UpdateEvent& e);
-  void UpdateGlobalBuffer(uint32_t frameId);
   void Draw(UpdateEvent& toSend);
-  void PrepareFrame(RenderFrame& renderFrame);
+  void PrepareAndDrawFrame(RenderFrame& renderFrame);
 
   float mTotalTimeElapsed = 0.0;
   Array<Model*> mModels;

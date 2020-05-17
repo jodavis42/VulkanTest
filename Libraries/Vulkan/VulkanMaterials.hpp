@@ -5,12 +5,7 @@ class VulkanRenderer;
 struct VulkanRuntimeData;
 struct VulkanShaderMaterial;
 struct VulkanShader;
-
-struct RendererData
-{
-  VulkanRenderer* mRenderer;
-  VulkanRuntimeData* mRuntimeData;
-};
+struct RendererData;
 
 void CreateMaterialDescriptorSetLayouts(RendererData& rendererData, const ZilchShader& zilchShader, VulkanShaderMaterial& vulkanShaderMaterial);
 void CreateMaterialDescriptorPool(RendererData& rendererData, const ZilchShader& zilchShader, VulkanShaderMaterial& vulkanShaderMaterial);

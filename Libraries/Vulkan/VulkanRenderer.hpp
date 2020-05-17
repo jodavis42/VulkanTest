@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include "VulkanRendererInit.hpp"
 #include "Math.hpp"
+#include "Graphics/GraphicsBufferTypes.hpp"
 
 struct VulkanRuntimeData;
 struct Mesh;
@@ -11,16 +12,17 @@ struct UniqueShaderMaterial;
 struct ShaderMaterialInstance;
 struct ZilchShader;
 struct ZilchMaterial;
+struct Model;
 
 struct VulkanMesh;
 struct VulkanShader;
 struct VulkanImage;
 struct RenderFrame;
 struct VulkanRenderFrame;
-class VulkanRenderer;
 struct RenderFrame;
 struct VulkanShaderMaterial;
 struct VulkanUniformBuffers;
+class VulkanRenderer;
 
 enum class RenderFrameStatus
 {
@@ -86,6 +88,23 @@ struct RenderFrame
   RenderPass mRenderPass;
 };
 
+struct ModelRenderData
+{
+  const Model* mModel = nullptr;
+  const Mesh* mMesh = nullptr;
+  const ZilchMaterial* mZilchMaterial = nullptr;
+  const ZilchShader* mZilchShader = nullptr;
+  Matrix4 mTransform;
+};
+
+struct RenderBatchDrawData
+{
+  FrameData mFrameData;
+  CameraData mCameraData;
+  Matrix4 mWorldToView;
+  Matrix4 mViewToPerspective;
+};
+
 class VulkanRenderer
 {
 public:
@@ -113,8 +132,11 @@ public:
 
   RenderFrameStatus BeginFrame(RenderFrame*& frame);
   RenderFrameStatus EndFrame(RenderFrame*& frame);
+  void QueueDraw(const ModelRenderData& renderData);
+  void Draw(const RenderBatchDrawData& batchDrawData);
   
   void Resize(size_t width, size_t height);
+  void GetSize(size_t& width, size_t& height);
 
   //
   //virtual BufferRenderData CreateBuffer(BufferCreationData& creationData, BufferType::Enum bufferType) { return BufferRenderData(); };
@@ -163,5 +185,6 @@ public:
   HashMap<String, VulkanImage*> mTextureNameMap;
   HashMap<const ZilchShader*, VulkanShader*> mZilchShaderMap;
   HashMap<const ZilchShader*, VulkanShaderMaterial*> mUniqueZilchShaderMaterialMap;
+  Array<ModelRenderData> mModelRenderData;
   RenderFrame* mCurrentFrame = nullptr;
 };

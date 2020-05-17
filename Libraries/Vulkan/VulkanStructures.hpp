@@ -3,6 +3,13 @@
 #include "VulkanStandard.hpp"
 
 struct VulkanRuntimeData;
+class VulkanRenderer;
+
+struct RendererData
+{
+  VulkanRenderer* mRenderer;
+  VulkanRuntimeData* mRuntimeData;
+};
 
 struct VulkanMesh
 {

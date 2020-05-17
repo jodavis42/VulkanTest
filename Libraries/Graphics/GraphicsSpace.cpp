@@ -36,61 +36,6 @@ void GraphicsSpace::Update(UpdateEvent& e)
   mTotalTimeElapsed += e.mDt;
 }
 
-void GraphicsSpace::UpdateGlobalBuffer(uint32_t frameId)
-{
-  VulkanRenderer* renderer = &mEngine->mRenderer;
-  float nearDistance = 0.1f;
-  float farDistance = 10.0f;
-  VkExtent2D extent = renderer->mInternal->mSwapChain.mExtent;
-  float aspectRatio = extent.width / (float)extent.height;
-  float fov = Math::DegToRad(45.0f);
-
-  {
-    FrameData frameData;
-    frameData.mFrameTime = mTotalTimeElapsed;
-    frameData.mLogicTime = mTotalTimeElapsed;
-    CameraData cameraData;
-    cameraData.mFarPlane = 1;
-    cameraData.mNearPlane = 0;
-    cameraData.mViewportSize = Vec2::cZero;
-    byte* data = static_cast<byte*>(renderer->MapPerFrameUniformBufferMemory(GlobalsBufferName, 0, frameId));
-  
-    size_t offset = 0;
-    memcpy(data, &frameData, sizeof(frameData));
-    offset += renderer->AlignUniformBufferOffset(sizeof(frameData));
-    memcpy(data, &frameData, sizeof(cameraData));
-    offset += renderer->AlignUniformBufferOffset(sizeof(cameraData));
-  
-    renderer->UnMapPerFrameUniformBufferMemory(GlobalsBufferName, 0, frameId);
-  }
-  
-  {
-    TransformData transformData;
-
-    transformData.mPerspectiveToApiPerspective.SetIdentity();
-    transformData.mWorldToView = GenerateLookAt(Vec3(5.0f, 5.0f, 5.0f), Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, 1.0f));
-    transformData.mViewToPerspective = renderer->BuildPerspectiveMatrix(fov, aspectRatio, nearDistance, farDistance);
-    transformData.mWorldToView.Transpose();
-    transformData.mViewToPerspective.Transpose();
-
-    byte* data = static_cast<byte*>(renderer->MapPerFrameUniformBufferMemory(TransformsBufferName, 0, frameId));
-
-    size_t offset = 0;
-
-    size_t count = mModels.Size();
-    for(size_t i = 0; i < count; ++i)
-    {
-      Model* model = mModels[i];
-      Matrix3 rotation = Matrix3::GenerateRotation(Vec3(0, 0, 1), 0 * Math::DegToRad(90.0f));
-      Matrix4 transform = Matrix4::GenerateTransform(model->mTranslation, rotation, model->mScale);
-      transformData.mLocalToWorld = transform;
-      byte* memory = data + offset + renderer->AlignUniformBufferOffset(sizeof(TransformData)) * i;
-      memcpy(memory, &transformData, sizeof(transformData));
-    }
-    renderer->UnMapPerFrameUniformBufferMemory(TransformsBufferName, 0, frameId);
-  }
-}
-
 void GraphicsSpace::Draw(UpdateEvent& toSend)
 {
   VulkanRenderer& renderer = mEngine->mRenderer;
@@ -104,9 +49,7 @@ void GraphicsSpace::Draw(UpdateEvent& toSend)
 
   uint32_t imageIndex = renderFrame->mId;
   Update(toSend);
-  UpdateGlobalBuffer(imageIndex);
-  PrepareFrame(*renderFrame);
-  
+  PrepareAndDrawFrame(*renderFrame);
   
   status = renderer.EndFrame(renderFrame);
   if(status == RenderFrameStatus::OutOfDate || status == RenderFrameStatus::SubOptimal)
@@ -121,64 +64,49 @@ VulkanShaderMaterial* GetVulkanShaderMaterial(GraphicsSpace* space, ZilchMateria
   return space->mEngine->mRenderer.mUniqueZilchShaderMaterialMap[zilchShader];
 }
 
-void GraphicsSpace::PrepareFrame(RenderFrame& renderFrame)
+void GraphicsSpace::PrepareAndDrawFrame(RenderFrame& renderFrame)
 {
-  uint32_t imageIndex = renderFrame.mId;
   VulkanRenderer& renderer = mEngine->mRenderer;
-  VulkanRenderFrame& vulkanRenderFrame = renderer.mInternal->mRenderFrames[imageIndex];
-  VkCommandBuffer commandBuffer = vulkanRenderFrame.mCommandBuffer;
 
-
-  uint32_t dynamicOffsets[1] =
+  // Batch up all model draw calls
+  size_t count = mModels.Size();
+  for(size_t i = 0; i < count; ++i)
   {
-    static_cast<uint32_t>(renderer.AlignUniformBufferOffset(sizeof(TransformData)))
+    const Model* model = mModels[i];
+    Matrix3 rotation = Matrix3::GenerateRotation(Vec3(0, 0, 1), 0 * Math::DegToRad(90.0f));
+    Matrix4 transform = Matrix4::GenerateTransform(model->mTranslation, rotation, model->mScale);
 
-  };
-
-  uint32_t baseOffset = 0;
-  uint32_t dynamicOffsetBase[1] = {baseOffset};
-  CommandBufferWriteInfo writeInfo;
-  writeInfo.mDevice = renderer.mInternal->mDevice;
-  writeInfo.mCommandPool = renderer.mInternal->mCommandPool;
-  writeInfo.mRenderPass = renderer.mInternal->mRenderFrames[0].mRenderPass;
-  //writeInfo.mGraphicsPipeline = materialPipeline.mPipeline;
-  //writeInfo.mPipelineLayout = materialPipeline.mPipelineLayout;
-  //writeInfo.mVertexBuffer = mesh->mVertexBuffer;
-  //writeInfo.mIndexBuffer = mesh->mIndexBuffer;
-  //writeInfo.mIndexBufferCount = mesh->mIndexCount;
-  //writeInfo.mDescriptorSet = frameData.mDescriptorSet;
-  writeInfo.mSwapChain = renderer.mInternal->mSwapChain.mSwapChain;
-  writeInfo.mSwapChainExtent = renderer.mInternal->mSwapChain.mExtent;
-  writeInfo.mSwapChainFramebuffer = vulkanRenderFrame.mFrameBuffer;
-  writeInfo.mDrawCount = static_cast<uint32_t>(mModels.Size());
-  writeInfo.mDynamicOffsetsCount = 1;
-  writeInfo.mDynamicOffsetsBase = dynamicOffsetBase;
-  writeInfo.mDynamicOffsets = dynamicOffsets;
-
-  BeginCommandBuffer(commandBuffer);
-
-  BeginRenderPass(writeInfo, commandBuffer);
-
-  for(size_t i = 0; i < mModels.Size(); ++i)
-  {
-    VulkanMesh* vulkanMesh = renderer.mMeshMap[mEngine->mMeshManager.Find(mModels[i]->mMeshName)];
-    ZilchMaterial* material = mEngine->mZilchMaterialManager.Find(mModels[i]->mMaterialName);
-    VulkanShaderMaterial* vulkanShaderMaterial = GetVulkanShaderMaterial(this, material);
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanShaderMaterial->mPipeline);
-    
-    VkBuffer vertexBuffers[] = {vulkanMesh->mVertexBuffer};
-    VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(commandBuffer, vulkanMesh->mIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
-    
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanShaderMaterial->mPipelineLayout, 0, 1, &vulkanShaderMaterial->mDescriptorSets[i], writeInfo.mDynamicOffsetsCount, writeInfo.mDynamicOffsetsBase);
-    vkCmdDrawIndexed(commandBuffer, vulkanMesh->mIndexCount, 1, 0, 0, 0);
-    
-    for(size_t j = 0; j < writeInfo.mDynamicOffsetsCount; ++j)
-      writeInfo.mDynamicOffsetsBase[j] += writeInfo.mDynamicOffsets[j];
+    ModelRenderData modelRenderData;
+    modelRenderData.mModel = model;
+    modelRenderData.mMesh = mEngine->mMeshManager.Find(model->mMeshName);
+    modelRenderData.mZilchShader = mEngine->mZilchShaderManager.Find(model->mMaterialName);
+    modelRenderData.mZilchMaterial = mEngine->mZilchMaterialManager.Find(model->mMaterialName);
+    modelRenderData.mTransform = transform;
+    renderer.QueueDraw(modelRenderData);
   }
 
-  EndRenderPass(writeInfo, commandBuffer);
+  // Create the batch draw call for the frame
+  RenderBatchDrawData batchDrawData;
 
-  EndCommandBuffer(commandBuffer);
+  float nearDistance = 0.1f;
+  float farDistance = 10.0f;
+  size_t width, height;
+  renderer.GetSize(width, height);
+  float aspectRatio = width / (float)height;
+  float fov = Math::DegToRad(45.0f);
+
+  FrameData& frameData = batchDrawData.mFrameData;
+  frameData.mFrameTime = mTotalTimeElapsed;
+  frameData.mLogicTime = mTotalTimeElapsed;
+
+  CameraData& cameraData = batchDrawData.mCameraData;
+  cameraData.mFarPlane = 1;
+  cameraData.mNearPlane = 0;
+  cameraData.mViewportSize = Vec2::cZero;
+
+  batchDrawData.mWorldToView = GenerateLookAt(Vec3(5.0f, 5.0f, 5.0f), Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, 1.0f));
+  batchDrawData.mViewToPerspective = renderer.BuildPerspectiveMatrix(fov, aspectRatio, nearDistance, farDistance);
+  batchDrawData.mWorldToView.Transpose();
+  batchDrawData.mViewToPerspective.Transpose();
+  renderer.Draw(batchDrawData);
 }

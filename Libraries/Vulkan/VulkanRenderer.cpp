@@ -13,6 +13,7 @@
 #include "EnumConversions.hpp"
 #include "VulkanCommandBuffer.hpp"
 #include "VulkanMaterials.hpp"
+#include "VulkanRendering.hpp"
 
 VkFramebuffer& FindFrameBuffer(size_t id, VulkanRuntimeData* data)
 {
@@ -373,11 +374,33 @@ RenderFrameStatus VulkanRenderer::EndFrame(RenderFrame*& frame)
   return RenderFrameStatus::Success;
 }
 
+void VulkanRenderer::QueueDraw(const ModelRenderData& renderData)
+{
+  mModelRenderData.PushBack(renderData);
+}
+
+void VulkanRenderer::Draw(const RenderBatchDrawData& batchDrawData)
+{
+  RendererData rendererData{this, mInternal};
+  VulkanGlobalBufferData globalBufferData{&batchDrawData.mFrameData, &batchDrawData.mCameraData};
+  VulkanTransformBufferData transformBufferData{batchDrawData.mWorldToView, batchDrawData.mViewToPerspective, &mModelRenderData};
+  PopulateGlobalBuffers(rendererData, globalBufferData);
+  PopulateTransformBuffers(rendererData, transformBufferData);
+  DrawModels(rendererData, transformBufferData);
+  mModelRenderData.Clear();
+}
+
 void VulkanRenderer::Resize(size_t width, size_t height)
 {
   mInternal->mWidth = static_cast<uint32_t>(width);
   mInternal->mHeight = static_cast<uint32_t>(height);
   mInternal->mResized = true;
+}
+
+void VulkanRenderer::GetSize(size_t& width, size_t& height)
+{
+  width = mInternal->mWidth;
+  height = mInternal->mHeight;
 }
 
 Matrix4 VulkanRenderer::BuildPerspectiveMatrix(float verticalFov, float aspectRatio, float nearDistance, float farDistance)
