@@ -163,4 +163,5 @@ public:
   HashMap<String, VulkanImage*> mTextureNameMap;
   HashMap<const ZilchShader*, VulkanShader*> mZilchShaderMap;
   HashMap<const ZilchShader*, VulkanShaderMaterial*> mUniqueZilchShaderMaterialMap;
+  RenderFrame* mCurrentFrame = nullptr;
 };

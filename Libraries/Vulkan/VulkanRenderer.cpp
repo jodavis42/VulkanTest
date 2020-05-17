@@ -310,11 +310,13 @@ RenderFrameStatus VulkanRenderer::BeginFrame(RenderFrame*& frame)
     return RenderFrameStatus::Error;
   
   frame = new RenderFrame(this, imageIndex);
+  mCurrentFrame = frame;
   return RenderFrameStatus::Success;
 }
 
 RenderFrameStatus VulkanRenderer::EndFrame(RenderFrame*& frame)
 {
+  mCurrentFrame = nullptr;
   uint32_t imageIndex = frame->mId;
   delete frame;
   frame = nullptr;
