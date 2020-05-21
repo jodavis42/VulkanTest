@@ -5,6 +5,7 @@
 
 #include "GraphicsBufferTypes.hpp"
 #include "RenderQueue.hpp"
+#include "VulkanRenderer.hpp"
 
 void GraphicsEngine::Initialize(const GraphicsEngineInitData& initData)
 {
@@ -113,7 +114,7 @@ void GraphicsEngine::Update()
   }
 }
 
-VulkanRenderer* GraphicsEngine::GetRenderer()
+Renderer* GraphicsEngine::GetRenderer()
 {
   return &mRenderer;
 }

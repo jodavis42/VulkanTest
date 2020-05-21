@@ -4,27 +4,22 @@
 #include "Math.hpp"
 #include "Graphics/GraphicsBufferTypes.hpp"
 
-struct VulkanRuntimeData;
+#include "Graphics/Renderer.hpp"
+
 struct Mesh;
 struct Texture;
-struct UniqueShaderMaterial;
-struct ShaderMaterialInstance;
 struct ZilchShader;
-struct ZilchMaterial;
-struct ZilchShaderManager;
-struct ZilchMaterialManager;
-struct Model;
 struct RenderQueue;
 
+struct VulkanRuntimeData;
 struct VulkanMesh;
 struct VulkanShader;
 struct VulkanImage;
-struct RenderFrame;
 struct VulkanRenderFrame;
-struct RenderFrame;
 struct VulkanShaderMaterial;
 struct VulkanUniformBuffers;
 class VulkanRenderer;
+struct RenderFrame;
 
 enum class RenderFrameStatus
 {
@@ -79,70 +74,41 @@ struct RenderFrame
   RenderPass mRenderPass;
 };
 
-struct MaterialBatchUploadData
-{
-  struct MaterialData
-  {
-    const ZilchShader* mZilchShader = nullptr;
-    const ZilchMaterial* mZilchMaterial = nullptr;
-  };
-  const ZilchShaderManager* mZilchShaderManager = nullptr;
-  const ZilchMaterialManager* mZilchMaterialManager = nullptr;
-  Array<MaterialData> mMaterials;
-};
-
-struct ModelRenderData
-{
-  const Model* mModel = nullptr;
-  const Mesh* mMesh = nullptr;
-  const ZilchMaterial* mZilchMaterial = nullptr;
-  const ZilchShader* mZilchShader = nullptr;
-  Matrix4 mTransform;
-};
-
-struct RenderBatchDrawData
-{
-  FrameData mFrameData;
-  CameraData mCameraData;
-  Matrix4 mWorldToView;
-  Matrix4 mViewToPerspective;
-};
-
-class VulkanRenderer
+class VulkanRenderer : public Renderer
 {
 public:
   VulkanRenderer();
-  ~VulkanRenderer();
+  virtual ~VulkanRenderer();
 
   void Initialize(const VulkanInitializationData& initData);
   void Cleanup();
   void CleanupResources();
-  void Shutdown();
-  void Destroy();
+  virtual void Shutdown() override;
+  virtual void Destroy() override;
 
-  void CreateMesh(const Mesh* mesh);
-  void DestroyMesh(const Mesh* mesh);
+  virtual void CreateMesh(const Mesh* mesh) override;
+  virtual void DestroyMesh(const Mesh* mesh) override;
 
-  void CreateTexture(const Texture* texture);
-  void DestroyTexture(const Texture* texture);
+  virtual void CreateTexture(const Texture* texture) override;
+  virtual void DestroyTexture(const Texture* texture) override;
 
-  void CreateShader(const ZilchShader* zilchShader);
-  void DestroyShader(const ZilchShader* zilchShader);
+  virtual void CreateShader(const ZilchShader* zilchShader) override;
+  virtual void DestroyShader(const ZilchShader* zilchShader) override;
 
-  void CreateShaderMaterial(ZilchShader* shaderMaterial);
-  void UpdateShaderMaterialInstance(const ZilchShader* zilchShader, const ZilchMaterial* zilchMaterial);
-  void UploadShaderMaterialInstances(MaterialBatchUploadData& materialBatchUploadData);
-  void DestroyShaderMaterial(const ZilchShader* zilchShader);
+  virtual void CreateShaderMaterial(ZilchShader* shaderMaterial) override;
+  virtual void UpdateShaderMaterialInstance(const ZilchShader* zilchShader, const ZilchMaterial* zilchMaterial) override;
+  virtual void UploadShaderMaterialInstances(MaterialBatchUploadData& materialBatchUploadData) override;
+  virtual void DestroyShaderMaterial(const ZilchShader* zilchShader) override;
 
   RenderFrameStatus BeginFrame(RenderFrame*& frame);
   RenderFrameStatus EndFrame(RenderFrame*& frame);
-  void DrawRenderQueue(RenderQueue& renderQueue);
-  void WaitForIdle();
+  virtual void DrawRenderQueue(RenderQueue& renderQueue) override;
+  virtual void WaitForIdle() override;
 
-  void Reshape(size_t width, size_t height, float aspectRatio);
-  void GetShape(size_t& width, size_t& height, float& aspectRatio);
+  virtual void Reshape(size_t width, size_t height, float aspectRatio) override;
+  virtual void GetShape(size_t& width, size_t& height, float& aspectRatio) const override;
 
-  virtual Matrix4 BuildPerspectiveMatrix(float verticalFov, float aspectRatio, float nearDistance, float farDistance);
+  virtual Matrix4 BuildPerspectiveMatrix(float verticalFov, float aspectRatio, float nearDistance, float farDistance) const override;
 
   void* MapGlobalUniformBufferMemory(const String& bufferName, uint32_t bufferId);
   void* MapPerFrameUniformBufferMemory(const String& bufferName, uint32_t bufferId, uint32_t frameIndex);

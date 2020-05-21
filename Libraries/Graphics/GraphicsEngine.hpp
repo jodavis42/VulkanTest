@@ -6,6 +6,7 @@
 #include "ZilchFragment.hpp"
 #include "ZilchMaterial.hpp"
 #include "ZilchShader.hpp"
+#include "Renderer.hpp"
 #include "VulkanRenderer.hpp"
 #include <functional>
 
@@ -36,7 +37,7 @@ public:
   void DestroySpace(GraphicsSpace* space);
 
   void Update();
-  VulkanRenderer* GetRenderer();
+  Renderer* GetRenderer();
 
   void InitializeRenderer(GraphicsEngineRendererInitData& rendererInitData);
   void UploadImages();

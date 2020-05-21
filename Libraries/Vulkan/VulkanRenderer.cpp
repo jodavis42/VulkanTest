@@ -407,14 +407,14 @@ void VulkanRenderer::Reshape(size_t width, size_t height, float aspectRatio)
   mInternal->mResized = true;
 }
 
-void VulkanRenderer::GetShape(size_t& width, size_t& height, float& aspectRatio)
+void VulkanRenderer::GetShape(size_t& width, size_t& height, float& aspectRatio) const
 {
   width = mInternal->mWidth;
   height = mInternal->mHeight;
   aspectRatio = width / (float)height;
 }
 
-Matrix4 VulkanRenderer::BuildPerspectiveMatrix(float verticalFov, float aspectRatio, float nearDistance, float farDistance)
+Matrix4 VulkanRenderer::BuildPerspectiveMatrix(float verticalFov, float aspectRatio, float nearDistance, float farDistance) const
 {
 // Near and far distances are expected to be positive
   float depth = farDistance - nearDistance;

@@ -43,7 +43,7 @@ void GraphicsSpace::Update(UpdateEvent& e)
 
 void GraphicsSpace::RenderQueueUpdate(RenderQueue& renderQueue)
 {
-  VulkanRenderer* renderer = mEngine->GetRenderer();
+  Renderer* renderer = mEngine->GetRenderer();
 
   FrameBlock& frameBlock = renderQueue.mFrameBlocks.PushBack();
   frameBlock.mFrameTime = mTotalTimeElapsed;

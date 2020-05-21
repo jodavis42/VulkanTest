@@ -49,7 +49,7 @@ void PopulateTransformBuffers(RendererData& rendererData, const ViewBlock& viewB
   uint32_t frameId = GetFrameId(rendererData);
   TransformData transformData;
 
-  transformData.mPerspectiveToApiPerspective = viewBlock.mPerspectiveToApiPerspective;
+  transformData.mPerspectiveToApiPerspective.SetIdentity();
   transformData.mWorldToView = viewBlock.mWorldToView;
   transformData.mViewToPerspective = viewBlock.mViewToPerspective;
 
