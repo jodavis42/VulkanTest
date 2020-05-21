@@ -5,6 +5,7 @@
 struct Model;
 struct GraphicsEngine;
 struct RenderFrame;
+struct RenderQueue;
 
 struct UpdateEvent
 {
@@ -15,9 +16,9 @@ struct UpdateEvent
 class GraphicsSpace
 {
 public:
+  void Add(Model* model);
   void Update(UpdateEvent& e);
-  void Draw(UpdateEvent& toSend);
-  void PrepareAndDrawFrame(RenderFrame& renderFrame);
+  void RenderQueueUpdate(RenderQueue& renderQueue);
 
   float mTotalTimeElapsed = 0.0;
   Array<Model*> mModels;

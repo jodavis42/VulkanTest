@@ -88,7 +88,6 @@ private:
 
     int width = 0, height = 0;
     glfwGetFramebufferSize(mWindow, &width, &height);
-    auto internal = mGraphicsEngine.mRenderer.GetRuntimeData();
 
     GraphicsEngineInitData graphicsInitData;
     graphicsInitData.mResourcesDir = mResourcesDir;
@@ -122,7 +121,7 @@ private:
 
       Model* model = new Model();
       LoadModel(loader, model);
-      space->mModels.PushBack(model);
+      space->Add(model);
 
       loader.EndArrayItem();
     }
@@ -132,8 +131,9 @@ private:
   {
     for(GraphicsSpace* space : mGraphicsEngine.mSpaces)
     {
-      space->Draw(toSend);
+      space->Update(toSend);
     }
+    mGraphicsEngine.Update();
   }
 
   void ProcessFrame()

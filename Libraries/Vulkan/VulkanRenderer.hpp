@@ -14,6 +14,7 @@ struct ZilchMaterial;
 struct ZilchShaderManager;
 struct ZilchMaterialManager;
 struct Model;
+struct RenderQueue;
 
 struct VulkanMesh;
 struct VulkanShader;
@@ -135,8 +136,7 @@ public:
 
   RenderFrameStatus BeginFrame(RenderFrame*& frame);
   RenderFrameStatus EndFrame(RenderFrame*& frame);
-  void QueueDraw(const ModelRenderData& renderData);
-  void Draw(const RenderBatchDrawData& batchDrawData);
+  void DrawRenderQueue(RenderQueue& renderQueue);
   void WaitForIdle();
 
   void Reshape(size_t width, size_t height, float aspectRatio);
@@ -149,8 +149,6 @@ public:
   void UnMapGlobalUniformBufferMemory(const String& bufferName, uint32_t bufferId);
   void UnMapPerFrameUniformBufferMemory(const String& bufferName, uint32_t bufferId, uint32_t frameIndex);
   size_t AlignUniformBufferOffset(size_t offset);
-
-  VulkanRuntimeData* GetRuntimeData(){return mInternal;}
   
 //private:
 
@@ -175,6 +173,5 @@ public:
   HashMap<String, VulkanImage*> mTextureNameMap;
   HashMap<const ZilchShader*, VulkanShader*> mZilchShaderMap;
   HashMap<const ZilchShader*, VulkanShaderMaterial*> mUniqueZilchShaderMaterialMap;
-  Array<ModelRenderData> mModelRenderData;
   RenderFrame* mCurrentFrame = nullptr;
 };

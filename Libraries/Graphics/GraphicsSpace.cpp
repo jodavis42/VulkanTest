@@ -3,6 +3,9 @@
 #include "GraphicsSpace.hpp"
 #include "GraphicsEngine.hpp"
 #include "GraphicsBufferTypes.hpp"
+#include "GraphicalEntry.hpp"
+#include "RenderTasks.hpp"
+#include "RenderQueue.hpp"
 
 static Matrix4 GenerateLookAt(const Vec3& eye, const Vec3& center, const Vec3& worldUp)
 {
@@ -27,78 +30,56 @@ static Matrix4 GenerateLookAt(const Vec3& eye, const Vec3& center, const Vec3& w
   return result;
 }
 
+void GraphicsSpace::Add(Model* model)
+{
+  mModels.PushBack(model);
+  model->mSpace = this;
+}
+
 void GraphicsSpace::Update(UpdateEvent& e)
 {
   mTotalTimeElapsed += e.mDt;
 }
 
-void GraphicsSpace::Draw(UpdateEvent& toSend)
+void GraphicsSpace::RenderQueueUpdate(RenderQueue& renderQueue)
 {
-  VulkanRenderer& renderer = mEngine->mRenderer;
-  RenderFrame* renderFrame = nullptr;
-  RenderFrameStatus status = renderer.BeginFrame(renderFrame);
-  if(status == RenderFrameStatus::OutOfDate)
-  {
-    mEngine->RecreateSwapChain();
-    return;
-  }
+  VulkanRenderer* renderer = mEngine->GetRenderer();
 
-  uint32_t imageIndex = renderFrame->mId;
-  Update(toSend);
-  PrepareAndDrawFrame(*renderFrame);
-  
-  status = renderer.EndFrame(renderFrame);
-  if(status == RenderFrameStatus::OutOfDate || status == RenderFrameStatus::SubOptimal)
-    mEngine->RecreateSwapChain();
-  else if(status != RenderFrameStatus::Success)
-  {
-    ErrorIf(true, "failed to present swap chain image!");
-  }
-}
+  FrameBlock& frameBlock = renderQueue.mFrameBlocks.PushBack();
+  frameBlock.mFrameTime = mTotalTimeElapsed;
+  frameBlock.mLogicTime = mTotalTimeElapsed;
 
-void GraphicsSpace::PrepareAndDrawFrame(RenderFrame& renderFrame)
-{
-  VulkanRenderer& renderer = mEngine->mRenderer;
+  ViewBlock& viewBlock = renderQueue.mViewBlocks.PushBack();
+  viewBlock.mFrameBlockId = static_cast<uint32_t>(renderQueue.mFrameBlocks.Size()) - 1;
 
-  // Batch up all model draw calls
-  size_t count = mModels.Size();
-  for(size_t i = 0; i < count; ++i)
-  {
-    const Model* model = mModels[i];
-    Matrix3 rotation = Matrix3::GenerateRotation(Vec3(0, 0, 1), 0 * Math::DegToRad(90.0f));
-    Matrix4 transform = Matrix4::GenerateTransform(model->mTranslation, rotation, model->mScale);
-
-    ModelRenderData modelRenderData;
-    modelRenderData.mModel = model;
-    modelRenderData.mMesh = mEngine->mMeshManager.Find(model->mMeshName);
-    modelRenderData.mZilchShader = mEngine->mZilchShaderManager.Find(model->mMaterialName);
-    modelRenderData.mZilchMaterial = mEngine->mZilchMaterialManager.Find(model->mMaterialName);
-    modelRenderData.mTransform = transform;
-    renderer.QueueDraw(modelRenderData);
-  }
-
-  // Create the batch draw call for the frame
-  RenderBatchDrawData batchDrawData;
+  RenderTaskEvent& renderTaskEvent = viewBlock.mRenderTaskEvent;
+  renderTaskEvent.mGraphicsSpace = this;
 
   float nearDistance = 0.1f;
   float farDistance = 10.0f;
   size_t width, height;
   float aspectRatio;
-  renderer.GetShape(width, height, aspectRatio);
+  renderer->GetShape(width, height, aspectRatio);
   float fov = Math::DegToRad(45.0f);
 
-  FrameData& frameData = batchDrawData.mFrameData;
-  frameData.mFrameTime = mTotalTimeElapsed;
-  frameData.mLogicTime = mTotalTimeElapsed;
+  viewBlock.mPerspectiveToApiPerspective.SetIdentity();
+  viewBlock.mWorldToView = GenerateLookAt(Vec3(5.0f, 5.0f, 5.0f), Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, 1.0f));
+  viewBlock.mViewToPerspective = renderer->BuildPerspectiveMatrix(fov, aspectRatio, nearDistance, farDistance);
+  viewBlock.mWorldToView.Transpose();
+  viewBlock.mViewToPerspective.Transpose();
 
-  CameraData& cameraData = batchDrawData.mCameraData;
-  cameraData.mFarPlane = 1;
-  cameraData.mNearPlane = 0;
-  cameraData.mViewportSize = Vec2::cZero;
+  Array<GraphicalEntry> entries;
+  entries.Reserve(mModels.Size());
+  for(Model* model : mModels)
+  {
+    GraphicalEntry& entry = entries.PushBack();
+    entry.mGraphical = model;
+    entry.mSortId = 0;
+  }
+  Zero::Sort(mModels.All());
 
-  batchDrawData.mWorldToView = GenerateLookAt(Vec3(5.0f, 5.0f, 5.0f), Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, 1.0f));
-  batchDrawData.mViewToPerspective = renderer.BuildPerspectiveMatrix(fov, aspectRatio, nearDistance, farDistance);
-  batchDrawData.mWorldToView.Transpose();
-  batchDrawData.mViewToPerspective.Transpose();
-  renderer.Draw(batchDrawData);
+  renderTaskEvent.CreateClearTargetRenderTask();
+  RenderGroupRenderTask* renderGroupTask = renderTaskEvent.CreateRenderGroupRenderTask();
+  for(const GraphicalEntry& entry : entries)
+    renderGroupTask->Add(entry.mGraphical);
 }

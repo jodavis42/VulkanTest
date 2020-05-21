@@ -35,6 +35,9 @@ public:
   void DestroySpace(const String& name);
   void DestroySpace(GraphicsSpace* space);
 
+  void Update();
+  VulkanRenderer* GetRenderer();
+
   void InitializeRenderer(GraphicsEngineRendererInitData& rendererInitData);
   void UploadImages();
   void UploadShaders();

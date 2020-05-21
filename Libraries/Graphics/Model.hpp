@@ -2,11 +2,14 @@
 
 #include "Math.hpp"
 #include "GraphicsStandard.hpp"
+#include "Graphical.hpp"
 
 class JsonLoader;
 
-struct Model
+struct Model : public Graphical
 {
+  virtual void FilloutFrameData(GraphicalFrameData& frameData) const override;
+
   String mMaterialName;
   String mMeshName;
 

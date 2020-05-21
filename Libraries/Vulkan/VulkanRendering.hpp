@@ -1,22 +1,21 @@
 #pragma once
 #include "Graphics/GraphicsBufferTypes.hpp"
 
-struct VulkanRuntimeData;
-struct ModelRenderData;
 struct RendererData;
+struct FrameBlock;
+struct ViewBlock;
+struct RenderTaskEvent;
+struct RenderGroupRenderTask;
+struct RenderQueue;
 
-struct VulkanGlobalBufferData
+struct GlobalBufferOffset
 {
-  const FrameData* mFrameData = nullptr;
-  const CameraData* mCameraData = nullptr;
-};
-struct VulkanTransformBufferData
-{
-  Matrix4 mWorldToView;
-  Matrix4 mViewToPerspective;
-  Array<ModelRenderData>* mModelRenderData = nullptr;
+  Array<uint32_t> mFrameNodeOffsets;
+  Array<uint32_t> mViewNodeOffsets;
 };
 
-void PopulateGlobalBuffers(RendererData& rendererData, VulkanGlobalBufferData& globalBufferData);
-void PopulateTransformBuffers(RendererData& rendererData, VulkanTransformBufferData& modelRenderData);
-void DrawModels(RendererData& rendererData, VulkanTransformBufferData& modelRenderData);
+void PopulateGlobalBuffers(RendererData& rendererData, const RenderQueue& renderQueue, GlobalBufferOffset& offsets);
+void PopulateTransformBuffers(RendererData& rendererData, const ViewBlock& viewBlock, const RenderGroupRenderTask& renderGroupTask);
+void DrawModels(RendererData& rendererData, const ViewBlock& viewBlock, const RenderGroupRenderTask& renderGroupTask);
+
+void ProcessRenderQueue(RendererData& rendererData, const RenderQueue& renderQueue);

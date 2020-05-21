@@ -24,6 +24,7 @@ target_link_libraries(Vulkan
                       VulkanSDK
                       Common
                       ZilchShaders
+                      Graphics
 )
 
 set_target_properties(Vulkan PROPERTIES FOLDER "Libraries")

@@ -6,6 +6,7 @@
 #include "Graphics/MaterialShared.hpp"
 #include "Graphics/Texture.hpp"
 #include "Graphics/ZilchShader.hpp"
+#include "Graphics/RenderQueue.hpp"
 #include "VulkanInitialization.hpp"
 #include "VulkanValidationLayers.hpp"
 #include "VulkanStructures.hpp"
@@ -388,20 +389,10 @@ RenderFrameStatus VulkanRenderer::EndFrame(RenderFrame*& frame)
   return RenderFrameStatus::Success;
 }
 
-void VulkanRenderer::QueueDraw(const ModelRenderData& renderData)
-{
-  mModelRenderData.PushBack(renderData);
-}
-
-void VulkanRenderer::Draw(const RenderBatchDrawData& batchDrawData)
+void VulkanRenderer::DrawRenderQueue(RenderQueue& renderQueue)
 {
   RendererData rendererData{this, mInternal};
-  VulkanGlobalBufferData globalBufferData{&batchDrawData.mFrameData, &batchDrawData.mCameraData};
-  VulkanTransformBufferData transformBufferData{batchDrawData.mWorldToView, batchDrawData.mViewToPerspective, &mModelRenderData};
-  PopulateGlobalBuffers(rendererData, globalBufferData);
-  PopulateTransformBuffers(rendererData, transformBufferData);
-  DrawModels(rendererData, transformBufferData);
-  mModelRenderData.Clear();
+  ProcessRenderQueue(rendererData, renderQueue);
 }
 
 void VulkanRenderer::WaitForIdle()

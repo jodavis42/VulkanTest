@@ -4,6 +4,7 @@
 #include "GraphicsSpace.hpp"
 
 #include "GraphicsBufferTypes.hpp"
+#include "RenderQueue.hpp"
 
 void GraphicsEngine::Initialize(const GraphicsEngineInitData& initData)
 {
@@ -84,6 +85,37 @@ void GraphicsEngine::DestroySpace(GraphicsSpace* space)
       mSpaces.Erase(it);
     }
   }
+}
+
+void GraphicsEngine::Update()
+{
+  RenderFrame* renderFrame = nullptr;
+  RenderFrameStatus status = mRenderer.BeginFrame(renderFrame);
+  if(status == RenderFrameStatus::OutOfDate)
+  {
+    RecreateSwapChain();
+    return;
+  }
+
+  RenderQueue renderQueue;
+  for(GraphicsSpace* space : mSpaces)
+  {
+    space->RenderQueueUpdate(renderQueue);
+  }
+  mRenderer.DrawRenderQueue(renderQueue);
+
+  status = mRenderer.EndFrame(renderFrame);
+  if(status == RenderFrameStatus::OutOfDate || status == RenderFrameStatus::SubOptimal)
+    RecreateSwapChain();
+  else if(status != RenderFrameStatus::Success)
+  {
+    ErrorIf(true, "failed to present swap chain image!");
+  }
+}
+
+VulkanRenderer* GraphicsEngine::GetRenderer()
+{
+  return &mRenderer;
 }
 
 void GraphicsEngine::InitializeRenderer(GraphicsEngineRendererInitData& rendererInitData)
