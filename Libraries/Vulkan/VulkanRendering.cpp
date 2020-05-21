@@ -9,7 +9,7 @@
 
 uint32_t GetFrameId(RendererData& rendererData)
 {
-  return rendererData.mRenderer->mCurrentFrame->mId;
+  return rendererData.mRuntimeData->mCurrentImageIndex;
 }
 
 void PopulateGlobalBuffers(RendererData& rendererData, const RenderQueue& renderQueue, GlobalBufferOffset& offsets)

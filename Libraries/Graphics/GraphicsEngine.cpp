@@ -90,8 +90,7 @@ void GraphicsEngine::DestroySpace(GraphicsSpace* space)
 
 void GraphicsEngine::Update()
 {
-  RenderFrame* renderFrame = nullptr;
-  RenderFrameStatus status = mRenderer.BeginFrame(renderFrame);
+  RenderFrameStatus status = mRenderer.BeginFrame();
   if(status == RenderFrameStatus::OutOfDate)
   {
     RecreateSwapChain();
@@ -105,7 +104,7 @@ void GraphicsEngine::Update()
   }
   mRenderer.DrawRenderQueue(renderQueue);
 
-  status = mRenderer.EndFrame(renderFrame);
+  status = mRenderer.EndFrame();
   if(status == RenderFrameStatus::OutOfDate || status == RenderFrameStatus::SubOptimal)
     RecreateSwapChain();
   else if(status != RenderFrameStatus::Success)

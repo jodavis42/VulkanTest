@@ -19,7 +19,6 @@ struct VulkanRenderFrame;
 struct VulkanShaderMaterial;
 struct VulkanUniformBuffers;
 class VulkanRenderer;
-struct RenderFrame;
 
 enum class RenderFrameStatus
 {
@@ -27,51 +26,6 @@ enum class RenderFrameStatus
   OutOfDate,
   SubOptimal,
   Error
-};
-
-struct RenderTarget
-{
-  RenderFrame* mRenderFrame = nullptr;
-  uint32_t mId = 0;
-};
-
-struct RenderPass
-{
-  RenderTarget* mTarget = nullptr;
-  RenderFrame* mRenderFrame = nullptr;
-  uint32_t mId = 0;
-};
-
-struct CommandBuffer
-{
-  void Begin();
-  void End();
-  void BeginRenderPass(RenderPass* renderPass);
-  void EndRenderPass(RenderPass* renderPass);
-
-  RenderFrame* mRenderFrame = nullptr;
-  uint32_t mId = 0;
-};
-
-struct RenderFrame
-{
-  RenderFrame(VulkanRenderer* renderer, uint32_t id);
-  RenderPass* GetFinalRenderPass();
-
-  RenderTarget* GetFinalRenderTarget();
-  RenderTarget* CreateRenderTarget(Integer2 size);
-
-  CommandBuffer* GetFinalCommandBuffer();
-  CommandBuffer* CreateCommandBuffer();
-
-  VulkanRenderer* mRenderer = nullptr;
-  uint32_t mId = 0;
-
-
-  // Private
-  CommandBuffer mCommandBuffer;
-  RenderTarget mRenderTarget;
-  RenderPass mRenderPass;
 };
 
 class VulkanRenderer : public Renderer
@@ -100,8 +54,8 @@ public:
   virtual void UploadShaderMaterialInstances(MaterialBatchUploadData& materialBatchUploadData) override;
   virtual void DestroyShaderMaterial(const ZilchShader* zilchShader) override;
 
-  RenderFrameStatus BeginFrame(RenderFrame*& frame);
-  RenderFrameStatus EndFrame(RenderFrame*& frame);
+  RenderFrameStatus BeginFrame();
+  RenderFrameStatus EndFrame();
   virtual void DrawRenderQueue(RenderQueue& renderQueue) override;
   virtual void WaitForIdle() override;
 
@@ -139,5 +93,4 @@ public:
   HashMap<String, VulkanImage*> mTextureNameMap;
   HashMap<const ZilchShader*, VulkanShader*> mZilchShaderMap;
   HashMap<const ZilchShader*, VulkanShaderMaterial*> mUniqueZilchShaderMaterialMap;
-  RenderFrame* mCurrentFrame = nullptr;
 };

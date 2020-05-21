@@ -67,6 +67,7 @@ struct VulkanRuntimeData
 
   
   uint32_t mCurrentFrame = 0;
+  uint32_t mCurrentImageIndex = 0;
 
   bool mFramebufferResized = false;
   VkBuffer mVertexBuffer;

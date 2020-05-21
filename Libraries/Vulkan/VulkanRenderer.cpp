@@ -29,101 +29,6 @@ VkCommandBuffer& FindCommandBuffer(size_t id, VulkanRuntimeData* data)
   return data->mRenderFrames[id].mCommandBuffer;
 }
 
-void CommandBuffer::Begin()
-{
-  auto data = mRenderFrame->mRenderer->mInternal;
-  VkCommandBuffer& vkCommandBuffer = FindCommandBuffer(mId, data);
-
-  VkCommandBufferBeginInfo beginInfo = {};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  beginInfo.flags = 0; // Optional
-  beginInfo.pInheritanceInfo = nullptr; // Optional
-
-  VulkanStatus result;
-  if(vkBeginCommandBuffer(vkCommandBuffer, &beginInfo) != VK_SUCCESS)
-    result.MarkFailed("failed to begin recording command buffer!");
-}
-
-void CommandBuffer::End()
-{
-  auto data = mRenderFrame->mRenderer->mInternal;
-  VkCommandBuffer& vkCommandBuffer = FindCommandBuffer(mId, data);
-
-  VulkanStatus result;
-  if(vkEndCommandBuffer(vkCommandBuffer) != VK_SUCCESS)
-    result.MarkFailed("failed to record command buffer!");
-}
-
-void CommandBuffer::BeginRenderPass(RenderPass* renderPass)
-{
-  auto data = mRenderFrame->mRenderer->mInternal;
-  VkRenderPass& vkRenderPass = FindRenderPass(renderPass->mId, data);
-  VkCommandBuffer& vkCommandBuffer = FindCommandBuffer(mId, data);
-  VkFramebuffer& frameBuffer = FindFrameBuffer(renderPass->mTarget->mId, data);
-
-  VkRenderPassBeginInfo renderPassInfo = {};
-  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  renderPassInfo.renderPass = vkRenderPass;
-  renderPassInfo.framebuffer = frameBuffer;
-  renderPassInfo.renderArea.offset = {0, 0};
-  renderPassInfo.renderArea.extent = data->mSwapChain.mExtent;
-  std::array<VkClearValue, 2> clearValues = {};
-  clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
-  clearValues[1].depthStencil = {1.0f, 0};
-  renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-  renderPassInfo.pClearValues = clearValues.data();
-
-  vkCmdBeginRenderPass(vkCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-}
-
-void CommandBuffer::EndRenderPass(RenderPass* renderPass)
-{
-  auto data = mRenderFrame->mRenderer->mInternal;
-  VkCommandBuffer& vkCommandBuffer = FindCommandBuffer(mId, data);
-  vkCmdEndRenderPass(vkCommandBuffer);
-}
-
-RenderFrame::RenderFrame(VulkanRenderer* renderer, uint32_t id)
-{
-  mRenderer = renderer;
-  mId = id;
-
-  mCommandBuffer.mRenderFrame = this;
-  mCommandBuffer.mId = id;
-
-  mRenderTarget.mRenderFrame = this;
-  mRenderTarget.mId = id;
-
-  mRenderPass.mRenderFrame = this;
-  mRenderPass.mId = id;
-  mRenderPass.mTarget = GetFinalRenderTarget();
-}
-
-RenderPass* RenderFrame::GetFinalRenderPass()
-{
-  return &mRenderPass;
-}
-
-RenderTarget* RenderFrame::GetFinalRenderTarget()
-{
-  return &mRenderTarget;
-}
-
-RenderTarget* RenderFrame::CreateRenderTarget(Integer2 size)
-{
-  return nullptr;
-}
-
-CommandBuffer* RenderFrame::GetFinalCommandBuffer()
-{
-  return &mCommandBuffer;
-}
-
-CommandBuffer* RenderFrame::CreateCommandBuffer()
-{
-  return nullptr;
-}
-
 VulkanRenderer::VulkanRenderer()
 {
   mInternal = new VulkanRuntimeData();
@@ -311,7 +216,7 @@ void VulkanRenderer::DestroyShaderMaterial(const ZilchShader* zilchShader)
   DestroyShaderMaterialInternal(vulkanShaderMaterial);
 }
 
-RenderFrameStatus VulkanRenderer::BeginFrame(RenderFrame*& frame)
+RenderFrameStatus VulkanRenderer::BeginFrame()
 {
   uint32_t& currentFrame = mInternal->mCurrentFrame;
   auto& syncObjects = mInternal->mSyncObjects;
@@ -325,19 +230,14 @@ RenderFrameStatus VulkanRenderer::BeginFrame(RenderFrame*& frame)
   else if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
     return RenderFrameStatus::Error;
   
-  frame = new RenderFrame(this, imageIndex);
-  mCurrentFrame = frame;
+  mInternal->mCurrentImageIndex = imageIndex;
   return RenderFrameStatus::Success;
 }
 
-RenderFrameStatus VulkanRenderer::EndFrame(RenderFrame*& frame)
+RenderFrameStatus VulkanRenderer::EndFrame()
 {
-  mCurrentFrame = nullptr;
-  uint32_t imageIndex = frame->mId;
-  delete frame;
-  frame = nullptr;
-
   uint32_t& currentFrame = mInternal->mCurrentFrame;
+  uint32_t imageIndex = mInternal->mCurrentImageIndex;
   VulkanRenderFrame& vulkanRenderFrame = mInternal->mRenderFrames[imageIndex];
   auto& syncObjects = mInternal->mSyncObjects;
   if(syncObjects.mImagesInFlight[imageIndex] != VK_NULL_HANDLE)
