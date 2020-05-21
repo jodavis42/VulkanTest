@@ -16,6 +16,8 @@ target_sources(Graphics
     ${CMAKE_CURRENT_LIST_DIR}/Graphical.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Model.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Model.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/Camera.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Camera.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Precompiled.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Precompiled.hpp
     ${CMAKE_CURRENT_LIST_DIR}/ZilchShader.cpp

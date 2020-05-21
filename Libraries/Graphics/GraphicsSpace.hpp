@@ -2,6 +2,7 @@
 
 #include "GraphicsStandard.hpp"
 
+struct Camera;
 struct Model;
 struct GraphicsEngine;
 struct RenderFrame;
@@ -16,11 +17,14 @@ struct UpdateEvent
 class GraphicsSpace
 {
 public:
+  GraphicsSpace();
+  ~GraphicsSpace();
   void Add(Model* model);
   void Update(UpdateEvent& e);
   void RenderQueueUpdate(RenderQueue& renderQueue);
 
   float mTotalTimeElapsed = 0.0;
+  Array<Camera*> mCameras;
   Array<Model*> mModels;
   String mName;
   GraphicsEngine* mEngine = nullptr;

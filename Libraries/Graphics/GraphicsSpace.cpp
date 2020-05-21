@@ -6,28 +6,22 @@
 #include "GraphicalEntry.hpp"
 #include "RenderTasks.hpp"
 #include "RenderQueue.hpp"
+#include "Camera.hpp"
 
-static Matrix4 GenerateLookAt(const Vec3& eye, const Vec3& center, const Vec3& worldUp)
+GraphicsSpace::GraphicsSpace()
 {
-  Vec3 forward = Vec3::Normalized(center - eye);
-  Vec3 right = Vec3::Normalized(Vec3::Cross(forward, worldUp));
-  Vec3 actualUp = Vec3::Cross(right, forward);
+  Camera* camera = new Camera();
+  mCameras.PushBack(camera);
+}
 
-  Matrix4 result;
-  result.SetIdentity();
-  result.m00 = right.x;
-  result.m10 = right.y;
-  result.m20 = right.z;
-  result.m01 = actualUp.x;
-  result.m11 = actualUp.y;
-  result.m21 = actualUp.z;
-  result.m02 = -forward.x;
-  result.m12 = -forward.y;
-  result.m22 = -forward.z;
-  result.m30 = -Vec3::Dot(right, eye);
-  result.m31 = -Vec3::Dot(actualUp, eye);
-  result.m32 = Vec3::Dot(forward, eye);
-  return result;
+GraphicsSpace::~GraphicsSpace()
+{
+  for(Camera* camera : mCameras)
+    delete camera;
+  mCameras.Clear();
+  for(Model* model : mModels)
+    delete model;
+  mModels.Clear();
 }
 
 void GraphicsSpace::Add(Model* model)
@@ -49,37 +43,28 @@ void GraphicsSpace::RenderQueueUpdate(RenderQueue& renderQueue)
   frameBlock.mFrameTime = mTotalTimeElapsed;
   frameBlock.mLogicTime = mTotalTimeElapsed;
 
-  ViewBlock& viewBlock = renderQueue.mViewBlocks.PushBack();
-  viewBlock.mFrameBlockId = static_cast<uint32_t>(renderQueue.mFrameBlocks.Size()) - 1;
-
-  RenderTaskEvent& renderTaskEvent = viewBlock.mRenderTaskEvent;
-  renderTaskEvent.mGraphicsSpace = this;
-
-  float nearDistance = 0.1f;
-  float farDistance = 10.0f;
-  size_t width, height;
-  float aspectRatio;
-  renderer->GetShape(width, height, aspectRatio);
-  float fov = Math::DegToRad(45.0f);
-
-  viewBlock.mPerspectiveToApiPerspective.SetIdentity();
-  viewBlock.mWorldToView = GenerateLookAt(Vec3(5.0f, 5.0f, 5.0f), Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, 1.0f));
-  viewBlock.mViewToPerspective = renderer->BuildPerspectiveMatrix(fov, aspectRatio, nearDistance, farDistance);
-  viewBlock.mWorldToView.Transpose();
-  viewBlock.mViewToPerspective.Transpose();
-
-  Array<GraphicalEntry> entries;
-  entries.Reserve(mModels.Size());
-  for(Model* model : mModels)
+  for(const Camera* camera : mCameras)
   {
-    GraphicalEntry& entry = entries.PushBack();
-    entry.mGraphical = model;
-    entry.mSortId = 0;
+    ViewBlock& viewBlock = renderQueue.mViewBlocks.PushBack();
+    viewBlock.mFrameBlockId = static_cast<uint32_t>(renderQueue.mFrameBlocks.Size()) - 1;
+    camera->FilloutViewBlock(renderer, viewBlock);
+  
+    RenderTaskEvent& renderTaskEvent = viewBlock.mRenderTaskEvent;
+    renderTaskEvent.mGraphicsSpace = this;
+  
+    Array<GraphicalEntry> entries;
+    entries.Reserve(mModels.Size());
+    for(Model* model : mModels)
+    {
+      GraphicalEntry& entry = entries.PushBack();
+      entry.mGraphical = model;
+      entry.mSortId = 0;
+    }
+    Zero::Sort(mModels.All());
+  
+    renderTaskEvent.CreateClearTargetRenderTask();
+    RenderGroupRenderTask* renderGroupTask = renderTaskEvent.CreateRenderGroupRenderTask();
+    for(const GraphicalEntry& entry : entries)
+      renderGroupTask->Add(entry.mGraphical);
   }
-  Zero::Sort(mModels.All());
-
-  renderTaskEvent.CreateClearTargetRenderTask();
-  RenderGroupRenderTask* renderGroupTask = renderTaskEvent.CreateRenderGroupRenderTask();
-  for(const GraphicalEntry& entry : entries)
-    renderGroupTask->Add(entry.mGraphical);
 }
