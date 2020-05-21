@@ -1,10 +1,9 @@
 #pragma once
 
-#include "VulkanRendererInit.hpp"
 #include "Math.hpp"
-#include "Graphics/GraphicsBufferTypes.hpp"
-
 #include "Graphics/Renderer.hpp"
+#include "Graphics/GraphicsBufferTypes.hpp"
+#include "VulkanRendererInit.hpp"
 
 struct Mesh;
 struct Texture;
