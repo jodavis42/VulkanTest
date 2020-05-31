@@ -24,7 +24,12 @@ void ZilchMaterialManager::Load(const String& resourcesDir)
 void ZilchMaterialManager::LoadFromFile(const FileLoadData& loadData)
 {
   JsonLoader loader;
-  loader.LoadFromFile(loadData.mFilePath);
+  bool loadedFile = loader.LoadFromFile(loadData.mFilePath);
+  if(!loadedFile)
+  {
+    Warn("Failure to load ZilchMaterial '%s'", loadData.mFilePath.c_str());
+    return;
+  }
 
   ZilchMaterial* material = new ZilchMaterial();
   material->mMaterialName = LoadDefaultPrimitive(loader, "Name", String());

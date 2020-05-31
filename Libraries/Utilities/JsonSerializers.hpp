@@ -60,8 +60,8 @@ public:
   JsonLoader();
   ~JsonLoader();
 
-  void Load(const String& jsonData);
-  void LoadFromFile(const String& filePath);
+  bool Load(const String& jsonData);
+  bool LoadFromFile(const String& filePath);
 
   virtual bool SerializePrimitive(char* data);
   virtual bool SerializePrimitive(bool& data);

@@ -195,7 +195,7 @@ void ZilchShaderManager::ComposeZilchMaterialShader(const ZilchMaterial* zilchMa
     const Zero::ZilchShaderIRType* zilchFragment = mShaderIRGenerator->FindFragmentType(materialFrag.mFragmentName);
     if(zilchFragment == nullptr)
     {
-      ErrorIf(true, "Failed to find fragment '%s'", materialFrag.mFragmentName.c_str());
+      Warn("Failed to find ZilchFragment '%s' when composing ZilchMaterail '%s'", materialFrag.mFragmentName.c_str(), zilchMaterial->mMaterialName.c_str());
       continue;
     }
 
@@ -343,5 +343,5 @@ void ZilchShaderManager::OnValidationError(Zero::ValidationErrorEvent* e, void* 
 
 void ZilchShaderManager::OnError(const String& codeLocation, const String& errorMsg, void* self)
 {
-  __debugbreak();
+  Warn("%s: %s", codeLocation.c_str(), errorMsg.c_str());
 }

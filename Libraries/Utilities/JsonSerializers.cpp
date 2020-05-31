@@ -188,16 +188,20 @@ JsonLoader::~JsonLoader()
   delete mData;
 }
 
-void JsonLoader::Load(const String& jsonData)
+bool JsonLoader::Load(const String& jsonData)
 {
-  mData->mDocument.Parse(jsonData.c_str());
+  auto& document = mData->mDocument.Parse(jsonData.c_str());
+  if(document.GetErrorOffset() != 0)
+    return false;
+
   mData->mStack.push(&mData->mDocument);
+  return true;
 }
 
-void JsonLoader::LoadFromFile(const String& filePath)
+bool JsonLoader::LoadFromFile(const String& filePath)
 {
   String fileContents = Zero::ReadFileIntoString(filePath);
-  Load(fileContents);
+  return Load(fileContents);
 }
 
 bool JsonLoader::SerializePrimitive(char* data)
