@@ -1,6 +1,8 @@
 #include "Precompiled.hpp"
 
 #include "GraphicsEngine.hpp"
+
+#include "Resources/ResourceSystem.hpp"
 #include "GraphicsSpace.hpp"
 
 #include "GraphicsBufferTypes.hpp"
@@ -9,15 +11,22 @@
 
 void GraphicsEngine::Initialize(const GraphicsEngineInitData& initData)
 {
+  mInitData = initData;
   Zilch::ZilchGraphicsLibrary::InitializeInstance();
   auto zilchGraphicsLibrary = Zilch::ZilchGraphicsLibrary::GetLibrary();
 
-  mTextureManager.Load(initData.mResourcesDir);
-  mZilchFragmentFileManager.Load(initData.mResourcesDir);
-  mZilchMaterialManager.Load(initData.mResourcesDir);
+  mResourceSystem = initData.mResourceSystem;
+  mMeshManager = mResourceSystem->FindResourceManager(MeshManager);
+  mTextureManager = mResourceSystem->FindResourceManager(TextureManager);
+  mZilchFragmentFileManager = mResourceSystem->FindResourceManager(ZilchFragmentFileManager);
+  mZilchMaterialManager = mResourceSystem->FindResourceManager(ZilchMaterialManager);
+  Zilch::EventConnect(mZilchFragmentFileManager, Events::ResourceLoaded, &GraphicsEngine::OnResourceLoaded, this);
+  Zilch::EventConnect(mZilchMaterialManager, Events::ResourceLoaded, &GraphicsEngine::OnResourceLoaded, this);
+  Zilch::EventConnect(mZilchFragmentFileManager, Events::ResourceReLoaded, &GraphicsEngine::OnResourceReLoaded, this);
+  Zilch::EventConnect(mZilchMaterialManager, Events::ResourceReLoaded, &GraphicsEngine::OnResourceReLoaded, this);
 
   // Setup the shader manager with some descriptor types and pointers it needs
-  ZilchShaderInitData shaderInitData{initData.mShaderCoreDir, &mZilchFragmentFileManager, &mZilchMaterialManager};
+  ZilchShaderInitData shaderInitData{initData.mShaderCoreDir, mZilchFragmentFileManager, mZilchMaterialManager};
   mZilchShaderManager.AddUniformDescriptor(ZilchTypeId(FrameData));
   mZilchShaderManager.AddUniformDescriptor(ZilchTypeId(CameraData));
   mZilchShaderManager.AddUniformDescriptor(ZilchTypeId(TransformData));
@@ -25,18 +34,16 @@ void GraphicsEngine::Initialize(const GraphicsEngineInitData& initData)
   // Build the fragments from the fragment manager then build the shaders from the materials
   mZilchShaderManager.BuildFragmentsLibrary();
   mZilchShaderManager.BuildShadersLibrary();
-  
-  mMeshManager.Load(initData.mResourcesDir);
 }
 
 void GraphicsEngine::Shutdown()
 {
   CleanupSwapChain();
-  for(Mesh* mesh : mMeshManager.mMeshMap.Values())
+  for(Mesh* mesh : mMeshManager->Resources())
   {
     mRenderer.DestroyMesh(mesh);
   }
-  for(Texture* texture : mTextureManager.mTextureMap.Values())
+  for(Texture* texture : mTextureManager->Resources())
   {
     mRenderer.DestroyTexture(texture);
   }
@@ -90,6 +97,9 @@ void GraphicsEngine::DestroySpace(GraphicsSpace* space)
 
 void GraphicsEngine::Update()
 {
+  if(mReloadResources)
+    ReloadResources();
+
   RenderFrameStatus status = mRenderer.BeginFrame();
   if(status == RenderFrameStatus::OutOfDate)
   {
@@ -134,7 +144,7 @@ void GraphicsEngine::InitializeRenderer(GraphicsEngineRendererInitData& renderer
 
 void GraphicsEngine::UploadImages()
 {
-  for(Texture* texture : mTextureManager.mTextureMap.Values())
+  for(Texture* texture : mTextureManager->Resources())
   {
     mRenderer.CreateTexture(texture);
   }
@@ -152,13 +162,13 @@ void GraphicsEngine::UploadShaders()
 void GraphicsEngine::UploadMaterial(ZilchMaterial* zilchMaterial)
 {
   ZilchShader* zilchShader = mZilchShaderManager.Find(zilchMaterial->mMaterialName);
- 
-  mRenderer.UpdateShaderMaterialInstance(zilchShader, zilchMaterial);
+ if(zilchShader != nullptr)
+    mRenderer.UpdateShaderMaterialInstance(zilchShader, zilchMaterial);
 }
 
 void GraphicsEngine::UploadMaterials()
 {
-  for(ZilchMaterial* material : mZilchMaterialManager.mMaterialMap.Values())
+  for(ZilchMaterial* material : mZilchMaterialManager->Resources())
   {
     UploadMaterial(material);
   }
@@ -166,18 +176,38 @@ void GraphicsEngine::UploadMaterials()
 
 void GraphicsEngine::UploadMeshes()
 {
-  for(Mesh* mesh : mMeshManager.mMeshMap.Values())
+  for(Mesh* mesh : mMeshManager->Resources())
   {
     mRenderer.CreateMesh(mesh);
   }
 }
 
+void GraphicsEngine::ReloadResources()
+{
+  WaitIdle();
+  CleanupSwapChain();
+  mZilchShaderManager.BuildFragmentsLibrary();
+  mZilchShaderManager.BuildShadersLibrary();
+  CreateSwapChain();
+  mReloadResources = false;
+}
+
+void GraphicsEngine::OnResourceLoaded(ResourceLoadEvent* event)
+{
+  mReloadResources = true;
+}
+
+void GraphicsEngine::OnResourceReLoaded(ResourceLoadEvent* event)
+{
+  mReloadResources = true;
+}
+
 void GraphicsEngine::PopulateMaterialBuffer()
 {
   MaterialBatchUploadData materialBatchUploadData;
-  materialBatchUploadData.mZilchMaterialManager = &mZilchMaterialManager;
+  materialBatchUploadData.mZilchMaterialManager = mZilchMaterialManager;
   materialBatchUploadData.mZilchShaderManager = &mZilchShaderManager;
-  for(ZilchMaterial* zilchMaterial : mZilchMaterialManager.mMaterialMap.Values())
+  for(ZilchMaterial* zilchMaterial : mZilchMaterialManager->Resources())
   {
     MaterialBatchUploadData::MaterialData& materialData = materialBatchUploadData.mMaterials.PushBack();
     materialData.mZilchMaterial = zilchMaterial;
@@ -186,9 +216,24 @@ void GraphicsEngine::PopulateMaterialBuffer()
   mRenderer.UploadShaderMaterialInstances(materialBatchUploadData);
 }
 
+void GraphicsEngine::CreateSwapChain()
+{
+  size_t width, height;
+  mWindowSizeQueryFn(width, height);
+  mRenderer.Reshape(width, height, width / (float)height);
+  mRenderer.CreateDepthResourcesInternal();
+  mRenderer.CreateSwapChainInternal();
+  mRenderer.CreateRenderFramesInternal();
+
+  // This is heavier than needs to happen as a lot of the shader's don't have to be destroyed (modules, etc...). For simplicity do everything right now.
+  UploadShaders();
+  UploadMaterials();
+  PopulateMaterialBuffer();
+}
+
 void GraphicsEngine::CleanupSwapChain()
 {
-  for(ZilchMaterial* zilchMaterial : mZilchMaterialManager.mMaterialMap.Values())
+  for(ZilchMaterial* zilchMaterial : mZilchMaterialManager->Resources())
   {
     ZilchShader* zilchShader = mZilchShaderManager.Find(zilchMaterial->mMaterialName);
     mRenderer.DestroyShaderMaterial(zilchShader);
@@ -202,21 +247,10 @@ void GraphicsEngine::CleanupSwapChain()
 
 void GraphicsEngine::RecreateSwapChain()
 {
-  size_t width, height;
-  mWindowSizeQueryFn(width, height);
-
   WaitIdle();
 
   CleanupSwapChain();
-  mRenderer.Reshape(width, height, width / (float)height);
-  mRenderer.CreateDepthResourcesInternal();
-  mRenderer.CreateSwapChainInternal();
-  mRenderer.CreateRenderFramesInternal();
-
-  // This is heavier than needs to happen as a lot of the shader's don't have to be destroyed (modules, etc...). For simplicity do everything right now.
-  UploadShaders();
-  UploadMaterials();
-  PopulateMaterialBuffer();
+  CreateSwapChain();
 }
 
 void GraphicsEngine::WaitIdle()

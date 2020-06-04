@@ -62,6 +62,11 @@ bool JsonSaver::SerializePrimitive(int& data)
   return WritePrimitive(data);
 }
 
+bool JsonSaver::SerializePrimitive(int64& data)
+{
+  return WritePrimitive(data);
+}
+
 bool JsonSaver::SerializePrimitive(float& data)
 {
   return WritePrimitive(data);
@@ -163,6 +168,11 @@ bool JsonSaver::WritePrimitive(int data)
   return mData->mWriter.Int(data);
 }
 
+bool JsonSaver::WritePrimitive(int64 data)
+{
+  return mData->mWriter.Int64(data);
+}
+
 bool JsonSaver::WritePrimitive(float data)
 {
   return mData->mWriter.Double(data);
@@ -200,6 +210,9 @@ bool JsonLoader::Load(const String& jsonData)
 
 bool JsonLoader::LoadFromFile(const String& filePath)
 {
+  if(!Zero::FileExists(filePath))
+    return false;
+
   String fileContents = Zero::ReadFileIntoString(filePath);
   return Load(fileContents);
 }
@@ -221,6 +234,11 @@ bool JsonLoader::SerializePrimitive(char& data)
 }
 
 bool JsonLoader::SerializePrimitive(int& data)
+{
+  return ReadPrimitive(data);
+}
+
+bool JsonLoader::SerializePrimitive(int64& data)
 {
   return ReadPrimitive(data);
 }
@@ -388,6 +406,23 @@ bool JsonLoader::ReadPrimitive(int& data)
   if(node->IsInt())
   {
     data = node->GetInt();
+    return true;
+  }
+  return false;
+}
+
+bool JsonLoader::ReadPrimitive(int64& data)
+{
+  rapidjson::Value* node = mData->mStack.top();
+  if(node->IsBool())
+  {
+    data = node->GetBool() ? 1 : 0;
+    return true;
+  }
+
+  if(node->IsInt64())
+  {
+    data = node->GetInt64();
     return true;
   }
   return false;

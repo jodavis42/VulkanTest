@@ -49,7 +49,7 @@ VulkanPerFrameBuffers::FrameBuffers* VulkanUniformBufferManager::CreatePerFrameB
     for(size_t i = 0; i < frameCount; i++)
     {
       VulkanUniformBuffer& buffer = frameBuffers.mBuffers[i];
-      buffer.mAllocatedSize = mRuntimeData->mDeviceLimits.mMaxUniformBufferRange;
+      buffer.mAllocatedSize = 1024 * 1024;// mRuntimeData->mDeviceLimits.mMaxUniformBufferRange;
       buffer.mUsedSize = 0;
       VkImageUsageFlags usageFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
       CreateBuffer(vulkanData, buffer.mAllocatedSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, usageFlags, buffer.mBuffer, buffer.mBufferMemory);

@@ -20,6 +20,8 @@ Set_Common_TargetCompileOptions(Application)
 target_link_libraries(Application
                       PUBLIC
                       Utilities
+                      Resources
+                      Engine
                       Graphics
                       Vulkan
                       GLFW

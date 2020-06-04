@@ -2,6 +2,11 @@
 
 #include "Utilities/File.hpp"
 #include "Utilities/JsonSerializers.hpp"
+#include "Resources/ResourceZilchStaticLibrary.hpp"
+#include "Resources/ResourceSystem.hpp"
+#include "Resources/ResourceLibrary.hpp"
+#include "Engine/LevelManager.hpp"
+#include "Graphics/GraphicsZilchStaticLibrary.hpp"
 #include "Graphics/GraphicsEngine.hpp"
 #include "Graphics/GraphicsSpace.hpp"
 
@@ -23,6 +28,7 @@ public:
 private:
   String mResourcesDir;
   String mShaderCoreDir;
+  ResourceSystem mResourceSystem;
 
   static void FramebufferResizeCallback(GLFWwindow* window, int width, int height)
   {
@@ -58,6 +64,11 @@ private:
 
     Zilch::Module module;
     Zilch::ExecutableState::CallingState = module.Link();
+
+    ResourceStaticLibrary::InitializeInstance();
+    ResourceStaticLibrary::GetInstance().GetLibrary();
+    GraphicsStaticLibrary::InitializeInstance();
+    GraphicsStaticLibrary::GetInstance().GetLibrary();
   }
 
   void LoadConfiguration()
@@ -69,10 +80,21 @@ private:
     mResourcesDir = json->GetMember("ResourcesDir")->AsString();
   }
 
+  void InitializeResourceSystem()
+  {
+    mResourceSystem.RegisterResourceManager(Level, LevelManager, new LevelManager());
+    mResourceSystem.RegisterResourceManager(ZilchFragmentFile, ZilchFragmentFileManager, new ZilchFragmentFileManager());
+    mResourceSystem.RegisterResourceManager(Texture, TextureManager, new TextureManager());
+    mResourceSystem.RegisterResourceManager(Mesh, MeshManager, new MeshManager());
+    mResourceSystem.RegisterResourceManager(ZilchMaterial, ZilchMaterialManager, new ZilchMaterialManager());
+    mResourceSystem.LoadLibrary("BasicProject", Zero::FilePath::Combine(mResourcesDir, "BasicProject"));
+  }
+
   void Initialize()
   {
     InitializeZilch();
     LoadConfiguration();
+    InitializeResourceSystem();
 
     mTotalFrameTime = 0;
     mLastFrameTime = std::chrono::high_resolution_clock::now();
@@ -85,13 +107,15 @@ private:
     mWindow = glfwCreateWindow(cWidth, cHeight, "Vulkan", nullptr, nullptr);
     glfwSetWindowUserPointer(mWindow, this);
     glfwSetFramebufferSizeCallback(mWindow, FramebufferResizeCallback);
-
+    glfwSetKeyCallback(mWindow, &HelloTriangleApplication::KeyCallback);
+    
     int width = 0, height = 0;
     glfwGetFramebufferSize(mWindow, &width, &height);
 
     GraphicsEngineInitData graphicsInitData;
     graphicsInitData.mResourcesDir = mResourcesDir;
     graphicsInitData.mShaderCoreDir = mShaderCoreDir;
+    graphicsInitData.mResourceSystem = &mResourceSystem;
     mGraphicsEngine.Initialize(graphicsInitData);
     mGraphicsEngine.mWindowSizeQueryFn = [this](size_t& width, size_t& height) {QueryWindowSize(width, height); };
 
@@ -108,8 +132,12 @@ private:
 
   void LoadLevel(const String& levelName)
   {
+    LevelManager* levelManager = mResourceSystem.FindResourceManager(LevelManager);
+    Level* level = levelManager->FindResource(ResourceName{levelName});
+    ReturnIf(level == nullptr, , "Failed to find level '%s'", levelName.c_str());
+    
     GraphicsSpace* space = mGraphicsEngine.CreateSpace(levelName);
-    String filePath = Zero::FilePath::CombineWithExtension(Zero::FilePath::Combine(mResourcesDir, "data"), levelName, ".level");
+    String filePath = level->mPath;
     JsonLoader loader;
     loader.LoadFromFile(filePath);
 
@@ -156,6 +184,18 @@ private:
     toSend.mDt = dt;
     toSend.mTotalTime = mTotalFrameTime;
     DrawFrame(toSend);
+  }
+
+  void ReloadResources()
+  {
+    mResourceSystem.ReloadLibraries();
+  }
+
+  static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+  {
+    auto self = (HelloTriangleApplication*)glfwGetWindowUserPointer(window);
+    if(key == GLFW_KEY_R && action == GLFW_PRESS)
+      self->ReloadResources();
   }
 
   void mainLoop()

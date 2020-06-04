@@ -103,29 +103,35 @@ void ZilchShaderManager::Destroy()
   delete mShaderIRGenerator;
 }
 
-void ZilchShaderManager::BuildFragmentsLibrary()
+bool ZilchShaderManager::BuildFragmentsLibrary()
 {
-  for(ZilchFragmentFile* fragmentFile : mFragmentFileManager->mResourceMap.Values())
+  mShaderIRGenerator->mFragmentProject.Clear();
+  for(ZilchFragmentFile* fragmentFile : mFragmentFileManager->Resources())
   {
-    mShaderIRGenerator->AddFragmentCode(fragmentFile->mFileContents, fragmentFile->mFilePath, nullptr);
+    mShaderIRGenerator->AddFragmentCode(fragmentFile->mFileContents, fragmentFile->mPath, nullptr);
   }
-  mShaderIRGenerator->CompileAndTranslateFragments();
+  return mShaderIRGenerator->CompileAndTranslateFragments();
 }
 
-void ZilchShaderManager::BuildShadersLibrary()
+bool ZilchShaderManager::BuildShadersLibrary()
 {
-  for(ZilchMaterial* zilchMaterial : mMaterialManager->mMaterialMap.Values())
+  mShaderIRGenerator->mShaderProject.Clear();
+  for(ZilchMaterial* zilchMaterial : mMaterialManager->Resources())
   {
     ComposeZilchMaterialShader(zilchMaterial);
   }
 
-  mShaderIRGenerator->CompileAndTranslateShaders();
+  bool compiled = mShaderIRGenerator->CompileAndTranslateShaders();
+  if(!compiled)
+    return compiled;
+
   mShaderIRGenerator->CompilePipeline();
 
-  for(ZilchMaterial* zilchMaterial : mMaterialManager->mMaterialMap.Values())
+  for(ZilchMaterial* zilchMaterial : mMaterialManager->Resources())
   {
     CreateZilchMaterialShader(zilchMaterial);
   }
+  return true;
 }
 
 Zero::ZilchShaderSpirVSettings* ZilchShaderManager::CreateZilchShaderSettings(Zero::SpirVNameSettings& nameSettings)
@@ -264,6 +270,9 @@ void ZilchShaderManager::ExtractMaterialDescriptors(ZilchShader* zilchShader)
   for(const MaterialFragment& fragment : zilchMaterial->mFragments)
   {
     const Zero::ZilchShaderIRType* fragmentShaderType = mShaderIRGenerator->FindFragmentType(fragment.mFragmentName);
+    if(fragmentShaderType == nullptr)
+      continue;
+
     ZilchShaderResources& shaderResources = zilchShader->mResources[fragmentShaderType->mMeta->mFragmentType];
     for(const MaterialProperty& prop : fragment.mProperties)
     {

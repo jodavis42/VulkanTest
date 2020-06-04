@@ -12,33 +12,39 @@ ZilchMaterialManager::ZilchMaterialManager()
 
 ZilchMaterialManager::~ZilchMaterialManager()
 {
-  Destroy();
 }
 
-void ZilchMaterialManager::Load(const String& resourcesDir)
+void ZilchMaterialManager::GetExtensions(Array<ResourceExtension>& extensions) const
 {
-  FileSearchData searchData = {resourcesDir, Zero::FilePath::Combine(resourcesDir, "data")};
-  LoadAllFilesOfExtension(*this, searchData, ".zilchMaterial");
+  extensions.PushBack({"zilchMaterial"});
 }
 
-void ZilchMaterialManager::LoadFromFile(const FileLoadData& loadData)
+bool ZilchMaterialManager::OnLoadResource(const ResourceMetaFile& resourceMeta, ZilchMaterial* zilchMaterial)
+{
+  return LoadZilchMaterial(resourceMeta, zilchMaterial);
+}
+
+bool ZilchMaterialManager::OnReLoadResource(const ResourceMetaFile& resourceMeta, ZilchMaterial* zilchMaterial)
+{
+  return LoadZilchMaterial(resourceMeta, zilchMaterial);
+}
+
+bool ZilchMaterialManager::LoadZilchMaterial(const ResourceMetaFile& resourceMeta, ZilchMaterial* zilchMaterial)
 {
   JsonLoader loader;
-  bool loadedFile = loader.LoadFromFile(loadData.mFilePath);
+  bool loadedFile = loader.LoadFromFile(resourceMeta.mResourcePath);
   if(!loadedFile)
   {
-    Warn("Failure to load ZilchMaterial '%s'", loadData.mFilePath.c_str());
-    return;
+    Warn("Failure to load ZilchMaterial '%s'", resourceMeta.mResourcePath.c_str());
+    return false;
   }
 
-  ZilchMaterial* material = new ZilchMaterial();
-  material->mMaterialName = LoadDefaultPrimitive(loader, "Name", String());
-  
-  LoadZilchFragments(loader, material);
-  mMaterialMap.InsertOrError(material->mMaterialName, material);
+  zilchMaterial->mMaterialName = LoadDefaultPrimitive(loader, "Name", String());
+
+  return LoadZilchFragments(loader, zilchMaterial);
 }
 
-void ZilchMaterialManager::LoadZilchFragments(JsonLoader& loader, ZilchMaterial* material)
+bool ZilchMaterialManager::LoadZilchFragments(JsonLoader& loader, ZilchMaterial* material)
 {
   if(loader.BeginMember("Fragments"))
   {
@@ -55,26 +61,10 @@ void ZilchMaterialManager::LoadZilchFragments(JsonLoader& loader, ZilchMaterial*
     }
     loader.EndMember();
   }
+  return true;
 }
 
 void ZilchMaterialManager::LoadZilchFragmentProperties(JsonLoader& loader, MaterialFragment& fragment)
 {
   LoadMaterialProperties(loader, fragment.mProperties);
-}
-
-void ZilchMaterialManager::Add(const String& name, ZilchMaterial* material)
-{
-  mMaterialMap[name] = material;
-}
-
-ZilchMaterial* ZilchMaterialManager::Find(const String& name)
-{
-  return mMaterialMap.FindValue(name, nullptr);
-}
-
-void ZilchMaterialManager::Destroy()
-{
-  for(ZilchMaterial* material : mMaterialMap.Values())
-    delete material;
-  mMaterialMap.Clear();
 }

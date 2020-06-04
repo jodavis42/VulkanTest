@@ -1,0 +1,22 @@
+target_sources(Resources
+  PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/Precompiled.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Precompiled.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/ResourcesStandard.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/ResourceZilchStaticLibrary.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ResourceZilchStaticLibrary.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/ResourceId.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ResourceId.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/Resource.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Resource.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/ResourceEvents.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ResourceEvents.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/ResourceManager.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ResourceManager.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/ResourceMetaFile.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/ResourceLibrary.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ResourceLibrary.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/ResourceExtensionManager.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/ResourceSystem.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ResourceSystem.hpp
+)

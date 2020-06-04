@@ -20,12 +20,14 @@ Set_Common_TargetCompileOptions(Graphics)
 target_link_libraries(Graphics
                       PUBLIC
                       Utilities
+                      ZilchShaders
+                      SPIRV-Cross
+                      Resources
+                      Engine
                       Vulkan
                       StbImage
                       TinyObjLoader
                       GLFW
-                      SPIRV-Cross
-                      ZilchShaders
 )
 
 set_target_properties(Graphics PROPERTIES FOLDER "Libraries")

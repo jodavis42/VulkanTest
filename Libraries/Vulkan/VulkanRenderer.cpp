@@ -397,12 +397,17 @@ void VulkanRenderer::DestroyTextureInternal(VulkanImage* vulkanImage)
 
 void VulkanRenderer::DestroyShaderInternal(VulkanShader* vulkanShader)
 {
+  if(vulkanShader == nullptr)
+    return;
   vkDestroyShaderModule(mInternal->mDevice, vulkanShader->mPixelShaderModule, nullptr);
   vkDestroyShaderModule(mInternal->mDevice, vulkanShader->mVertexShaderModule, nullptr);
 }
 
 void VulkanRenderer::DestroyShaderMaterialInternal(VulkanShaderMaterial* vulkanShaderMaterial)
 {
+  if(vulkanShaderMaterial == nullptr)
+    return;
+
   vkDestroyPipeline(mInternal->mDevice, vulkanShaderMaterial->mPipeline, nullptr);
   vkDestroyPipelineLayout(mInternal->mDevice, vulkanShaderMaterial->mPipelineLayout, nullptr);
   vkDestroyDescriptorPool(mInternal->mDevice, vulkanShaderMaterial->mDescriptorPool, nullptr);

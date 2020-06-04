@@ -262,11 +262,15 @@ void PopulateMaterialBuffers(RendererData& rendererData, MaterialBatchUploadData
   {
     const ZilchMaterial* material = materialData.mZilchMaterial;
     const ZilchShader* shader = materialData.mZilchShader;
+    if(shader == nullptr)
+      continue;
     VulkanShaderMaterial* vulkanShaderMaterial = renderer.mUniqueZilchShaderMaterialMap[shader];
 
     for(const MaterialFragment& fragment : material->mFragments)
     {
       const Zero::ZilchShaderIRType* fragmentShaderType = materialBatchData.mZilchShaderManager->FindFragmentType(fragment.mFragmentName);
+      if(fragmentShaderType == nullptr)
+        continue;
       for(const MaterialProperty& materialProp : fragment.mProperties)
       {
         const Zero::ShaderResourceReflectionData* reflectionData = shader->mResources[ShaderStage::Pixel].mReflection->FindUniformReflectionData(fragmentShaderType, materialProp.mPropertyName);

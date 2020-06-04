@@ -3,9 +3,6 @@
 #include "Mesh.hpp"
 #undef Error
 
-#include <filesystem>
-#include "JsonSerializers.hpp"
-
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tinyobjloader/tiny_obj_loader.h"
 
@@ -35,53 +32,34 @@ MeshManager::MeshManager()
 
 MeshManager::~MeshManager()
 {
-  Destroy();
+
 }
 
-void MeshManager::Load(const String& resourcesDir)
+void MeshManager::GetExtensions(Array<ResourceExtension>& extensions) const
 {
-  FileSearchData searchData = {resourcesDir, Zero::FilePath::Combine(resourcesDir, "data")};
-  LoadAllFilesOfExtension(*this, searchData, ".mesh");
+  extensions.PushBack({"mesh"});
 }
 
-void MeshManager::LoadFromFile(const FileLoadData& loadData)
+bool MeshManager::OnLoadResource(const ResourceMetaFile& resourceMeta, Mesh* mesh)
 {
-  JsonLoader loader;
-  loader.LoadFromFile(loadData.mFilePath);
-
-  String meshName;
-  String meshPath;
-
-  LoadPrimitive(loader, "Name", meshName);
-  LoadPrimitive(loader, "MeshPath", meshPath);
-
-  String fullMeshPath = Zero::FilePath::Combine(loadData.mRootResourcesDir, meshPath);
-  LoadMesh(meshName, fullMeshPath);
+  return LoadMesh(resourceMeta, mesh);
 }
 
-void MeshManager::LoadMesh(const String& name, const String& path)
+bool MeshManager::OnReLoadResource(const ResourceMetaFile& resourceMeta, Mesh* mesh)
 {
-  Mesh* mesh = new Mesh();
+  return LoadMesh(resourceMeta, mesh);
+}
+
+bool MeshManager::LoadMesh(const ResourceMetaFile& resourceMeta, Mesh* mesh)
+{
   tinyobj::attrib_t attrib;
   std::vector<tinyobj::shape_t> shapes;
   std::vector<tinyobj::material_t> materials;
   std::string warn, err;
 
-  if(!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str()))
-    throw std::runtime_error(warn + err);
+  if(!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, resourceMeta.mResourcePath.c_str()))
+    return false;
 
   FilloutMesh(mesh, shapes, attrib);
-  mMeshMap[name] = mesh;
-}
-
-Mesh* MeshManager::Find(const String& name)
-{
-  return mMeshMap.FindValue(name, nullptr);
-}
-
-void MeshManager::Destroy()
-{
-  for(Mesh* mesh : mMeshMap.Values())
-    delete mesh;
-  mMeshMap.Clear();
+  return true;
 }

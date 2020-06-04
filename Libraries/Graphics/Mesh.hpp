@@ -2,28 +2,25 @@
 
 #include "Vertex.hpp"
 #include "GraphicsStandard.hpp"
-
-struct FileLoadData;
+#include "ResourceManager.hpp"
 
 //-------------------------------------------------------------------Mesh
-struct Mesh
+struct Mesh : public Resource
 {
   Array<Vertex> mVertices;
   Array<uint32_t> mIndices;
 };
 
 //-------------------------------------------------------------------MeshManager
-struct MeshManager
+struct MeshManager : public ResourceManagerTyped<Mesh>
 {
 public:
   MeshManager();
   ~MeshManager();
 
-  void Load(const String& resourcesDir);
-  void LoadFromFile(const FileLoadData& loadData);
-  void LoadMesh(const String& name, const String& path);
-  Mesh* Find(const String& name);
-  void Destroy();
+  virtual void GetExtensions(Array<ResourceExtension>& extensions) const override;
+  virtual bool OnLoadResource(const ResourceMetaFile& resourceMeta, Mesh* mesh) override;
+  virtual bool OnReLoadResource(const ResourceMetaFile& resourceMeta, Mesh* mesh) override;
 
-  HashMap<String, Mesh*> mMeshMap;
+  bool LoadMesh(const ResourceMetaFile& resourceMeta, Mesh* mesh);
 };

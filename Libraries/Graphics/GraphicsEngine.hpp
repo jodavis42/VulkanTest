@@ -11,6 +11,7 @@
 #include <functional>
 
 class GraphicsSpace;
+class ResourceSystem;
 
 struct GraphicsEngineRendererInitData
 {
@@ -23,9 +24,10 @@ struct GraphicsEngineInitData
 {
   String mResourcesDir;
   String mShaderCoreDir;
+  ResourceSystem* mResourceSystem = nullptr;
 };
 
-struct GraphicsEngine
+struct GraphicsEngine : public Zilch::EventHandler
 {
 public:
   void Initialize(const GraphicsEngineInitData& initData);
@@ -45,8 +47,13 @@ public:
   void UploadMaterial(ZilchMaterial* zilchMaterial);
   void UploadMaterials();
   void UploadMeshes();
+  void ReloadResources();
+
+  void OnResourceLoaded(ResourceLoadEvent* event);
+  void OnResourceReLoaded(ResourceLoadEvent* event);
 
   void PopulateMaterialBuffer();
+  void CreateSwapChain();
   void CleanupSwapChain();
   void RecreateSwapChain();
   void WaitIdle();
@@ -55,10 +62,13 @@ public:
   std::function<void(size_t&, size_t&)> mWindowSizeQueryFn = nullptr;
   Array<GraphicsSpace*> mSpaces;
 
-  MeshManager mMeshManager;
-  TextureManager mTextureManager;
-  ZilchFragmentFileManager mZilchFragmentFileManager;
-  ZilchMaterialManager mZilchMaterialManager;
+  GraphicsEngineInitData mInitData;
+  ResourceSystem* mResourceSystem = nullptr;
+  MeshManager* mMeshManager = nullptr;
+  TextureManager* mTextureManager = nullptr;
+  ZilchFragmentFileManager* mZilchFragmentFileManager = nullptr;
+  ZilchMaterialManager* mZilchMaterialManager = nullptr;
   ZilchShaderManager mZilchShaderManager;
   VulkanRenderer mRenderer;
+  bool mReloadResources = false;
 };

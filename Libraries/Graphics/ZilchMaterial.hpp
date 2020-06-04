@@ -2,8 +2,7 @@
 
 #include "GraphicsStandard.hpp"
 #include "MaterialShared.hpp"
-
-struct FileLoadData;
+#include "ResourceManager.hpp"
 
 //-------------------------------------------------------------------MaterialFragment
 struct MaterialFragment
@@ -13,7 +12,7 @@ struct MaterialFragment
 };
 
 //-------------------------------------------------------------------ZilchMaterial
-struct ZilchMaterial
+struct ZilchMaterial : public Resource
 {
   String mMaterialName;
 
@@ -21,20 +20,17 @@ struct ZilchMaterial
 };
 
 //-------------------------------------------------------------------ZilchMaterialManager
-struct ZilchMaterialManager
+struct ZilchMaterialManager : public ResourceManagerTyped<ZilchMaterial>
 {
 public:
   ZilchMaterialManager();
   ~ZilchMaterialManager();
 
-  void Load(const String& resourcesDir);
-  void LoadFromFile(const FileLoadData& loadData);
-  void LoadZilchFragments(JsonLoader& loader, ZilchMaterial* material);
+  virtual void GetExtensions(Array<ResourceExtension>& extensions) const override;
+  virtual bool OnLoadResource(const ResourceMetaFile& resourceMeta, ZilchMaterial* zilchMaterial) override;
+  virtual bool OnReLoadResource(const ResourceMetaFile& resourceMeta, ZilchMaterial* zilchMaterial) override;
+  
+  bool LoadZilchMaterial(const ResourceMetaFile& resourceMeta, ZilchMaterial* zilchMaterial);
+  bool LoadZilchFragments(JsonLoader& loader, ZilchMaterial* material);
   void LoadZilchFragmentProperties(JsonLoader& loader, MaterialFragment& fragment);
-
-  void Add(const String& name, ZilchMaterial* material);
-  ZilchMaterial* Find(const String& name);
-  void Destroy();
-
-  HashMap<String, ZilchMaterial*> mMaterialMap;
 };

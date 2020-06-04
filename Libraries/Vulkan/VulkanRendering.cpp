@@ -103,16 +103,18 @@ void DrawModels(RendererData& rendererData, const ViewBlock& viewBlock, const Re
     const GraphicalFrameData& graphicalFrameData = renderGroupTask.mFrameData[i];
     VulkanMesh* vulkanMesh = renderer.mMeshMap.FindValue(graphicalFrameData.mMesh, nullptr);
     VulkanShaderMaterial* vulkanShaderMaterial = renderer.mUniqueZilchShaderMaterialMap.FindValue(graphicalFrameData.mZilchShader, nullptr);
+    if(vulkanShaderMaterial != nullptr)
+    {
+      vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanShaderMaterial->mPipeline);
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanShaderMaterial->mPipeline);
+      VkBuffer vertexBuffers[] = {vulkanMesh->mVertexBuffer};
+      VkDeviceSize offsets[] = {0};
+      vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+      vkCmdBindIndexBuffer(commandBuffer, vulkanMesh->mIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-    VkBuffer vertexBuffers[] = {vulkanMesh->mVertexBuffer};
-    VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(commandBuffer, vulkanMesh->mIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanShaderMaterial->mPipelineLayout, 0, 1, &vulkanShaderMaterial->mDescriptorSets[frameId], writeInfo.mDynamicOffsetsCount, writeInfo.mDynamicOffsetsBase);
-    vkCmdDrawIndexed(commandBuffer, vulkanMesh->mIndexCount, 1, 0, 0, 0);
+      vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanShaderMaterial->mPipelineLayout, 0, 1, &vulkanShaderMaterial->mDescriptorSets[frameId], writeInfo.mDynamicOffsetsCount, writeInfo.mDynamicOffsetsBase);
+      vkCmdDrawIndexed(commandBuffer, vulkanMesh->mIndexCount, 1, 0, 0, 0);
+    }
 
     for(size_t j = 0; j < writeInfo.mDynamicOffsetsCount; ++j)
       writeInfo.mDynamicOffsetsBase[j] += writeInfo.mDynamicOffsets[j];

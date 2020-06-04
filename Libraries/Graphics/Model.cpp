@@ -12,8 +12,8 @@
 void Model::FilloutFrameData(GraphicalFrameData& frameData) const
 {
   GraphicsEngine* engine = mSpace->mEngine;
-  frameData.mMesh = engine->mMeshManager.Find(mMeshName);
-  frameData.mZilchMaterial = engine->mZilchMaterialManager.Find(mMaterialName);
+  frameData.mMesh = engine->mMeshManager->FindResource(ResourceName{mMeshName});
+  frameData.mZilchMaterial = engine->mZilchMaterialManager->FindResource(ResourceName{mMaterialName});
   frameData.mZilchShader = engine->mZilchShaderManager.Find(mMaterialName);
 
   Matrix3 rotation = Matrix3::GenerateRotation(Vec3(0, 0, 1), 0 * Math::DegToRad(90.0f));

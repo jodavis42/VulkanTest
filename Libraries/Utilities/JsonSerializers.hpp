@@ -26,6 +26,7 @@ public:
   virtual bool SerializePrimitive(bool& data);
   virtual bool SerializePrimitive(char& data);
   virtual bool SerializePrimitive(int& data);
+  virtual bool SerializePrimitive(int64& data);
   virtual bool SerializePrimitive(float& data);
   virtual bool SerializePrimitive(double& data);
   virtual bool SerializePrimitive(String& data);
@@ -47,6 +48,7 @@ public:
   bool WritePrimitive(bool data);
   bool WritePrimitive(char data);
   bool WritePrimitive(int data);
+  bool WritePrimitive(int64 data);
   bool WritePrimitive(float data);
   bool WritePrimitive(double data);
   bool WritePrimitive(const String& data);
@@ -67,6 +69,7 @@ public:
   virtual bool SerializePrimitive(bool& data);
   virtual bool SerializePrimitive(char& data);
   virtual bool SerializePrimitive(int& data);
+  virtual bool SerializePrimitive(int64& data);
   virtual bool SerializePrimitive(float& data);
   virtual bool SerializePrimitive(double& data);
   virtual bool SerializePrimitive(String& data);
@@ -87,6 +90,7 @@ public:
   bool ReadPrimitive(bool& data);
   bool ReadPrimitive(char& data);
   bool ReadPrimitive(int& data);
+  bool ReadPrimitive(int64& data);
   bool ReadPrimitive(float& data);
   bool ReadPrimitive(double& data);
   bool ReadPrimitive(String& data);

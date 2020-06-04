@@ -3,28 +3,25 @@
 #include "GraphicsStandard.hpp"
 
 #include "ShaderEnumTypes.hpp"
+#include "ResourceManager.hpp"
 
-struct FileLoadData;
+class ResourceMetaFile;
 
 //-------------------------------------------------------------------ZilchFragmentFile
-struct ZilchFragmentFile
+struct ZilchFragmentFile : public Resource
 {
 public:
-  String mFilePath;
   String mFileContents;
 };
 
 //-------------------------------------------------------------------ZilchFragmentFileManager
-struct ZilchFragmentFileManager
+struct ZilchFragmentFileManager : public ResourceManagerTyped<ZilchFragmentFile>
 {
 public:
   ZilchFragmentFileManager();
   ~ZilchFragmentFileManager();
 
-  void Load(const String& resourcesDir);
-  void LoadFromFile(const FileLoadData& loadData);
-  ZilchFragmentFile* Find(const String& name);
-  void Destroy();
-
-  HashMap<String, ZilchFragmentFile*> mResourceMap;
+  virtual void GetExtensions(Array<ResourceExtension>& extensions) const override;
+  virtual bool OnLoadResource(const ResourceMetaFile& resourceMeta, ZilchFragmentFile* fragment) override;
+  virtual bool OnReLoadResource(const ResourceMetaFile& resourceMeta, ZilchFragmentFile* fragment) override;
 };

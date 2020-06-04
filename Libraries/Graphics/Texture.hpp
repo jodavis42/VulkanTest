@@ -2,7 +2,9 @@
 
 #include "GraphicsStandard.hpp"
 
-struct FileLoadData;
+#include "ResourceManager.hpp"
+
+class ResourceMetaFile;
 
 //-------------------------------------------------------------------TextureFormat
 enum class  TextureFormat
@@ -36,7 +38,7 @@ enum class TextureAddressing
 };
 
 //-------------------------------------------------------------------Texture
-struct Texture
+struct Texture : public Resource
 {
 public:
   size_t mSizeX = 0;
@@ -48,23 +50,19 @@ public:
   TextureAddressing mAddressingX = TextureAddressing::Repeat;
   TextureAddressing mAddressingY = TextureAddressing::Repeat;
   size_t mMipLevels = 1;
-  String mName;
-  String mFilePath;
   Array<float> mTextureData;
 };
 
 //-------------------------------------------------------------------TextureManager
-struct TextureManager
+struct TextureManager : public ResourceManagerTyped<Texture>
 {
 public:
   TextureManager();
   ~TextureManager();
 
-  void Load(const String& resourcesDir);
-  void LoadFromFile(const FileLoadData& loadData);
-  void LoadTexture(const String& name, const String& path);
-  Texture* Find(const String& name);
-  void Destroy();
-
-  HashMap<String, Texture*> mTextureMap;
+  virtual void GetExtensions(Array<ResourceExtension>& extensions) const override;
+  virtual bool OnLoadResource(const ResourceMetaFile& resourceMeta, Texture* texture) override;
+  virtual bool OnReLoadResource(const ResourceMetaFile& resourceMeta, Texture* texture) override;
+  
+  bool LoadTexture(const ResourcePath& path, Texture* texture) const;
 };

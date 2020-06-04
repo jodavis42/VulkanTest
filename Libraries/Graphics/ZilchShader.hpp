@@ -111,8 +111,8 @@ public:
   HashMap<String, ZilchShader*>::valuerange Values();
   void Destroy();
 
-  void BuildFragmentsLibrary();
-  void BuildShadersLibrary();
+  bool BuildFragmentsLibrary();
+  bool BuildShadersLibrary();
 
 private:
   Zero::ZilchShaderSpirVSettings* CreateZilchShaderSettings(Zero::SpirVNameSettings& nameSettings);

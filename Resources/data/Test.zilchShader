@@ -1,8 +1,0 @@
-{
-  "Name": "TestZilch",
-  "Fragments":
-  [
-    "Vertex",
-    "Pixel"
-  ]
-}

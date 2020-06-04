@@ -1,5 +1,7 @@
 target_sources(Graphics
   PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/GraphicsZilchStaticLibrary.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/GraphicsZilchStaticLibrary.hpp
     ${CMAKE_CURRENT_LIST_DIR}/GraphicsEngine.cpp
     ${CMAKE_CURRENT_LIST_DIR}/GraphicsEngine.hpp
     ${CMAKE_CURRENT_LIST_DIR}/GraphicsSpace.cpp

@@ -3,9 +3,7 @@
 #include "Texture.hpp"
 #undef Error
 
-#include <filesystem>
-#include <algorithm>
-#include "JsonSerializers.hpp"
+#include "Resources/ResourceMetaFile.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
@@ -18,40 +16,35 @@ TextureManager::TextureManager()
 
 TextureManager::~TextureManager()
 {
-  Destroy();
 }
 
-void TextureManager::Load(const String& resourcesDir)
+void TextureManager::GetExtensions(Array<ResourceExtension>& extensions) const
 {
-  FileSearchData searchData = {resourcesDir, Zero::FilePath::Combine(resourcesDir, "data")};
-  LoadAllFilesOfExtension(*this, searchData, ".texture");
+  extensions.PushBack({"png"});
 }
 
-void TextureManager::LoadFromFile(const FileLoadData& loadData)
+bool TextureManager::OnLoadResource(const ResourceMetaFile& resourceMeta, Texture* texture)
 {
-  JsonLoader loader;
-  loader.LoadFromFile(loadData.mFilePath);
-
-  String textureName;
-  String texturePath;
-
-  LoadPrimitive(loader, "Name", textureName);
-  LoadPrimitive(loader, "TexturePath", texturePath);
-
-  String fullTexturePath = Zero::FilePath::Combine(loadData.mRootResourcesDir, texturePath);
-  LoadTexture(textureName, fullTexturePath);
+  return LoadTexture(resourceMeta.mResourcePath, texture);
 }
 
-void TextureManager::LoadTexture(const String& name, const String& path)
+bool TextureManager::OnReLoadResource(const ResourceMetaFile& resourceMeta, Texture* texture)
+{
+  return LoadTexture(resourceMeta.mResourcePath, texture);
+}
+
+bool TextureManager::LoadTexture(const ResourcePath& path, Texture* texture) const
 {
   int texWidth, texHeight, texChannels;
   stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-  ErrorIf(pixels == nullptr, "Failed to load image");
+  if(pixels == nullptr)
+  {
+    Warn("Failed to load image '%s'", path.c_str());
+    return false;
+  }
+  
   uint32_t pixelsSize = texWidth * texHeight * 4;
-
-  Texture* texture = new Texture();
-  texture->mName = name;
-  texture->mFilePath = path;
+  
   texture->mSizeX = texWidth;
   texture->mSizeY = texHeight;
   texture->mMipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
@@ -60,18 +53,5 @@ void TextureManager::LoadTexture(const String& name, const String& path)
   memcpy(texture->mTextureData.Data(), pixels, pixelsSize);
 
   stbi_image_free(pixels);
-
-  mTextureMap[name] = texture;
-}
-
-Texture* TextureManager::Find(const String& name)
-{
-  return mTextureMap.FindValue(name, nullptr);
-}
-
-void TextureManager::Destroy()
-{
-  for(Texture* texture : mTextureMap.Values())
-    delete texture;
-  mTextureMap.Clear();
+  return true;
 }
