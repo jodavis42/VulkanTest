@@ -38,6 +38,7 @@ public:
   ZilchScriptModule* GetModule();
 
 private:
+  static void OnError(Zilch::ErrorEvent* e, void* userData);
   static void OnTypeParsed(Zilch::ParseEvent* e, void* userData);
 
   Zilch::Module* mNativeDependencies = nullptr;

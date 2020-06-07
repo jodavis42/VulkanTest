@@ -71,6 +71,7 @@ void ZilchScriptLibraryManager::BuildLibrary(ResourceLibrary* resourceLibrary)
   }
   
   Zilch::EventConnect(&scriptProject, Zilch::Events::TypeParsed, OnTypeParsed, this, nullptr);
+  Zilch::EventConnect(&scriptProject, Zilch::Events::CompilationError, OnError, this, nullptr);
   Zilch::LibraryRef library = scriptProject.Compile(resourceLibrary->mLibraryName, *mNativeDependencies, Zilch::EvaluationMode::Project);
   if(library == nullptr)
     return;
@@ -84,6 +85,12 @@ void ZilchScriptLibraryManager::BuildLibrary(ResourceLibrary* resourceLibrary)
 ZilchScriptModule* ZilchScriptLibraryManager::GetModule()
 {
   return mModule;
+}
+
+void ZilchScriptLibraryManager::OnError(Zilch::ErrorEvent* e, void* userData)
+{
+  String msg = e->GetFormattedMessage(Zilch::MessageFormat::MsvcCpp);
+  Warn(msg.c_str());
 }
 
 void ZilchScriptLibraryManager::OnTypeParsed(Zilch::ParseEvent* e, void* userData)
