@@ -5,11 +5,12 @@ class TimedDeath : ZilchComponent
 
   function Initialize()
   {
+    ZilchScript.Connect(this.Space, "LogicUpdate", this.OnLogicUpdate);
   }
 
-  function Update(dt : Real)
+  function OnLogicUpdate(event : UpdateEvent)
   {
-    this.AccumulatedTime += dt;
+    this.AccumulatedTime += event.Dt;
     if(this.AccumulatedTime > this.Time)
     {
       this.Owner.Destroy();

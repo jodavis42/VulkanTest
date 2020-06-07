@@ -4,6 +4,8 @@ target_sources(ZilchScript
     ${CMAKE_CURRENT_LIST_DIR}/Precompiled.hpp
     ${CMAKE_CURRENT_LIST_DIR}/ZilchComponent.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ZilchComponent.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/ZilchScriptExtensions.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ZilchScriptExtensions.hpp
     ${CMAKE_CURRENT_LIST_DIR}/ZilchScriptLibrary.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ZilchScriptLibrary.hpp
     ${CMAKE_CURRENT_LIST_DIR}/ZilchScriptManager.cpp
