@@ -4,18 +4,15 @@
 #include "GraphicsStandard.hpp"
 #include "Graphical.hpp"
 
-class JsonLoader;
-
+//-----------------------------------------------------------------------------Model
 struct Model : public Graphical
 {
-  virtual void FilloutFrameData(GraphicalFrameData& frameData) const override;
+  ZilchDeclareType(Model, Zilch::TypeCopyMode::ReferenceType);
 
+  virtual void Initialize(const CompositionInitializer& initializer) override;
+  virtual void OnDestroy() override;
+  virtual void FilloutFrameData(GraphicalFrameData& frameData) const override;
+  
   String mMaterialName;
   String mMeshName;
-
-  Vec3 mTranslation = Vec3(0, 0, 0);
-  Matrix3 mRotation;
-  Vec3 mScale = Vec3(1, 1, 1);
 };
-
-void LoadModel(JsonLoader& loader, Model* model);

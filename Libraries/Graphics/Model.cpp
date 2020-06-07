@@ -3,11 +3,35 @@
 #include "Model.hpp"
 #include "GraphicsSpace.hpp"
 #include "GraphicsEngine.hpp"
-#include "JsonSerializers.hpp"
 #include "RenderTasks.hpp"
 #include "Mesh.hpp"
 #include "ZilchMaterial.hpp"
 #include "ZilchShader.hpp"
+#include "Space.hpp"
+#include "Transform.hpp"
+
+//-----------------------------------------------------------------------------Model
+ZilchDefineType(Model, builder, type)
+{
+  ZilchBindDefaultConstructor();
+  ZilchBindDestructor();
+
+  ZilchBindField(mMaterialName)->AddAttribute("Serialize")->AddParameter(String("Material"));
+  ZilchBindField(mMeshName)->AddAttribute("Serialize")->AddParameter(String("Mesh"));
+}
+
+void Model::Initialize(const CompositionInitializer& initializer)
+{
+  Space* space = GetSpace();
+  GraphicsSpace* graphicsSpace = space->Has<GraphicsSpace>();
+  graphicsSpace->Add(this);
+}
+
+void Model::OnDestroy()
+{
+  GraphicsSpace* graphicsSpace = GetSpace()->Has<GraphicsSpace>();
+  graphicsSpace->Remove(this);
+}
 
 void Model::FilloutFrameData(GraphicalFrameData& frameData) const
 {
@@ -16,21 +40,6 @@ void Model::FilloutFrameData(GraphicalFrameData& frameData) const
   frameData.mZilchMaterial = engine->mZilchMaterialManager->FindResource(ResourceName{mMaterialName});
   frameData.mZilchShader = engine->mZilchShaderManager.Find(mMaterialName);
 
-  Matrix3 rotation = Matrix3::GenerateRotation(Vec3(0, 0, 1), 0 * Math::DegToRad(90.0f));
-  frameData.mLocalToWorld = Matrix4::GenerateTransform(mTranslation, rotation, mScale);
-}
-
-void LoadModel(JsonLoader& loader, Model* model)
-{
-  if(loader.BeginMember("Transform"))
-  {
-    LoadArray<Vec3, 3>(loader, "Translation", model->mTranslation);
-    loader.EndMember();
-  }
-  if(loader.BeginMember("Model"))
-  {
-    LoadPrimitive(loader, "Mesh", model->mMeshName);
-    LoadPrimitive(loader, "Material", model->mMaterialName);
-    loader.EndMember();
-  }
+  Transform* transform = GetOwner()->Has<Transform>();
+  frameData.mLocalToWorld = transform->GetWorldMatrix();
 }

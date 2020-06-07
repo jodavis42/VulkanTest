@@ -5,6 +5,40 @@
 #include "ResourceExtensionManager.hpp"
 #include "JsonSerializers.hpp"
 
+ResourceLibrary::ResourceIdRangeOfResourceType::ResourceIdRangeOfResourceType(const ResourceTypeName& resouceTypeName, RangeType range)
+  : mResourceTypeName(resouceTypeName)
+  , mRange(range)
+{
+
+}
+
+bool ResourceLibrary::ResourceIdRangeOfResourceType::Empty()
+{
+  return mRange.Empty();
+}
+
+ResourceLibrary::ResourceIdRangeOfResourceType::FrontType ResourceLibrary::ResourceIdRangeOfResourceType::Front()
+{
+  return mRange.Front().first;
+}
+
+void ResourceLibrary::ResourceIdRangeOfResourceType::PopFront()
+{
+  mRange.PopFront();
+  while(!mRange.Empty() && mRange.Front().second.mResourceTypeName != mResourceTypeName)
+    mRange.PopFront();
+}
+
+ResourceLibrary::ResourceIdRangeOfResourceType::SelfType ResourceLibrary::ResourceIdRangeOfResourceType::end()
+{
+  return SelfType(mResourceTypeName, mRange.end());
+}
+
+bool ResourceLibrary::ResourceIdRangeOfResourceType::operator==(const SelfType& rhs) const
+{
+  return mRange == rhs.mRange && mResourceTypeName == rhs.mResourceTypeName;
+}
+
 void ResourceLibrary::Load(ResourceExtensionManager& extensionManager)
 {
   Load(extensionManager, mLibraryPath, mRecursiveLoad);
@@ -79,4 +113,9 @@ ResourceMetaFile ResourceLibrary::LoadMetaFileForResource(const ResourcePath& pa
   }
 
   return metaFile;
+}
+
+ResourceLibrary::ResourceIdRangeOfResourceType ResourceLibrary::AllResourcesOfType(const ResourceTypeName& resourceTypeName)
+{
+  return ResourceIdRangeOfResourceType(resourceTypeName, mResourceIdMetaMap.All());
 }

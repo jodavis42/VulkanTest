@@ -24,6 +24,7 @@ target_link_libraries(Application
                       Engine
                       Graphics
                       Vulkan
+                      ZilchScript
                       GLFW
                       VulkanSDK
 )

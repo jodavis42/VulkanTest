@@ -101,6 +101,20 @@ public:
   JsonInternalData* mData;
 };
 
+template <typename ArrayType, uint ArraySize = ArrayType::Count>
+bool LoadArray(JsonLoader& loader, ArrayType& data)
+{
+  size_t count;
+  loader.BeginArray(count);
+  for(uint i = 0; i < count; ++i)
+  {
+    loader.BeginArrayItem(i);
+    loader.SerializePrimitive(data[i]);
+    loader.EndArrayItem();
+  }
+  loader.EndArray();
+  return true;
+}
 
 template <typename ArrayType, uint ArraySize = ArrayType::Count>
 bool LoadArray(JsonLoader& loader, const String& name, ArrayType& data)

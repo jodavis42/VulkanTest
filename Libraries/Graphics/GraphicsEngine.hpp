@@ -8,10 +8,12 @@
 #include "ZilchShader.hpp"
 #include "Renderer.hpp"
 #include "VulkanRenderer.hpp"
+#include "Engine/Component.hpp"
 #include <functional>
 
 class GraphicsSpace;
 class ResourceSystem;
+class UpdateEvent;
 
 struct GraphicsEngineRendererInitData
 {
@@ -27,17 +29,19 @@ struct GraphicsEngineInitData
   ResourceSystem* mResourceSystem = nullptr;
 };
 
-struct GraphicsEngine : public Zilch::EventHandler
+struct GraphicsEngine : public Component
 {
 public:
-  void Initialize(const GraphicsEngineInitData& initData);
+  ZilchDeclareType(GraphicsEngine, Zilch::TypeCopyMode::ReferenceType);
+
+  virtual void Initialize(const CompositionInitializer& initializer) override;
+  void InitializeGraphics(const GraphicsEngineInitData& initData);
   void Shutdown();
 
-  GraphicsSpace* CreateSpace(const String& name);
-  GraphicsSpace* FindSpace(const String& name);
-  void DestroySpace(const String& name);
-  void DestroySpace(GraphicsSpace* space);
+  void Add(GraphicsSpace* space);
+  void Remove(GraphicsSpace* space);
 
+  void OnEngineUpdate(Zilch::EventData* e);
   void Update();
   Renderer* GetRenderer();
 

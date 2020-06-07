@@ -1,0 +1,18 @@
+class TimedDeath : ZilchComponent
+{
+  [Property] var Time : Real = 3.0;
+  var AccumulatedTime : Real = 0.0;
+
+  function Initialize()
+  {
+  }
+
+  function Update(dt : Real)
+  {
+    this.AccumulatedTime += dt;
+    if(this.AccumulatedTime > this.Time)
+    {
+      this.Owner.Destroy();
+    }
+  }
+}

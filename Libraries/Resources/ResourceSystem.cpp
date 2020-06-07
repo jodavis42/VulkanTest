@@ -52,7 +52,7 @@ void ResourceSystem::LoadLibrary(const String& libraryName, const String& librar
 
 void ResourceSystem::LoadLibrary(ResourceLibrary* library)
 {
-  mLibraryStack.PushBack(library);
+  mResourceLibraryGraph.PushLibrary(library);
   for(auto pair : library->mExtensionsToMetaFilePaths)
   {
     ResourceTypeName* resourceTypeName = mExtensionManager.Find(pair.first);
@@ -73,7 +73,7 @@ void ResourceSystem::LoadLibrary(ResourceLibrary* library)
 
 void ResourceSystem::ReloadLibraries()
 {
-  for(auto library : mLibraryStack)
+  for(auto library : mResourceLibraryGraph.GetLibraries())
   {
     for(auto pair : library->mExtensionsToMetaFilePaths)
     {
@@ -103,4 +103,9 @@ ResourceManager* ResourceSystem::FindManagerBase(const ResourceTypeName& typeNam
 ResourceManager* ResourceSystem::FindManagerBase(const ResourceManagerTypeName& managerTypeName) const
 {
   return mResourceManagerMap.FindValue(managerTypeName, nullptr);
+}
+
+ResourceLibraryGraph* ResourceSystem::GetLibraryGraph()
+{
+  return &mResourceLibraryGraph;
 }

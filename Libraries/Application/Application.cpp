@@ -5,10 +5,23 @@
 #include "Resources/ResourceZilchStaticLibrary.hpp"
 #include "Resources/ResourceSystem.hpp"
 #include "Resources/ResourceLibrary.hpp"
+#include "Resources/ResourceLibraryGraph.hpp"
+#include "Engine/EngineZilchStaticLibrary.hpp"
+#include "Engine/ArchetypeManager.hpp"
 #include "Engine/LevelManager.hpp"
+#include "Engine/CompositionInitializer.hpp"
+#include "Engine/Composition.hpp"
+#include "Engine/Engine.hpp"
+#include "Engine/Transform.hpp"
+#include "Engine/Space.hpp"
+#include "Engine/TimeSpace.hpp"
 #include "Graphics/GraphicsZilchStaticLibrary.hpp"
 #include "Graphics/GraphicsEngine.hpp"
 #include "Graphics/GraphicsSpace.hpp"
+#include "ZilchScript/ZilchScriptManager.hpp"
+#include "ZilchScript/ZilchScriptZilchStaticLibrary.hpp"
+#include "ZilchScript/ZilchScriptLibrary.hpp"
+#include "EngineSerialization.hpp"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -16,8 +29,38 @@
 #include <chrono>
 #include <iostream>
 
+struct Setup
+{
+  Zilch::ZilchSetup* mZilchSetup = nullptr;
+  Zilch::Module* mNativeModule = nullptr;
+  Setup()
+  {
+    Zilch::ZilchSetup* zilchSetup = new Zilch::ZilchSetup();
+
+    mNativeModule = new Zilch::Module();
+    ResourceStaticLibrary::InitializeInstance();
+    mNativeModule->PushBack(ResourceStaticLibrary::GetInstance().GetLibrary());
+    EngineStaticLibrary::InitializeInstance();
+    mNativeModule->PushBack(EngineStaticLibrary::GetInstance().GetLibrary());
+    GraphicsStaticLibrary::InitializeInstance();
+    mNativeModule->PushBack(GraphicsStaticLibrary::GetInstance().GetLibrary());
+    ZilchScriptStaticLibrary::InitializeInstance();
+    mNativeModule->PushBack(ZilchScriptStaticLibrary::GetInstance().GetLibrary());
+    Zilch::ExecutableState::CallingState = mNativeModule->Link();
+  }
+
+  ~Setup()
+  {
+
+  }
+};
+
 class HelloTriangleApplication {
 public:
+  HelloTriangleApplication(Setup* setup) : mSetup(setup), mZilchScriptLibraryManager(&mResourceSystem)
+  {
+  }
+
   void run()
   {
     Initialize();
@@ -26,9 +69,13 @@ public:
   }
 
 private:
+  Setup* mSetup = nullptr;
   String mResourcesDir;
   String mShaderCoreDir;
   ResourceSystem mResourceSystem;
+  ZilchScriptLibraryManager mZilchScriptLibraryManager;
+  Zilch::HandleOf<Engine> mEngine;
+  Zilch::HandleOf<Space> mSpace;
 
   static void FramebufferResizeCallback(GLFWwindow* window, int width, int height)
   {
@@ -58,19 +105,6 @@ private:
     outHeight = height;
   }
 
-  void InitializeZilch()
-  {
-    Zilch::ZilchSetup* zilchSetup = new Zilch::ZilchSetup();
-
-    Zilch::Module module;
-    Zilch::ExecutableState::CallingState = module.Link();
-
-    ResourceStaticLibrary::InitializeInstance();
-    ResourceStaticLibrary::GetInstance().GetLibrary();
-    GraphicsStaticLibrary::InitializeInstance();
-    GraphicsStaticLibrary::GetInstance().GetLibrary();
-  }
-
   void LoadConfiguration()
   {
     Zilch::JsonReader jsonReader;
@@ -83,6 +117,8 @@ private:
   void InitializeResourceSystem()
   {
     mResourceSystem.RegisterResourceManager(Level, LevelManager, new LevelManager());
+    mResourceSystem.RegisterResourceManager(ArchetypeManager, ArchetypeManager, new ArchetypeManager());
+    mResourceSystem.RegisterResourceManager(ZilchScript, ZilchScriptManager, new ZilchScriptManager());
     mResourceSystem.RegisterResourceManager(ZilchFragmentFile, ZilchFragmentFileManager, new ZilchFragmentFileManager());
     mResourceSystem.RegisterResourceManager(Texture, TextureManager, new TextureManager());
     mResourceSystem.RegisterResourceManager(Mesh, MeshManager, new MeshManager());
@@ -90,11 +126,52 @@ private:
     mResourceSystem.LoadLibrary("BasicProject", Zero::FilePath::Combine(mResourcesDir, "BasicProject"));
   }
 
+  void BuildZilchScripts()
+  {
+    mZilchScriptLibraryManager.SetNativeDependencies(mSetup->mNativeModule);
+    mZilchScriptLibraryManager.BuildLibraries();
+    ZilchScriptModule* zilchScriptModule = mZilchScriptLibraryManager.GetModule();
+    Zilch::ExecutableState::CallingState = zilchScriptModule->mModule.Link();
+  }
+
+  void BuildEngine()
+  {
+    ArchetypeManager* archetypeManager = mResourceSystem.FindResourceManager(ArchetypeManager);
+    Archetype* engineArchetype = archetypeManager->FindResource(ResourceName{"Engine"});
+    mEngine = ZilchAllocate(Engine);
+    
+    if(engineArchetype != nullptr)
+      LoadComposition(engineArchetype->mPath, mEngine);
+
+    if(mEngine->Has<GraphicsEngine>() == nullptr)
+      mEngine->AddComponent(ZilchAllocate(GraphicsEngine));
+    mEngine->Initialize(CompositionInitializer());
+  }
+
+  void BuildSpace()
+  {
+    ArchetypeManager* archetypeManager = mResourceSystem.FindResourceManager(ArchetypeManager);
+    Archetype* spaceArchetype = archetypeManager->FindResource(ResourceName{"Space"});
+    mSpace = ZilchAllocate(Space);
+    
+    if(spaceArchetype != nullptr)
+      LoadComposition(spaceArchetype->mPath, mSpace);
+
+    if(mSpace->Has<TimeSpace>() == nullptr)
+      mSpace->AddComponent(ZilchAllocate(TimeSpace));
+    if(mSpace->Has<GraphicsSpace>() == nullptr)
+      mSpace->AddComponent(ZilchAllocate(GraphicsSpace));
+    mEngine->Add(mSpace);
+    mSpace->Initialize(CompositionInitializer());
+  }
+
   void Initialize()
   {
-    InitializeZilch();
     LoadConfiguration();
     InitializeResourceSystem();
+    BuildZilchScripts();
+    BuildEngine();
+    BuildSpace();
 
     mTotalFrameTime = 0;
     mLastFrameTime = std::chrono::high_resolution_clock::now();
@@ -116,52 +193,48 @@ private:
     graphicsInitData.mResourcesDir = mResourcesDir;
     graphicsInitData.mShaderCoreDir = mShaderCoreDir;
     graphicsInitData.mResourceSystem = &mResourceSystem;
-    mGraphicsEngine.Initialize(graphicsInitData);
-    mGraphicsEngine.mWindowSizeQueryFn = [this](size_t& width, size_t& height) {QueryWindowSize(width, height); };
+    GraphicsEngine* graphicsEngine = mEngine->Has<GraphicsEngine>();
+    graphicsEngine->InitializeGraphics(graphicsInitData);
+    graphicsEngine->mWindowSizeQueryFn = [this](size_t& width, size_t& height) {QueryWindowSize(width, height); };
 
     GraphicsEngineRendererInitData rendererInitData;
     rendererInitData.mInitialWidth = width;
     rendererInitData.mInitialHeight = height;
     rendererInitData.mSurfaceCreationCallback.mCallbackFn = &HelloTriangleApplication::SurfaceCreationCallback;
     rendererInitData.mSurfaceCreationCallback.mUserData = this;
-    mGraphicsEngine.InitializeRenderer(rendererInitData);
+    graphicsEngine->InitializeRenderer(rendererInitData);
 
-    mGraphicsEngine.PopulateMaterialBuffer();
+    graphicsEngine->PopulateMaterialBuffer();
     LoadLevel("Level");
+  }
+
+  ZilchScriptModule* GetActiveModule()
+  {
+    return mZilchScriptLibraryManager.GetModule();
   }
 
   void LoadLevel(const String& levelName)
   {
+    ZilchScriptModule* module = GetActiveModule();
     LevelManager* levelManager = mResourceSystem.FindResourceManager(LevelManager);
+    ArchetypeManager* archetypeManager = mResourceSystem.FindResourceManager(ArchetypeManager);
     Level* level = levelManager->FindResource(ResourceName{levelName});
     ReturnIf(level == nullptr, , "Failed to find level '%s'", levelName.c_str());
-    
-    GraphicsSpace* space = mGraphicsEngine.CreateSpace(levelName);
-    String filePath = level->mPath;
-    JsonLoader loader;
-    loader.LoadFromFile(filePath);
 
-    size_t objCount;
-    loader.BeginArray(objCount);
-    for(size_t objIndex = 0; objIndex < objCount; ++objIndex)
-    {
-      loader.BeginArrayItem(objIndex);
-
-      Model* model = new Model();
-      LoadModel(loader, model);
-      space->Add(model);
-
-      loader.EndArrayItem();
-    }
+    ::LoadLevel(module, level, mSpace);
+    mSpace->InitializeCompositions(CompositionInitializer());
   }
 
-  void DrawFrame(UpdateEvent& toSend)
+  bool LoadComposition(const String& path, Composition* composition)
   {
-    for(GraphicsSpace* space : mGraphicsEngine.mSpaces)
-    {
-      space->Update(toSend);
-    }
-    mGraphicsEngine.Update();
+    ZilchScriptModule* module = GetActiveModule();
+    return ::LoadComposition(module, path, composition);
+  }
+
+  bool LoadComposition(JsonLoader& loader, Composition* composition)
+  {
+    ZilchScriptModule* module = GetActiveModule();
+    return ::LoadComposition(module, loader, composition);
   }
 
   void ProcessFrame()
@@ -179,11 +252,23 @@ private:
         break;
       }
     }
+    
+    TimeSpace* timeSpace = mSpace->Has<TimeSpace>();
+    if(timeSpace != nullptr)
+      timeSpace->Update(dt);
+    
+    DrawFrame();
 
-    UpdateEvent toSend;
-    toSend.mDt = dt;
-    toSend.mTotalTime = mTotalFrameTime;
-    DrawFrame(toSend);
+    for(Space* space : mEngine->mSpaces)
+      space->DestroyQueuedCompositions();
+    mEngine->DestroyQueuedCompositions();
+  }
+
+  void DrawFrame()
+  {
+    Zilch::HandleOf<Zilch::EventData> toSend = ZilchAllocate(Zilch::EventData);
+    toSend->EventName = Events::EngineUpdate;
+    Zilch::EventSend(mEngine, toSend->EventName, toSend);
   }
 
   void ReloadResources()
@@ -206,25 +291,27 @@ private:
       ProcessFrame();
     }
 
-    mGraphicsEngine.WaitIdle();
+    GraphicsEngine* graphicsEngine = mEngine->Has<GraphicsEngine>();
+    graphicsEngine->WaitIdle();
   }
 
   void Shutdown() 
   {
-    mGraphicsEngine.Shutdown();
+    GraphicsEngine* graphicsEngine = mEngine->Has<GraphicsEngine>();
+    graphicsEngine->Shutdown();
     glfwDestroyWindow(mWindow);
     glfwTerminate();
   }
 
   GLFWwindow* mWindow;
-  GraphicsEngine mGraphicsEngine;
   std::chrono::steady_clock::time_point mLastFrameTime;
   double mTotalFrameTime;
 };
 
 int main()
 {
-  HelloTriangleApplication app;
+  Setup setup;
+  HelloTriangleApplication app(&setup);
 
   try
   {

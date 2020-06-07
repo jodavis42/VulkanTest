@@ -3,13 +3,26 @@
 #include "GraphicsEngine.hpp"
 
 #include "Resources/ResourceSystem.hpp"
+#include "Engine/Composition.hpp"
 #include "GraphicsSpace.hpp"
 
 #include "GraphicsBufferTypes.hpp"
 #include "RenderQueue.hpp"
 #include "VulkanRenderer.hpp"
 
-void GraphicsEngine::Initialize(const GraphicsEngineInitData& initData)
+//-------------------------------------------------------------------GraphicsEngine
+ZilchDefineType(GraphicsEngine, builder, type)
+{
+  ZilchBindDefaultConstructor();
+  ZilchBindDestructor();
+}
+
+void GraphicsEngine::Initialize(const CompositionInitializer& initializer)
+{
+  Zilch::EventConnect(GetOwner(), Events::EngineUpdate, &GraphicsEngine::OnEngineUpdate, this);
+}
+
+void GraphicsEngine::InitializeGraphics(const GraphicsEngineInitData& initData)
 {
   mInitData = initData;
   Zilch::ZilchGraphicsLibrary::InitializeInstance();
@@ -51,48 +64,21 @@ void GraphicsEngine::Shutdown()
   mRenderer.Shutdown();
 }
 
-GraphicsSpace* GraphicsEngine::CreateSpace(const String& name)
+void GraphicsEngine::Add(GraphicsSpace* space)
 {
-  GraphicsSpace* space = new GraphicsSpace();
-  space->mName = name;
-  space->mEngine = this;
   mSpaces.PushBack(space);
-  return space;
 }
 
-GraphicsSpace* GraphicsEngine::FindSpace(const String& name)
+void GraphicsEngine::Remove(GraphicsSpace* space)
 {
-  for(size_t i = 0; i < mSpaces.Size(); ++i)
-  {
-    if(mSpaces[i]->mName == name)
-      return mSpaces[i];
-  }
-  return nullptr;
+  size_t index = mSpaces.FindIndex(space);
+  Math::Swap(mSpaces[index], mSpaces[mSpaces.Size() - 1]);
+  mSpaces.PopBack();
 }
 
-void GraphicsEngine::DestroySpace(const String& name)
+void GraphicsEngine::OnEngineUpdate(Zilch::EventData* e)
 {
-  for(auto it = mSpaces.begin(); it != mSpaces.end(); ++it)
-  {
-    GraphicsSpace* space = *it;
-    if(space->mName == name)
-    {
-      delete space;
-      mSpaces.Erase(it);
-    }
-  }
-}
-
-void GraphicsEngine::DestroySpace(GraphicsSpace* space)
-{
-  for(auto it = mSpaces.begin(); it != mSpaces.end(); ++it)
-  {
-    if(*it == space)
-    {
-      delete space;
-      mSpaces.Erase(it);
-    }
-  }
+  Update();
 }
 
 void GraphicsEngine::Update()

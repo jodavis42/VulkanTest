@@ -1,6 +1,8 @@
 #pragma once
 
 #include "GraphicsStandard.hpp"
+#include "Engine/Component.hpp"
+#include "Engine/UpdateEvent.hpp"
 
 struct Camera;
 struct Model;
@@ -8,19 +10,20 @@ struct GraphicsEngine;
 struct RenderFrame;
 struct RenderQueue;
 
-struct UpdateEvent
-{
-  float mDt = 0.0f;
-  double mTotalTime = 0.0;
-};
-
-class GraphicsSpace
+class GraphicsSpace : public Component
 {
 public:
+  ZilchDeclareType(GraphicsSpace, Zilch::TypeCopyMode::ReferenceType);
+
   GraphicsSpace();
   ~GraphicsSpace();
+
+  virtual void Initialize(const CompositionInitializer& initializer) override;
+  virtual void OnDestroy() override;
+
   void Add(Model* model);
-  void Update(UpdateEvent& e);
+  void Remove(Model* model);
+  void OnLogicUpdate(UpdateEvent* e);
   void RenderQueueUpdate(RenderQueue& renderQueue);
 
   float mTotalTimeElapsed = 0.0;

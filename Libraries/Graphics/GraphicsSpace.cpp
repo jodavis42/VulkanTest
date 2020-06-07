@@ -1,12 +1,22 @@
 #include "Precompiled.hpp"
 
 #include "GraphicsSpace.hpp"
+
+#include "Engine/Composition.hpp"
+#include "Engine/Engine.hpp"
+
 #include "GraphicsEngine.hpp"
 #include "GraphicsBufferTypes.hpp"
 #include "GraphicalEntry.hpp"
 #include "RenderTasks.hpp"
 #include "RenderQueue.hpp"
 #include "Camera.hpp"
+
+ZilchDefineType(GraphicsSpace, builder, type)
+{
+  ZilchBindDefaultConstructor();
+  ZilchBindDestructor();
+}
 
 GraphicsSpace::GraphicsSpace()
 {
@@ -24,15 +34,35 @@ GraphicsSpace::~GraphicsSpace()
   mModels.Clear();
 }
 
+void GraphicsSpace::Initialize(const CompositionInitializer& initializer)
+{
+  Zilch::EventConnect(GetOwner(), Events::LogicUpdate, &GraphicsSpace::OnLogicUpdate, this);
+
+  mEngine = GetEngine()->Has<GraphicsEngine>();
+  mEngine->Add(this);
+}
+
+void GraphicsSpace::OnDestroy()
+{
+  mEngine->Remove(this);
+}
+
 void GraphicsSpace::Add(Model* model)
 {
   mModels.PushBack(model);
   model->mSpace = this;
 }
 
-void GraphicsSpace::Update(UpdateEvent& e)
+void GraphicsSpace::Remove(Model* model)
 {
-  mTotalTimeElapsed += e.mDt;
+  size_t index = mModels.FindIndex(model);
+  Math::Swap(mModels[index], mModels[mModels.Size() - 1]);
+  mModels.PopBack();
+}
+
+void GraphicsSpace::OnLogicUpdate(UpdateEvent* e)
+{
+  mTotalTimeElapsed += e->mDt;
 }
 
 void GraphicsSpace::RenderQueueUpdate(RenderQueue& renderQueue)

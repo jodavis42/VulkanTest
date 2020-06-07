@@ -3,6 +3,7 @@
 #include "ResourcesStandard.hpp"
 #include "ResourceId.hpp"
 #include "ResourceExtensionManager.hpp"
+#include "ResourceLibraryGraph.hpp"
 
 class ResourceManager;
 class ResourceLibrary;
@@ -34,9 +35,11 @@ public:
     return static_cast<ResourceManagerType*>(FindManagerBase(typeName));
   }
 
+  ResourceLibraryGraph* GetLibraryGraph();
+
   ResourceExtensionManager mExtensionManager;
 private:
-  Array<ResourceLibrary*> mLibraryStack;
+  ResourceLibraryGraph mResourceLibraryGraph;
   HashMap<ResourceTypeName, ResourceManagerTypeName> mResourceToManagerTypeMap;
   HashMap<ResourceManagerTypeName, ResourceManager*> mResourceManagerMap;
 };

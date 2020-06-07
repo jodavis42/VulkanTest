@@ -1,0 +1,9 @@
+{
+  "Name" : "Space",
+  "TimeSpace" : {
+    "FramesPerSecond" : 60.0
+  },
+  "GraphicsSpace": {
+    
+  }
+}
