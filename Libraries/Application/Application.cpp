@@ -10,6 +10,8 @@
 #include "Engine/CompositionInitializer.hpp"
 #include "Engine/Composition.hpp"
 #include "Engine/Engine.hpp"
+#include "Engine/Keyboard.hpp"
+#include "Engine/Mouse.hpp"
 #include "Engine/Transform.hpp"
 #include "Engine/Space.hpp"
 #include "Engine/TimeSpace.hpp"
@@ -33,6 +35,11 @@ VulkanStatus SurfaceCreationCallback(VkInstance instance, void* userData, VkSurf
   return status;
 }
 
+void OnConsoleWrite(Zilch::ConsoleEvent* e, void* userData)
+{
+  printf("%s", e->Text.c_str());
+}
+
 Application::Application(ApplicationConfig* config)
   : mConfig(config)
   , mZilchScriptLibraryManager(&mResourceSystem)
@@ -53,6 +60,7 @@ GLFWwindow* Application::GetWindow()
 
 void Application::Initialize()
 {
+  Zilch::EventConnect(&Zilch::Console::Events, Zilch::Events::ConsoleWrite, &OnConsoleWrite, nullptr);
   LoadConfiguration();
   InitializeResourceSystem();
   BuildZilchScripts();
@@ -70,6 +78,9 @@ void Application::Initialize()
   glfwSetWindowUserPointer(mWindow, this);
   glfwSetFramebufferSizeCallback(mWindow, FramebufferResizeCallback);
   glfwSetKeyCallback(mWindow, &Application::KeyCallback);
+  glfwSetCursorPosCallback(mWindow, &Application::MouseMoveCallback);
+  glfwSetMouseButtonCallback(mWindow, &Application::MouseButtonCallback);
+  glfwSetScrollCallback(mWindow, &Application::MouseScrollCallback);
 
   int width = 0, height = 0;
   glfwGetFramebufferSize(mWindow, &width, &height);
@@ -254,9 +265,92 @@ void Application::QueryWindowSize(size_t& outWidth, size_t& outHeight)
 
 void Application::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
+  bool isDown = false;
+  if(action == GLFW_PRESS)
+    isDown = true;
+  else if(action == GLFW_RELEASE)
+    isDown = false;
+  else
+    return;
+
+  Keys::Enum keyValue = Keys::None;
+  if(('0' <= key && key <= '9') || ('A' <= key && key <= 'Z'))
+    keyValue = (Keys::Enum)key;
+  else if(key == GLFW_KEY_UP)
+    keyValue = Keys::Up;
+  else if(key == GLFW_KEY_DOWN)
+    keyValue = Keys::Down;
+  else if(key == GLFW_KEY_LEFT)
+    keyValue = Keys::Left;
+  else if(key == GLFW_KEY_RIGHT)
+    keyValue = Keys::Right;
+  else if(key == GLFW_KEY_SPACE)
+    keyValue = Keys::Space;
+  else if(key == GLFW_KEY_TAB)
+    keyValue = Keys::Tab;
+  else if(key == GLFW_KEY_ENTER)
+    keyValue = Keys::Enter;
+  else if(key == GLFW_KEY_LEFT_SHIFT)
+    keyValue = Keys::Shift;
+  else
+    keyValue = (Keys::Enum)key;
+
   auto self = (Application*)glfwGetWindowUserPointer(window);
-  if(key == GLFW_KEY_R && action == GLFW_PRESS)
+  Keyboard* keyboard = self->mEngine->Has<Keyboard>();
+  if(keyValue != Keys::None)
+    keyboard->ProcessKey(keyValue, isDown);
+    
+  if(key == Keys::R && isDown == true)
+  {
     self->ReloadResources();
+  }
+}
+
+void Application::MouseMoveCallback(GLFWwindow* window, double xPos, double yPos)
+{
+  auto self = (Application*)glfwGetWindowUserPointer(window);
+  Mouse* mouse = self->mEngine->Has<Mouse>();
+  if(mouse == nullptr)
+    return;
+
+  Vec2 pos;
+  pos.x = static_cast<float>(xPos);
+  pos.y = static_cast<float>(yPos);
+  mouse->ProcessPosition(pos);
+}
+
+void Application::MouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+{
+  auto self = (Application*)glfwGetWindowUserPointer(window);
+  Mouse* mouse = self->mEngine->Has<Mouse>();
+  if(mouse == nullptr)
+    return;
+
+  MouseButtonStates::Enum state = MouseButtonStates::None;
+  if(action == GLFW_PRESS)
+    state = MouseButtonStates::Down;
+  if(action == GLFW_RELEASE)
+    state = MouseButtonStates::Up;
+
+  if(button == GLFW_MOUSE_BUTTON_LEFT)
+    mouse->ProcessButton(MouseButtons::Left, state);
+  else if(button == GLFW_MOUSE_BUTTON_RIGHT)
+    mouse->ProcessButton(MouseButtons::Right, state);
+  if(button == GLFW_MOUSE_BUTTON_MIDDLE)
+    mouse->ProcessButton(MouseButtons::Middle, state);
+}
+
+void Application::MouseScrollCallback(GLFWwindow* window, double xOffset, double yOffset)
+{
+  auto self = (Application*)glfwGetWindowUserPointer(window);
+  Mouse* mouse = self->mEngine->Has<Mouse>();
+  if(mouse == nullptr)
+    return;
+
+  Vec2 scroll;
+  scroll.x = static_cast<float>(xOffset);
+  scroll.y = static_cast<float>(yOffset);
+  mouse->ProcessMouseScroll(scroll);
 }
 
 void Application::FramebufferResizeCallback(GLFWwindow* window, int width, int height)

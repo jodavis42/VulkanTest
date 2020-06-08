@@ -14,8 +14,12 @@ target_sources(Engine
     ${CMAKE_CURRENT_LIST_DIR}/Engine.hpp
     ${CMAKE_CURRENT_LIST_DIR}/EngineZilchStaticLibrary.cpp
     ${CMAKE_CURRENT_LIST_DIR}/EngineZilchStaticLibrary.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/Keyboard.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Keyboard.hpp
     ${CMAKE_CURRENT_LIST_DIR}/LevelManager.cpp
     ${CMAKE_CURRENT_LIST_DIR}/LevelManager.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/Mouse.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Mouse.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Space.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Space.hpp
     ${CMAKE_CURRENT_LIST_DIR}/TimeSpace.cpp

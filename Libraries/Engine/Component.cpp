@@ -3,6 +3,7 @@
 #include "Component.hpp"
 #include "Composition.hpp"
 #include "Space.hpp"
+#include "Engine.hpp"
 
 //-----------------------------------------------------------------------------Component
 ZilchDefineType(Component, builder, type)
@@ -13,6 +14,7 @@ ZilchDefineType(Component, builder, type)
 
   ZilchBindGetter(Owner);
   ZilchBindGetter(Space);
+  ZilchBindGetter(Engine);
 }
 
 Composition* Component::GetOwner() const

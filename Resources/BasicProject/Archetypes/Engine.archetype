@@ -1,5 +1,7 @@
 {
   "Name" : "Engine",
-  "GraphicsEngine" : {
-  }
+  "GraphicsEngine": {
+  },
+  "Keyboard": {},
+  "Mouse": {}
 }

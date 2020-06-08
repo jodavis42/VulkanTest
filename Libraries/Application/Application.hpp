@@ -44,6 +44,9 @@ private:
   
   void QueryWindowSize(size_t& outWidth, size_t& outHeight);
   static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+  static void MouseMoveCallback(GLFWwindow* window, double xPos, double yPos);
+  static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
+  static void MouseScrollCallback(GLFWwindow* window, double xOffset, double yOffset);
   static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
   
   ApplicationConfig* mConfig = nullptr;
