@@ -15,9 +15,9 @@ ZilchDefineType(Camera, builder, type)
   ZilchBindDefaultConstructor();
   ZilchBindDestructor();
 
-  ZilchBindField(mNearPlane);
-  ZilchBindField(mFarPlane);
-  ZilchBindField(mFov);
+  ZilchBindFieldProperty(mNearPlane);
+  ZilchBindFieldProperty(mFarPlane);
+  ZilchBindFieldProperty(mFov);
 }
 
 Camera::Camera()

@@ -11,8 +11,8 @@ ZilchDefineType(TimeSpace, builder, type)
   ZilchBindDefaultConstructor();
   ZilchBindDestructor();
 
-  ZilchBindField(mFramesPerSecond);
-  ZilchBindField(mPaused);
+  ZilchBindFieldProperty(mFramesPerSecond);
+  ZilchBindFieldProperty(mPaused);
 
   builder.AddSendsEvent(type, Events::LogicUpdate, ZilchTypeId(UpdateEvent));
   builder.AddSendsEvent(type, Events::FrameUpdate, ZilchTypeId(UpdateEvent));

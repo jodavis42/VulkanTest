@@ -16,8 +16,8 @@ ZilchDefineType(Model, builder, type)
   ZilchBindDefaultConstructor();
   ZilchBindDestructor();
 
-  ZilchBindField(mMaterialName)->AddAttribute("Serialize")->AddParameter(String("Material"));
-  ZilchBindField(mMeshName)->AddAttribute("Serialize")->AddParameter(String("Mesh"));
+  ZilchBindField(mMaterialName)->AddAttribute(Zilch::PropertyAttribute)->AddParameter("Name", String("Material"));
+  ZilchBindField(mMeshName)->AddAttribute(Zilch::PropertyAttribute)->AddParameter("Name", String("Mesh"));
 }
 
 void Model::Initialize(const CompositionInitializer& initializer)

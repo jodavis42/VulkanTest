@@ -56,10 +56,14 @@ bool LoadProperty(JsonLoader& loader, Zilch::Type* propertyType, const String& p
 
 bool LoadProperty(JsonLoader& loader, Zilch::Property* zilchProperty, Zilch::Handle objectInstanceHandle)
 {
+  Zilch::Attribute* propertyAttribute = zilchProperty->HasAttribute(Zilch::PropertyAttribute);
+  if(propertyAttribute == nullptr)
+    return false;
+
   Zilch::Type* propertyType = zilchProperty->PropertyType;
   String propertyName = zilchProperty->Name;
-  if(Zilch::Attribute* serializeAttribute = zilchProperty->HasAttribute("Serialize"))
-    propertyName = serializeAttribute->Parameters[0].StringValue;
+  if(Zilch::AttributeParameter* nameAttributeParam = propertyAttribute->HasAttributeParameter("Name"))
+    propertyName = nameAttributeParam->StringValue;
 
   Zilch::Function* getter = zilchProperty->Get;
   Zilch::Function* setter = zilchProperty->Set;
@@ -102,6 +106,7 @@ bool LoadComponent(ZilchScriptModule* module, JsonLoader& loader, const String& 
     LoadProperty(loader, range.Front(), preconstructedObject);
   }
   loader.EndMember();
+  return true;
 }
 
 bool LoadComposition(ZilchScriptModule* module, const String& path, Composition* composition)

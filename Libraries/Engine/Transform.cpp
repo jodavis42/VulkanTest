@@ -8,9 +8,9 @@ ZilchDefineType(Transform, builder, type)
   ZilchBindDefaultConstructor();
   ZilchBindDestructor();
 
-  ZilchBindField(mScale);
-  ZilchBindField(mRotation);
-  ZilchBindField(mTranslation);
+  ZilchBindFieldProperty(mScale);
+  ZilchBindFieldProperty(mRotation);
+  ZilchBindFieldProperty(mTranslation);
 
   ZilchBindMethod(TransformDirection);
   ZilchBindMethod(TransformDirectionInverse);
