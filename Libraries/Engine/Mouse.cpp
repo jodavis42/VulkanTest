@@ -68,6 +68,15 @@ ZilchDefineType(Mouse, builder, type)
   ZilchBindFieldGetter(mPosition);
   ZilchBindFieldGetter(mScroll);
   ZilchBindFieldGetter(mMovement);
+
+  builder.AddSendsEvent(type, Events::LeftMouseDown, ZilchTypeId(MouseEvent));
+  builder.AddSendsEvent(type, Events::LeftMouseUp, ZilchTypeId(MouseEvent));
+  builder.AddSendsEvent(type, Events::RightMouseDown, ZilchTypeId(MouseEvent));
+  builder.AddSendsEvent(type, Events::RightMouseUp, ZilchTypeId(MouseEvent));
+  builder.AddSendsEvent(type, Events::MiddleMouseDown, ZilchTypeId(MouseEvent));
+  builder.AddSendsEvent(type, Events::MiddleMouseUp, ZilchTypeId(MouseEvent));
+  builder.AddSendsEvent(type, Events::MouseMove, ZilchTypeId(MouseEvent));
+  builder.AddSendsEvent(type, Events::MouseScroll, ZilchTypeId(MouseEvent));
 }
 
 Mouse::Mouse()

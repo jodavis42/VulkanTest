@@ -38,7 +38,6 @@ private:
 
   void MainLoop();
   void ProcessFrame();
-  void DrawFrame();
 
   ZilchScriptModule* GetActiveModule();
   

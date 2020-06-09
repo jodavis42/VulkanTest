@@ -15,6 +15,7 @@ public:
   void DestroyQueuedCompositions();
 
   void InitializeCompositions(const CompositionInitializer& initializer);
+  void Update(float dt);
 
   using SpaceHandle = Zilch::HandleOf<Space>;
   Array<SpaceHandle> mSpaces;

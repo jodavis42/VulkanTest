@@ -238,23 +238,8 @@ void Application::ProcessFrame()
       break;
     }
   }
-    
-  TimeSpace* timeSpace = mSpace->Has<TimeSpace>();
-  if(timeSpace != nullptr)
-    timeSpace->Update(dt);
-    
-  DrawFrame();
-
-  for(Space* space : mEngine->mSpaces)
-    space->DestroyQueuedCompositions();
-  mEngine->DestroyQueuedCompositions();
-}
-
-void Application::DrawFrame()
-{
-  Zilch::HandleOf<Zilch::EventData> toSend = ZilchAllocate(Zilch::EventData);
-  toSend->EventName = Events::EngineUpdate;
-  Zilch::EventSend(mEngine, toSend->EventName, toSend);
+  
+  mEngine->Update(dt);
 }
 
 ZilchScriptModule* Application::GetActiveModule()

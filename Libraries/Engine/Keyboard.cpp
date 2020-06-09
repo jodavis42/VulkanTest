@@ -57,6 +57,9 @@ ZilchDefineType(Keyboard, builder, type)
 
   ZilchBindMethod(IsKeyDown);
   ZilchBindMethod(IsKeyUp);
+
+  builder.AddSendsEvent(type, Events::KeyDown, ZilchTypeId(KeyboardEvent));
+  builder.AddSendsEvent(type, Events::KeyUp, ZilchTypeId(KeyboardEvent));
 }
 
 Keyboard::Keyboard()

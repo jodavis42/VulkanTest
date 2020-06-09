@@ -13,6 +13,9 @@ ZilchDefineType(TimeSpace, builder, type)
 
   ZilchBindField(mFramesPerSecond);
   ZilchBindField(mPaused);
+
+  builder.AddSendsEvent(type, Events::LogicUpdate, ZilchTypeId(UpdateEvent));
+  builder.AddSendsEvent(type, Events::FrameUpdate, ZilchTypeId(UpdateEvent));
 }
 
 void TimeSpace::Update(float dt)

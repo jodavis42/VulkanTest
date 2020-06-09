@@ -8,6 +8,9 @@ ZilchDefineType(ResourceManager, builder, type)
   type->HandleManager = ZilchManagerId(Zilch::PointerManager);
   ZilchBindDefaultConstructor();
   ZilchBindDestructor();
+
+  builder.AddSendsEvent(type, Events::ResourceLoaded, ZilchTypeId(ResourceLoadEvent));
+  builder.AddSendsEvent(type, Events::ResourceReLoaded, ZilchTypeId(ResourceLoadEvent));
 }
 
 ResourceManager::~ResourceManager()
