@@ -10,6 +10,7 @@ class ResourceMetaFile;
 struct ZilchScript : public Resource
 {
 public:
+  String mScriptContents;
 };
 
 //-------------------------------------------------------------------ZilchScriptManager
@@ -22,4 +23,6 @@ public:
   virtual void GetExtensions(Array<ResourceExtension>& extensions) const override;
   virtual bool OnLoadResource(const ResourceMetaFile& resourceMeta, ZilchScript* zilchScript) override;
   virtual bool OnReLoadResource(const ResourceMetaFile& resourceMeta, ZilchScript* zilchScript) override;
+
+  Array<ZilchScript*> mModifiedScripts;
 };

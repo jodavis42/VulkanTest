@@ -199,6 +199,17 @@ bool Application::LoadComposition(JsonLoader& loader, Composition* composition)
 void Application::ReloadResources()
 {
   mResourceSystem.ReloadLibraries();
+
+  ZilchScriptManager* zilchScriptManager = mResourceSystem.FindResourceManager(ZilchScriptManager);
+  // If any zilch scripts were modified then recompile all scripts (could optimize later)
+  if(!zilchScriptManager->mModifiedScripts.Empty())
+  {
+    mZilchScriptLibraryManager.BuildLibraries();
+    ZilchScriptModule* zilchScriptModule = mZilchScriptLibraryManager.GetModule();
+    for(Zilch::LibraryRef library : zilchScriptModule->mModule.All())
+      Zilch::ExecutableState::CallingState->PatchLibrary(library);
+    zilchScriptManager->mModifiedScripts.Clear();
+  }
 }
 
 void Application::MainLoop()

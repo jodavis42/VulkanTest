@@ -21,10 +21,17 @@ void ZilchScriptManager::GetExtensions(Array<ResourceExtension>& extensions) con
 
 bool ZilchScriptManager::OnLoadResource(const ResourceMetaFile& resourceMeta, ZilchScript* zilchScript)
 {
+  zilchScript->mScriptContents = Zero::ReadFileIntoString(resourceMeta.mResourcePath);
   return true;
 }
 
 bool ZilchScriptManager::OnReLoadResource(const ResourceMetaFile& resourceMeta, ZilchScript* zilchScript)
 {
-  return false;
+  String newContents = Zero::ReadFileIntoString(resourceMeta.mResourcePath);
+  if(newContents == zilchScript->mScriptContents)
+    return false;
+
+  zilchScript->mScriptContents = newContents;
+  mModifiedScripts.PushBack(zilchScript);
+  return true;
 }
