@@ -1,4 +1,18 @@
 [
+   {
+    "Name" : "Camera",
+    "Transform": {
+      "Scale": [ 1, 1, 1 ],
+      "Rotation": [ 0, 0, 0, 1 ],
+      "Translation": [ 0, 1, 5 ]
+    },
+    "Camera": {
+      "FarPlane": 100
+    },
+    "QuaternionCamera": {
+
+    }
+  },
   {
     "Name" : "Object1",
     "Transform" : {

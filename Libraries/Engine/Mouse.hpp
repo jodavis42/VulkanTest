@@ -42,8 +42,12 @@ public:
 
 namespace Events
 {
-ZilchDeclareEvent(MouseDown, MouseEvent);
-ZilchDeclareEvent(MouseUp, MouseEvent);
+ZilchDeclareEvent(LeftMouseDown, MouseEvent);
+ZilchDeclareEvent(LeftMouseUp, MouseEvent);
+ZilchDeclareEvent(RightMouseDown, MouseEvent);
+ZilchDeclareEvent(RightMouseUp, MouseEvent);
+ZilchDeclareEvent(MiddleMouseDown, MouseEvent);
+ZilchDeclareEvent(MiddleMouseUp, MouseEvent);
 ZilchDeclareEvent(MouseMove, MouseEvent);
 ZilchDeclareEvent(MouseScroll, MouseEvent);
 }//namespace Events

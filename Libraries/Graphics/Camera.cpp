@@ -2,14 +2,39 @@
 
 #include "Camera.hpp"
 
+#include "Engine/Space.hpp"
+#include "Engine/Transform.hpp"
+
+#include "GraphicsSpace.hpp"
 #include "RenderQueue.hpp"
 #include "Renderer.hpp"
 
+//-----------------------------------------------------------------------------Camera
+ZilchDefineType(Camera, builder, type)
+{
+  ZilchBindDefaultConstructor();
+  ZilchBindDestructor();
+
+  ZilchBindField(mNearPlane);
+  ZilchBindField(mFarPlane);
+  ZilchBindField(mFov);
+}
+
 Camera::Camera()
 {
-  mPosition = Vec3(5.0f, 5.0f, 5.0f);
-  mTarget = Vec3(0.0f, 0.0f, 0.0f);
-  mWorldUp = Vec3(0.0f, 0.0f, 1.0f);
+}
+
+void Camera::Initialize(const CompositionInitializer& initializer)
+{
+  Space* space = GetSpace();
+  GraphicsSpace* graphicsSpace = space->Has<GraphicsSpace>();
+  graphicsSpace->Add(this);
+}
+
+void Camera::OnDestroy()
+{
+  GraphicsSpace* graphicsSpace = GetSpace()->Has<GraphicsSpace>();
+  graphicsSpace->Remove(this);
 }
 
 void Camera::FilloutViewBlock(const Renderer* renderer, ViewBlock& viewBlock) const
@@ -18,7 +43,7 @@ void Camera::FilloutViewBlock(const Renderer* renderer, ViewBlock& viewBlock) co
   float aspectRatio;
   renderer->GetShape(width, height, aspectRatio);
 
-  viewBlock.mWorldToView = GenerateViewMatrix();
+  viewBlock.mWorldToView = GenerateWorldToViewMatrix();
   viewBlock.mViewToPerspective = renderer->BuildPerspectiveMatrix(Math::DegToRad(45.0f), aspectRatio, mNearPlane, mFarPlane);
   viewBlock.mViewToPerspective.Transpose();
   viewBlock.mNearPlane = mNearPlane;
@@ -26,26 +51,15 @@ void Camera::FilloutViewBlock(const Renderer* renderer, ViewBlock& viewBlock) co
   viewBlock.mViewportSize = Vec2(1);
 }
 
-Matrix4 Camera::GenerateViewMatrix() const
+Matrix4 Camera::GenerateWorldToViewMatrix() const
 {
-  Vec3 forward = Vec3::Normalized(mTarget - mPosition);
-  Vec3 right = Vec3::Normalized(Vec3::Cross(forward, mWorldUp));
-  Vec3 actualUp = Vec3::Cross(right, forward);
+  Transform* transform = GetOwner()->Has <Transform>();
 
-  Matrix4 result;
-  result.SetIdentity();
-  result.m00 = right.x;
-  result.m10 = right.y;
-  result.m20 = right.z;
-  result.m01 = actualUp.x;
-  result.m11 = actualUp.y;
-  result.m21 = actualUp.z;
-  result.m02 = -forward.x;
-  result.m12 = -forward.y;
-  result.m22 = -forward.z;
-  result.m30 = -Vec3::Dot(right, mPosition);
-  result.m31 = -Vec3::Dot(actualUp, mPosition);
-  result.m32 = Vec3::Dot(forward, mPosition);
-  result.Transpose();
-  return result;
+  Matrix4 rotation = Math::ToMatrix4(transform->mRotation);
+
+  Matrix4 translation;
+  translation.Translate(-transform->mTranslation);
+
+  Matrix4 worldToView = rotation.Transposed() * translation;
+  return worldToView;
 }

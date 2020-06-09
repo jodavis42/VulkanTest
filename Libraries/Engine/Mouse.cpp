@@ -9,8 +9,12 @@
 
 namespace Events
 {
-ZilchDefineEvent(MouseDown);
-ZilchDefineEvent(MouseUp);
+ZilchDefineEvent(LeftMouseDown);
+ZilchDefineEvent(LeftMouseUp);
+ZilchDefineEvent(RightMouseDown);
+ZilchDefineEvent(RightMouseUp);
+ZilchDefineEvent(MiddleMouseDown);
+ZilchDefineEvent(MiddleMouseUp);
 ZilchDefineEvent(MouseMove);
 ZilchDefineEvent(MouseScroll);
 }//namespace Events
@@ -97,10 +101,27 @@ void Mouse::ProcessButton(MouseButtons::Enum button, MouseButtonStates::Enum sta
     toSend.mButton = button;
     toSend.mState = state;
 
-    if(state == MouseButtonStates::Down)
-      toSend.EventName = Events::MouseDown;
-    else if(state == MouseButtonStates::Up)
-      toSend.EventName = Events::MouseUp;
+    if(button == MouseButtons::Left)
+    {
+      if(state == MouseButtonStates::Down)
+        toSend.EventName = Events::LeftMouseDown;
+      else if(state == MouseButtonStates::Up)
+        toSend.EventName = Events::LeftMouseUp;
+    }
+    else if(button == MouseButtons::Right)
+    {
+      if(state == MouseButtonStates::Down)
+        toSend.EventName = Events::RightMouseDown;
+      else if(state == MouseButtonStates::Up)
+        toSend.EventName = Events::RightMouseUp;
+    }
+    else if(button == MouseButtons::Middle)
+    {
+      if(state == MouseButtonStates::Down)
+        toSend.EventName = Events::MiddleMouseDown;
+      else if(state == MouseButtonStates::Up)
+        toSend.EventName = Events::MiddleMouseUp;
+    }
 
     Zilch::EventSend(GetOwner(), toSend.EventName, &toSend);
   }

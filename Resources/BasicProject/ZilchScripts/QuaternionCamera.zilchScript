@@ -1,0 +1,164 @@
+/************************************************************************************************************/
+/* Copyright 2017 DigiPen, All Rights Reserved                                                              */
+/* Last Update: 1/5/2017                                                                                    */
+/* Author: Zero Engine Team                                                                                 */
+/* Last updated by: Arend Danielek                                                                          */
+/* Class: QuaternionCamera                                                                                  */
+/* Brief: First person camera that uses quaternions to build rotations. Rotates with right mouse.           */
+/* Moves with WASD, also uses 'q' and 'e' to pan along the world's up/down vector.                          */
+/************************************************************************************************************/
+
+class QuaternionCamera : ZilchComponent
+{
+  // The movement speed of the camera.
+  [Property] var Speed : Real = 8.0;
+
+  // The speed at which the camera can rotation. This has the units of radians per pixel.
+  [Property] var LookSpeed : Real = 0.005;
+
+  // If we want this camera to be able to rotate.
+  [Property] var AllowRotation : Boolean = true;
+
+  // If we want this camera to be able to translate.
+  [Property] var AllowTranslation : Boolean = true;
+
+  // The up/down delta from mouse move.
+  var UpDelta : Real = 0.0;
+
+  // the left/right delta from mouse move.
+  var SideDelta : Real = 0.0;
+
+  // The total accumulation of the up/down angle (see spherical coordinates for the definition fo phi).
+  // Used to prevent wrapping around at the poles.
+  var Phi : Real = 0.0;
+
+  // If the camera should rotate when the mouse moves
+  // (currently triggered by right mouse up/down)
+  var MouseReady : Boolean = false;
+
+  function Initialize()
+  {
+    ZilchScript.Connect(this.Engine, "RightMouseDown", this.OnRightMouseDown);
+    ZilchScript.Connect(this.Engine, "RightMouseUp", this.OnRightMouseUp);
+    ZilchScript.Connect(this.Engine, "MouseMove", this.OnMouseMove);
+    
+    ZilchScript.Connect(this.Space, "LogicUpdate", this.OnLogicUpdate);
+  }
+
+  function OnRightMouseDown(viewportMouseEvent : MouseEvent)
+  {
+    this.MouseReady = true;
+    Console.WriteLine("MouseReady: `this.MouseReady`");
+  }
+
+  function OnRightMouseUp(viewportMouseEvent : MouseEvent)
+  {
+    this.MouseReady = false;
+    Console.WriteLine("MouseReady: `this.MouseReady`");
+  }
+
+  function OnMouseMove(viewportMouseEvent : MouseEvent)
+  {
+    // If the mouse was ready (aka we're tracking mouse movement)
+    // then update the mouse deltas
+    if(this.MouseReady)
+    {
+      this.UpDelta = -viewportMouseEvent.Movement.Y * this.LookSpeed;
+      this.SideDelta = -viewportMouseEvent.Movement.X * this.LookSpeed;
+      
+      // To prevent wrapping around at the top, compute and clamp the
+      // total phi angle (see spherical coordinates) and then compute
+      // the actual delta that would be applied to get to our clamped value.
+      var halfPi = Math.Pi * 0.5;
+      var oldPhi = this.Phi;
+      this.Phi = Math.Clamp(this.Phi + this.UpDelta, -halfPi, halfPi);
+      this.UpDelta = this.Phi - oldPhi;
+      Console.WriteLine("MosueMove: `this.Phi` `this.UpDelta`");
+    }
+  }
+
+  function CameraMovement(updateEvent : UpdateEvent)
+  {
+    // Update translation and rotation independently
+    if(this.AllowTranslation)
+    {
+      this.MoveCamera(updateEvent);
+    }
+    if(this.AllowRotation)
+    {
+      this.RotateCamera(updateEvent);
+    }
+  }
+
+  function MoveCamera(updateEvent : UpdateEvent)
+  {
+    var movement = Real3(0.0, 0.0, 0.0);
+    var keyboard = this.Engine.Keyboard;
+    // Record keyboard movement to pan the camera
+    if(keyboard.IsKeyDown(Keys.A))
+      movement.X -= 1.0;
+    if(keyboard.IsKeyDown(Keys.D))
+      movement.X += 1.0;
+    if(keyboard.IsKeyDown(Keys.W))
+      movement.Z -= 1.0;
+    if(keyboard.IsKeyDown(Keys.S))
+      movement.Z += 1.0;
+    
+    // We computed the direction in local space, bring it to the camera's world space
+    var current = this.Owner.Transform.Translation;
+    movement = this.Owner.Transform.TransformDirection(movement);
+    
+    // Add panning along the y-axis because it is nice.
+    // Do this after the transform normal because we want the world up, not local up
+    if(keyboard.IsKeyDown(Keys.Q))
+      movement.Y -= 1.0;
+    if(keyboard.IsKeyDown(Keys.E))
+      movement.Y += 1.0; 
+    
+    // Update the translation
+    var speed = updateEvent.Dt * this.Speed;
+    current += movement * speed;
+    this.Owner.Transform.Translation = current;
+  }
+
+  function RotateCamera(updateEvent : UpdateEvent)
+  {
+    // Cache the transform component
+    var transform = this.Owner.Transform;
+    
+    // Generate the up rotation (the rotation about our local x axis)
+    var upRotation = Quaternion();
+    // Bring our local x axis into our local space (ignore parent's transform)
+    var worldX = transform.TransformDirection(Real3(1.0, 0.0, 0.0));
+    worldX = Math.Normalize(worldX);
+    // Generate the quaternion from that axis and an angle
+    upRotation = Math.ToQuaternion(worldX, this.UpDelta);
+    
+    // Generate the side rotation (rotation about world y axis)
+    var sideRotation = Quaternion();
+    sideRotation = Math.ToQuaternion(Real3(0.0,1.0,0.0), this.SideDelta);
+    
+    // Make sure to multiply in the correct order, we have to look up then look to the side.
+    // If we look to the side first, we will invalidate the up rotation we generated
+    // (use local rotation incase we have a parent)
+    var endResult = Math.Multiply(upRotation, transform.Rotation);
+    endResult = Math.Multiply(sideRotation, endResult);
+    // Also make sure to normalize
+    endResult = Math.Normalize(endResult);
+    transform.Rotation = endResult;
+    
+    // Clear the deltas
+    this.UpDelta = 0.0;
+    this.SideDelta = 0.0;
+  }
+
+  function OnLogicUpdate(updateEvent : UpdateEvent)
+  {
+    this.CameraMovement(updateEvent);
+  }
+
+  function OnFrameUpdate(updateEvent : UpdateEvent)
+  {
+    this.CameraMovement(updateEvent);
+  }
+}

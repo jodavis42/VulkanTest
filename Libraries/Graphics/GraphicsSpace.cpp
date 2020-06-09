@@ -20,17 +20,11 @@ ZilchDefineType(GraphicsSpace, builder, type)
 
 GraphicsSpace::GraphicsSpace()
 {
-  Camera* camera = new Camera();
-  mCameras.PushBack(camera);
 }
 
 GraphicsSpace::~GraphicsSpace()
 {
-  for(Camera* camera : mCameras)
-    delete camera;
   mCameras.Clear();
-  for(Model* model : mModels)
-    delete model;
   mModels.Clear();
 }
 
@@ -58,6 +52,18 @@ void GraphicsSpace::Remove(Model* model)
   size_t index = mModels.FindIndex(model);
   Math::Swap(mModels[index], mModels[mModels.Size() - 1]);
   mModels.PopBack();
+}
+
+void GraphicsSpace::Add(Camera* camera)
+{
+  mCameras.PushBack(camera);
+}
+
+void GraphicsSpace::Remove(Camera* camera)
+{
+  size_t index = mCameras.FindIndex(camera);
+  Math::Swap(mCameras[index], mCameras[mCameras.Size() - 1]);
+  mCameras.PopBack();
 }
 
 void GraphicsSpace::OnLogicUpdate(UpdateEvent* e)

@@ -23,6 +23,9 @@ public:
 
   void Add(Model* model);
   void Remove(Model* model);
+  void Add(Camera* camera);
+  void Remove(Camera* camera);
+
   void OnLogicUpdate(UpdateEvent* e);
   void RenderQueueUpdate(RenderQueue& renderQueue);
 
