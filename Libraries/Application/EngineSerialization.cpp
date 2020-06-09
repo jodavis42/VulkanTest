@@ -75,6 +75,35 @@ bool LoadProperty(JsonLoader& loader, Zilch::Property* zilchProperty, Zilch::Han
   return true;
 }
 
+bool LoadComponent(ZilchScriptModule* module, JsonLoader& loader, const String& componentName, Composition* compositionOwner)
+{
+  if(componentName == "Name")
+  {
+    loader.SerializePrimitive(compositionOwner->mName);
+    loader.EndMember();
+    return false;
+  }
+
+  Zilch::ExceptionReport report;
+  Zilch::ExecutableState* state = Zilch::ExecutableState::CallingState;
+  Zilch::BoundType* boundType = module->FindType(componentName);
+  if(boundType == nullptr)
+  {
+    Zilch::Console::WriteLine("Failed to find bound type '%s' when serializing object '%s'", componentName.c_str(), compositionOwner->mName.c_str());
+    loader.EndMember();
+    return false;
+  }
+
+  Zilch::Handle preconstructedObject = state->AllocateDefaultConstructedHeapObject(boundType, report, Zilch::HeapFlags::ReferenceCounted);
+  Component* component = preconstructedObject.Get<Component*>();
+  compositionOwner->AddComponent(component);
+  for(auto range = boundType->GetProperties(); !range.Empty(); range.PopFront())
+  {
+    LoadProperty(loader, range.Front(), preconstructedObject);
+  }
+  loader.EndMember();
+}
+
 bool LoadComposition(ZilchScriptModule* module, const String& path, Composition* composition)
 {
   JsonLoader loader;
@@ -85,9 +114,6 @@ bool LoadComposition(ZilchScriptModule* module, const String& path, Composition*
 
 bool LoadComposition(ZilchScriptModule* module, JsonLoader& loader, Composition* composition)
 {
-  Zilch::ExecutableState* state = Zilch::ExecutableState::CallingState;
-  Zilch::ExceptionReport report;
-
   size_t componentCount;
   if(!loader.BeginMembers(componentCount))
     return false;
@@ -97,22 +123,7 @@ bool LoadComposition(ZilchScriptModule* module, JsonLoader& loader, Composition*
     String componentName;
     if(loader.BeginMember(i, componentName))
     {
-      if(componentName == "Name")
-      {
-        loader.SerializePrimitive(composition->mName);
-        loader.EndMember();
-        continue;
-      }
-      Zilch::BoundType* boundType = module->FindType(componentName);
-      Zilch::ExceptionReport report;
-      Zilch::Handle preconstructedObject = state->AllocateDefaultConstructedHeapObject(boundType, report, Zilch::HeapFlags::ReferenceCounted);
-      Component* component = preconstructedObject.Get<Component*>();
-      composition->AddComponent(component);
-      for(auto range = boundType->GetProperties(); !range.Empty(); range.PopFront())
-      {
-        LoadProperty(loader, range.Front(), preconstructedObject);
-      }
-      loader.EndMember();
+      LoadComponent(module, loader, componentName, composition);
     }
   }
   return true;

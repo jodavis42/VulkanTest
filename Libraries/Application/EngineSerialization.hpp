@@ -11,6 +11,7 @@ class ZilchScriptModule;
 
 bool LoadProperty(JsonLoader& loader, Zilch::Type* propertyType, const String& propertyName, Zilch::Any& result);
 bool LoadProperty(JsonLoader& loader, Zilch::Property* zilchProperty, Zilch::Handle objectInstanceHandle);
+bool LoadComponent(ZilchScriptModule* module, JsonLoader& loader, const String& componentName, Composition* compositionOwner);
 bool LoadComposition(ZilchScriptModule* module, const String& path, Composition* composition);
 bool LoadComposition(ZilchScriptModule* module, JsonLoader& loader, Composition* composition);
 bool LoadLevel(ZilchScriptModule* module, Level* level, Space* space);
