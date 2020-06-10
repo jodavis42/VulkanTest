@@ -4,6 +4,9 @@
 #include "GraphicsStandard.hpp"
 #include "Graphical.hpp"
 
+struct Mesh;
+struct ZilchMaterial;
+
 //-----------------------------------------------------------------------------Model
 struct Model : public Graphical
 {
@@ -13,6 +16,6 @@ struct Model : public Graphical
   virtual void OnDestroy() override;
   virtual void FilloutFrameData(GraphicalFrameData& frameData) const override;
   
-  String mMaterialName;
-  String mMeshName;
+  Zilch::HandleOf<ZilchMaterial> mMaterial;
+  Zilch::HandleOf<Mesh> mMesh;
 };

@@ -10,6 +10,7 @@
 class ResourceManager : public Zilch::EventHandler
 {
 public:
+  using ResourceHandle = Zilch::HandleOf<Resource>;
   ZilchDeclareType(ResourceManager, Zilch::TypeCopyMode::ReferenceType);
 
   virtual ~ResourceManager();
@@ -17,21 +18,22 @@ public:
   void DestroyAllResources();
   void DestroyResource(const ResourceId& id);
 
-  void RegisterResource(Resource* resource);
+  void RegisterResource(Zilch::HandleOf<Resource> resource);
   ResourceId FindId(const ResourceName& name) const;
   ResourceId FindId(const ResourcePath& path) const;
-  Resource* FindResourceBase(const ResourceName& name) const;
-  Resource* FindResourceBase(const ResourcePath& path) const;
-  Resource* FindResourceBase(const ResourceId& id) const;
+  ResourceHandle FindResourceBase(const ResourceName& name) const;
+  ResourceHandle FindResourceBase(const ResourcePath& path) const;
+  ResourceHandle FindResourceBase(const ResourceId& id) const;
 
   virtual void GetExtensions(Array<ResourceExtension>& extensions) const {}
   virtual bool LoadResource(const ResourceMetaFile& resourceMeta, ResourceLibrary* library) { return false; }
   virtual bool ReLoadResource(const ResourceMetaFile& resourceMeta) { return false; }
 
 protected:
+  using ResourceIdMap = HashMap <ResourceId, ResourceHandle>;
   HashMap<ResourcePath, ResourceId> mResourcePathToId;
   HashMap<ResourceName, ResourceId> mResourceNameToId;
-  HashMap<ResourceId, Resource*> mResourceIdToResource;
+  ResourceIdMap mResourceIdToResource;
 };
 
 template <typename ResourceType>
@@ -42,11 +44,11 @@ public:
   {
     typedef ResourceRange SelfType;
     typedef ResourceType* FrontResult;
-    using RangeType = HashMap<ResourceId, Resource*>::valuerange;
+    using RangeType = ResourceIdMap::valuerange;
     RangeType mRange;
 
     ResourceRange(RangeType range) : mRange(range) {}
-    FrontResult Front() { return static_cast<ResourceType*>(mRange.Front()); }
+    FrontResult Front() { return mRange.Front().Get<ResourceType*>(); }
     void PopFront() { mRange.PopFront(); }
     bool Empty() const { mRange.Empty(); }
 
@@ -66,22 +68,22 @@ public:
 
   ResourceType* FindResource(const ResourceName& name) const
   {
-    return static_cast<ResourceType*>(FindResourceBase(name));
+    return FindResourceBase(name).Get<ResourceType*>();
   }
 
   ResourceType* FindResource(const ResourcePath& path) const
   {
-    return static_cast<ResourceType*>(FindResourceBase(path));
+    return FindResourceBase(path).Get<ResourceType*>();
   }
 
   ResourceType* FindResource(const ResourceId& id) const
   {
-    return static_cast<ResourceType*>(FindResourceBase(id));
+    return FindResourceBase(id).Get<ResourceType*>();
   }
 
   virtual bool LoadResource(const ResourceMetaFile& resourceMeta, ResourceLibrary* library) override
   {
-    ResourceType* resource = new ResourceType();
+    Zilch::HandleOf<ResourceType> resource = ZilchAllocate(ResourceType);
     resource->Initialize(resourceMeta);
     resource->mLibrary = library;
     resource->mResourceManager = this;

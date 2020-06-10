@@ -10,6 +10,7 @@ class ResourceMetaFile;
 struct Level : public Resource
 {
 public:
+  ZilchDeclareType(Level, Zilch::TypeCopyMode::ReferenceType);
 };
 
 //-------------------------------------------------------------------LevelManager

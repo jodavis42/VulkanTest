@@ -14,6 +14,7 @@ struct MaterialFragment
 //-------------------------------------------------------------------ZilchMaterial
 struct ZilchMaterial : public Resource
 {
+  ZilchDeclareType(ZilchMaterial, Zilch::TypeCopyMode::ReferenceType);
   String mMaterialName;
 
   Array<MaterialFragment> mFragments;

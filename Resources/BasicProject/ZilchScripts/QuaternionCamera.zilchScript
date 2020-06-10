@@ -38,11 +38,11 @@ class QuaternionCamera : ZilchComponent
 
   function Initialize()
   {
-    ZilchScript.Connect(this.Engine, Events.RightMouseDown, this.OnRightMouseDown);
-    ZilchScript.Connect(this.Engine, Events.RightMouseUp, this.OnRightMouseUp);
-    ZilchScript.Connect(this.Engine, Events.MouseMove, this.OnMouseMove);
+    Script.Connect(this.Engine, Events.RightMouseDown, this.OnRightMouseDown);
+    Script.Connect(this.Engine, Events.RightMouseUp, this.OnRightMouseUp);
+    Script.Connect(this.Engine, Events.MouseMove, this.OnMouseMove);
     
-    ZilchScript.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+    Script.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
   }
 
   function OnRightMouseDown(viewportMouseEvent : MouseEvent)

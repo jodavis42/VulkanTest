@@ -9,5 +9,6 @@ ZilchDefineStaticLibrary(ResourceStaticLibrary)
   builder.CreatableInScriptDefault = false;
 
   ZilchInitializeType(ResourceLoadEvent);
+  ZilchInitializeType(Resource);
   ZilchInitializeType(ResourceManager);
 }

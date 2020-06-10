@@ -19,6 +19,7 @@
 #include "Graphics/GraphicsSpace.hpp"
 #include "ZilchScript/ZilchScriptManager.hpp"
 #include "ZilchScript/ZilchScriptLibrary.hpp"
+#include "ZilchScript/ZilchComponent.hpp"
 #include "EngineSerialization.hpp"
 
 #define GLFW_INCLUDE_VULKAN
@@ -137,8 +138,6 @@ void Application::BuildZilchScripts()
 {
   mZilchScriptLibraryManager.SetNativeDependencies(mConfig->mNativeModule);
   mZilchScriptLibraryManager.BuildLibraries();
-  ZilchScriptModule* zilchScriptModule = mZilchScriptLibraryManager.GetModule();
-  Zilch::ExecutableState::CallingState = zilchScriptModule->mModule.Link();
 }
 
 void Application::BuildEngine()
@@ -180,20 +179,23 @@ void Application::LoadLevel(const String& levelName)
   Level* level = levelManager->FindResource(ResourceName{levelName});
   ReturnIf(level == nullptr, , "Failed to find level '%s'", levelName.c_str());
 
-  ::LoadLevel(module, level, mSpace);
+  JsonLoader loader;
+  SerializerContext context{module, &mResourceSystem, &loader};
+  ::LoadLevel(context, level, mSpace);
   mSpace->InitializeCompositions(CompositionInitializer());
 }
 
 bool Application::LoadComposition(const String& path, Composition* composition)
 {
-  ZilchScriptModule* module = GetActiveModule();
-  return ::LoadComposition(module, path, composition);
+  JsonLoader loader;
+  SerializerContext context{GetActiveModule(), &mResourceSystem, &loader};
+  return ::LoadComposition(context, path, composition);
 }
 
 bool Application::LoadComposition(JsonLoader& loader, Composition* composition)
 {
-  ZilchScriptModule* module = GetActiveModule();
-  return ::LoadComposition(module, loader, composition);
+  SerializerContext context{GetActiveModule(), &mResourceSystem, &loader};
+  return ::LoadComposition(context, composition);
 }
 
 void Application::ReloadResources()
@@ -206,9 +208,35 @@ void Application::ReloadResources()
   {
     mZilchScriptLibraryManager.BuildLibraries();
     ZilchScriptModule* zilchScriptModule = mZilchScriptLibraryManager.GetModule();
-    for(Zilch::LibraryRef library : zilchScriptModule->mModule.All())
-      Zilch::ExecutableState::CallingState->PatchLibrary(library);
+    for(ZilchScriptLibrary* zilchScriptLibrary : mZilchScriptLibraryManager.GetLibraries())
+    {
+      if(zilchScriptLibrary->mOldZilchLibrary != nullptr)
+        Zilch::ExecutableState::CallingState->PatchLibrary(zilchScriptLibrary->mZilchLibrary, zilchScriptLibrary->mOldZilchLibrary);
+    }
     zilchScriptManager->mModifiedScripts.Clear();
+
+    // Have to re-allocate any zilch component otherwise the old library will free the memory when deallocated.
+    for(Space* space : mEngine->mSpaces)
+    {
+      for(Composition* composition : space->mCompositions)
+      {
+        for(size_t i = 0; i < composition->mComponents.Size(); ++i)
+        {
+          Zilch::HandleOf<Component> component = composition->mComponents[i];
+          Zilch::BoundType* boundType = component->ZilchGetDerivedType();
+          if(boundType->IsA(ZilchTypeId(ZilchComponent)))
+          {
+            SerializerContext context{GetActiveModule(), &mResourceSystem, nullptr};
+            Zilch::HandleOf<Component> newComponent = nullptr;
+            CloneComponent(context, *component.Get<Component*>(), newComponent);
+            composition->mComponents[i] = newComponent;
+            component.Delete();
+            newComponent->mOwner = composition;
+            newComponent->Initialize(CompositionInitializer());
+          }
+        }
+      }
+    }
   }
 }
 

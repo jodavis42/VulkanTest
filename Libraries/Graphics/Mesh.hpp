@@ -7,6 +7,8 @@
 //-------------------------------------------------------------------Mesh
 struct Mesh : public Resource
 {
+  ZilchDeclareType(Mesh, Zilch::TypeCopyMode::ReferenceType);
+
   Array<Vertex> mVertices;
   Array<uint32_t> mIndices;
 };

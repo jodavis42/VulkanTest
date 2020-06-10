@@ -10,6 +10,7 @@ class ResourceMetaFile;
 struct Archetype : public Resource
 {
 public:
+  ZilchDeclareType(Archetype, Zilch::TypeCopyMode::ReferenceType);
 };
 
 //-------------------------------------------------------------------ArchetypeManager

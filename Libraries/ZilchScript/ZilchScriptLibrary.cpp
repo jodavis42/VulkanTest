@@ -76,15 +76,36 @@ void ZilchScriptLibraryManager::BuildLibrary(ResourceLibrary* resourceLibrary)
   if(library == nullptr)
     return;
   
-  ZilchScriptLibrary* zilchScriptLibrary = new ZilchScriptLibrary();
+  ZilchScriptLibrary* zilchScriptLibrary = FindLibrary(resourceLibrary);
+  if(zilchScriptLibrary == nullptr)
+  {
+    zilchScriptLibrary = new ZilchScriptLibrary();
+    mLibraries.PushBack(zilchScriptLibrary);
+  }
   zilchScriptLibrary->mResourceLibrary = resourceLibrary;
+  zilchScriptLibrary->mOldZilchLibrary = zilchScriptLibrary->mZilchLibrary;
   zilchScriptLibrary->mZilchLibrary = library;
-  mLibraries.PushBack(zilchScriptLibrary);
+  
+}
+
+ZilchScriptLibrary* ZilchScriptLibraryManager::FindLibrary(ResourceLibrary* resourceLibrary)
+{
+  for(size_t i = 0; i < mLibraries.Size(); ++i)
+  {
+    if(mLibraries[i]->mResourceLibrary == resourceLibrary)
+      return mLibraries[i];
+  }
+  return nullptr;
 }
 
 ZilchScriptModule* ZilchScriptLibraryManager::GetModule()
 {
   return mModule;
+}
+
+Array<ZilchScriptLibrary*>::range ZilchScriptLibraryManager::GetLibraries()
+{
+  return mLibraries.All();
 }
 
 void ZilchScriptLibraryManager::OnError(Zilch::ErrorEvent* e, void* userData)

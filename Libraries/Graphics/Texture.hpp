@@ -41,6 +41,8 @@ enum class TextureAddressing
 struct Texture : public Resource
 {
 public:
+  ZilchDeclareType(Texture, Zilch::TypeCopyMode::ReferenceType);
+
   size_t mSizeX = 0;
   size_t mSizeY = 0;
   TextureType mType = TextureType::Texture2D;

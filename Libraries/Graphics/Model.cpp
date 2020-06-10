@@ -9,6 +9,7 @@
 #include "ZilchShader.hpp"
 #include "Space.hpp"
 #include "Transform.hpp"
+#include "Mesh.hpp"
 
 //-----------------------------------------------------------------------------Model
 ZilchDefineType(Model, builder, type)
@@ -16,8 +17,8 @@ ZilchDefineType(Model, builder, type)
   ZilchBindDefaultConstructor();
   ZilchBindDestructor();
 
-  ZilchBindField(mMaterialName)->AddAttribute(Zilch::PropertyAttribute)->AddParameter("Name", String("Material"));
-  ZilchBindField(mMeshName)->AddAttribute(Zilch::PropertyAttribute)->AddParameter("Name", String("Mesh"));
+  ZilchBindFieldProperty(mMaterial);
+  ZilchBindFieldProperty(mMesh);
 }
 
 void Model::Initialize(const CompositionInitializer& initializer)
@@ -36,9 +37,10 @@ void Model::OnDestroy()
 void Model::FilloutFrameData(GraphicalFrameData& frameData) const
 {
   GraphicsEngine* engine = mSpace->mEngine;
-  frameData.mMesh = engine->mMeshManager->FindResource(ResourceName{mMeshName});
-  frameData.mZilchMaterial = engine->mZilchMaterialManager->FindResource(ResourceName{mMaterialName});
-  frameData.mZilchShader = engine->mZilchShaderManager.Find(mMaterialName);
+  frameData.mMesh = mMesh;
+  frameData.mZilchMaterial = mMaterial;
+  if(frameData.mZilchMaterial != nullptr)
+    frameData.mZilchShader = engine->mZilchShaderManager.Find(frameData.mZilchMaterial->mMaterialName);
 
   Transform* transform = GetOwner()->Has<Transform>();
   frameData.mLocalToWorld = transform->GetWorldMatrix();

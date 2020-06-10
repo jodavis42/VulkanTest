@@ -1,10 +1,12 @@
 #include "Precompiled.hpp"
 
 #include "EngineZilchStaticLibrary.hpp"
+#include "ArchetypeManager.hpp"
 #include "Component.hpp"
 #include "Composition.hpp"
 #include "Engine.hpp"
 #include "Keyboard.hpp"
+#include "LevelManager.hpp"
 #include "Mouse.hpp"
 #include "UpdateEvent.hpp"
 #include "TimeSpace.hpp"
@@ -124,6 +126,10 @@ ZilchDefineStaticLibrary(EngineStaticLibrary)
   ZilchInitializeType(UpdateEvent);
   ZilchInitializeType(KeyboardEvent);
   ZilchInitializeType(MouseEvent);
+
+  // Resources
+  ZilchInitializeType(Level);
+  ZilchInitializeType(Archetype);
 
   // Compositions
   ZilchInitializeType(Composition);

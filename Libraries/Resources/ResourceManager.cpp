@@ -28,17 +28,17 @@ void ResourceManager::DestroyAllResources()
 
 void ResourceManager::DestroyResource(const ResourceId& id)
 {
-  Resource* resource = mResourceIdToResource.FindValue(id, nullptr);
+  ResourceHandle resource = mResourceIdToResource.FindValue(id, nullptr);
   if(resource != nullptr)
   {
     mResourceNameToId.Erase(resource->mName);
     mResourcePathToId.Erase(resource->mPath);
     mResourceIdToResource.Erase(id);
-    delete resource;
+    resource.Delete();
   }
 }
 
-void ResourceManager::RegisterResource(Resource* resource)
+void ResourceManager::RegisterResource(ResourceHandle resource)
 {
   mResourceIdToResource[resource->mId] = resource;
   mResourceNameToId[resource->mName] = resource->mId;
@@ -55,17 +55,17 @@ ResourceId ResourceManager::FindId(const ResourcePath& path) const
   return mResourcePathToId.FindValue(path, ResourceId::cInvalid);
 }
 
-Resource* ResourceManager::FindResourceBase(const ResourceName& name) const
+ResourceManager::ResourceHandle ResourceManager::FindResourceBase(const ResourceName& name) const
 {
   return FindResourceBase(FindId(name));
 }
 
-Resource* ResourceManager::FindResourceBase(const ResourcePath& path) const
+ResourceManager::ResourceHandle ResourceManager::FindResourceBase(const ResourcePath& path) const
 {
   return FindResourceBase(FindId(path));
 }
 
-Resource* ResourceManager::FindResourceBase(const ResourceId& id) const
+ResourceManager::ResourceHandle ResourceManager::FindResourceBase(const ResourceId& id) const
 {
   return mResourceIdToResource.FindValue(id, nullptr);
 }

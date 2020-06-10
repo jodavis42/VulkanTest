@@ -4,6 +4,12 @@
 
 #include "ResourceMetaFile.hpp"
 
+//-------------------------------------------------------------------ZilchScript
+ZilchDefineType(ZilchScript, builder, type)
+{
+  ZilchBindDefaultCopyDestructor();
+}
+
 //-------------------------------------------------------------------ZilchScriptManager
 ZilchScriptManager::ZilchScriptManager()
 {

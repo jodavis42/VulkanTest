@@ -3,11 +3,30 @@
 #include "EngineSerialization.hpp"
 
 #include "Utilities/JsonSerializers.hpp"
+#include "Resources/ResourceSystem.hpp"
 #include "Engine/Component.hpp"
 #include "Engine/Composition.hpp"
 #include "Engine/Space.hpp"
 #include "Engine/LevelManager.hpp"
 #include "ZilchScript/ZilchScriptLibrary.hpp"
+
+void ParseResourceIdName(const String& resourceNameId, ResourceName& resourceName, ResourceId& resourceId)
+{
+  auto range = resourceNameId.All().FindRangeInclusive("{", "}");
+  if(range.Empty())
+  {
+    resourceName = ResourceName{resourceNameId};
+    resourceId = ResourceId::cInvalid;
+    return;
+  }
+
+  String nameStr = resourceNameId.SubString(resourceNameId.Begin(), range.Begin());
+  String idStr = resourceNameId.SubString(range.Begin() + 1, range.End() - 1);
+  uint64 guid;
+  Zero::ToValue(idStr, guid);
+  resourceName = ResourceName{nameStr};
+  resourceId = ResourceId{guid};
+}
 
 template <typename PropertyType>
 void SerializeType(JsonLoader& loader, Zilch::Any& result)
@@ -25,8 +44,9 @@ void SerializeArrayType(JsonLoader& loader, Zilch::Any& result)
   result = data;
 }
 
-bool LoadProperty(JsonLoader& loader, Zilch::Type* propertyType, const String& propertyName, Zilch::Any& result)
+bool LoadProperty(SerializerContext& context, Zilch::Type* propertyType, const String& propertyName, Zilch::Any& result)
 {
+  JsonLoader& loader = *context.mLoader;
   if(!loader.BeginMember(propertyName))
     return false;
 
@@ -47,6 +67,26 @@ bool LoadProperty(JsonLoader& loader, Zilch::Type* propertyType, const String& p
     SerializeArrayType<Quaternion, 4>(loader, result);
   else if(propertyType == ZilchTypeId(String))
     SerializeType<String>(loader, result);
+  else if(propertyType->IsA(ZilchTypeId(Resource)))
+  {
+    Zilch::BoundType* propertyBoundType = Zilch::BoundType::GetBoundType(propertyType);
+    ResourceManager* manager = context.mResourceSystem->FindManagerBase(ResourceTypeName{propertyBoundType->Name});
+    if(manager != nullptr)
+    {
+      String resourceNameId;
+      loader.SerializePrimitive(resourceNameId);
+      ResourceName resourceName;
+      ResourceId resourceId;
+      ParseResourceIdName(resourceNameId, resourceName, resourceId);
+
+      Resource* resource = nullptr;
+      if(resourceId != ResourceId::cInvalid)
+        resource = manager->FindResourceBase(resourceId);
+      if(resource == nullptr && !resourceName.Empty())
+        resource = manager->FindResourceBase(resourceName);
+      result = resource;
+    }
+  }
   else
     returnValue = false;
 
@@ -54,8 +94,9 @@ bool LoadProperty(JsonLoader& loader, Zilch::Type* propertyType, const String& p
   return true;
 }
 
-bool LoadProperty(JsonLoader& loader, Zilch::Property* zilchProperty, Zilch::Handle objectInstanceHandle)
+bool LoadProperty(SerializerContext& context, Zilch::Property* zilchProperty, Zilch::Handle objectInstanceHandle)
 {
+  JsonLoader& loader = *context.mLoader;
   Zilch::Attribute* propertyAttribute = zilchProperty->HasAttribute(Zilch::PropertyAttribute);
   if(propertyAttribute == nullptr)
     return false;
@@ -70,7 +111,7 @@ bool LoadProperty(JsonLoader& loader, Zilch::Property* zilchProperty, Zilch::Han
   Zilch::ArrayClass<Zilch::Any> setArguments;
   Zilch::Any setValue;
 
-  if(!LoadProperty(loader, propertyType, propertyName, setValue))
+  if(!LoadProperty(context, propertyType, propertyName, setValue))
     return false;
 
   setArguments.NativeArray.PushBack(setValue);
@@ -79,8 +120,9 @@ bool LoadProperty(JsonLoader& loader, Zilch::Property* zilchProperty, Zilch::Han
   return true;
 }
 
-bool LoadComponent(ZilchScriptModule* module, JsonLoader& loader, const String& componentName, Composition* compositionOwner)
+bool LoadComponent(SerializerContext& context, const String& componentName, Composition* compositionOwner)
 {
+  JsonLoader& loader = *context.mLoader;
   if(componentName == "Name")
   {
     loader.SerializePrimitive(compositionOwner->mName);
@@ -90,7 +132,7 @@ bool LoadComponent(ZilchScriptModule* module, JsonLoader& loader, const String& 
 
   Zilch::ExceptionReport report;
   Zilch::ExecutableState* state = Zilch::ExecutableState::CallingState;
-  Zilch::BoundType* boundType = module->FindType(componentName);
+  Zilch::BoundType* boundType = context.mModule->FindType(componentName);
   if(boundType == nullptr)
   {
     Zilch::Console::WriteLine("Failed to find bound type '%s' when serializing object '%s'", componentName.c_str(), compositionOwner->mName.c_str());
@@ -103,22 +145,47 @@ bool LoadComponent(ZilchScriptModule* module, JsonLoader& loader, const String& 
   compositionOwner->AddComponent(component);
   for(auto range = boundType->GetProperties(); !range.Empty(); range.PopFront())
   {
-    LoadProperty(loader, range.Front(), preconstructedObject);
+    LoadProperty(context, range.Front(), preconstructedObject);
   }
   loader.EndMember();
   return true;
 }
 
-bool LoadComposition(ZilchScriptModule* module, const String& path, Composition* composition)
+bool CloneComponent(SerializerContext& context, Component& oldComponent, Zilch::HandleOf<Component>& newComponent)
 {
-  JsonLoader loader;
-  if(!loader.LoadFromFile(path))
-    return false;
-  return LoadComposition(module, loader, composition);
+  Zilch::ExceptionReport report;
+  Zilch::ExecutableState* state = Zilch::ExecutableState::CallingState;
+  Zilch::BoundType* oldBoundType = ZilchVirtualTypeId(&oldComponent);
+  Zilch::BoundType* newBoundType = context.mModule->FindType(oldBoundType->Name);
+  Zilch::Handle preconstructedObject = state->AllocateDefaultConstructedHeapObject(newBoundType, report, Zilch::HeapFlags::ReferenceCounted);
+  newComponent = preconstructedObject.Get<Component*>();
+  for(auto range = newBoundType->GetProperties(); !range.Empty(); range.PopFront())
+  {
+    Zilch::Property* newProperty = range.Front();
+    if(newProperty->Set == nullptr)
+      continue;
+    Zilch::Property* oldProperty = oldBoundType->FindProperty(newProperty->Name, Zilch::FindMemberOptions::None);
+    if(oldProperty == nullptr)
+      continue;
+
+    Zilch::Any getValue = oldProperty->Get->Invoke(&oldComponent, nullptr);
+    Zilch::ArrayClass<Zilch::Any> setArgs;
+    setArgs.NativeArray.PushBack(getValue);
+    newProperty->Set->Invoke(newComponent, &setArgs);
+  }
+  return true;
 }
 
-bool LoadComposition(ZilchScriptModule* module, JsonLoader& loader, Composition* composition)
+bool LoadComposition(SerializerContext& context, const String& path, Composition* composition)
 {
+  if(!context.mLoader->LoadFromFile(path))
+    return false;
+  return LoadComposition(context, composition);
+}
+
+bool LoadComposition(SerializerContext& context, Composition* composition)
+{
+  JsonLoader& loader = *context.mLoader;
   size_t componentCount;
   if(!loader.BeginMembers(componentCount))
     return false;
@@ -128,15 +195,15 @@ bool LoadComposition(ZilchScriptModule* module, JsonLoader& loader, Composition*
     String componentName;
     if(loader.BeginMember(i, componentName))
     {
-      LoadComponent(module, loader, componentName, composition);
+      LoadComponent(context, componentName, composition);
     }
   }
   return true;
 }
 
-bool LoadLevel(ZilchScriptModule* module, Level* level, Space* space)
+bool LoadLevel(SerializerContext& context, Level* level, Space* space)
 {
-  JsonLoader loader;
+  JsonLoader& loader = *context.mLoader;
   if(!loader.LoadFromFile(level->mPath))
     return false;
 
@@ -147,7 +214,7 @@ bool LoadLevel(ZilchScriptModule* module, Level* level, Space* space)
     loader.BeginArrayItem(objIndex);
 
     CompositionHandle composition = ZilchAllocate(Composition);
-    LoadComposition(module, loader, composition);
+    LoadComposition(context, composition);
     space->Add(composition);
 
     loader.EndArrayItem();

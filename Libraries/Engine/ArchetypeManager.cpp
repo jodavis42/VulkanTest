@@ -4,6 +4,12 @@
 
 #include "ResourceMetaFile.hpp"
 
+//-------------------------------------------------------------------Archetype
+ZilchDefineType(Archetype, builder, type)
+{
+  ZilchBindDefaultCopyDestructor();
+}
+
 //-------------------------------------------------------------------ArchetypeManager
 ArchetypeManager::ArchetypeManager()
 {

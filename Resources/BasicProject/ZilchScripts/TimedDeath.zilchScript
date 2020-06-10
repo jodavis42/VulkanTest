@@ -1,19 +1,39 @@
 class TimedDeath : ZilchComponent
 {
-  [Property] var Time : Real = 3.0;
+  [Property("Foo")] var Time : Real = 3.0;
   var AccumulatedTime : Real = 0.0;
 
   function Initialize()
   {
-    ZilchScript.Connect(this.Space, "LogicUpdate", this.OnLogicUpdate);
+    Script.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+    Script.Connect(this.Engine, Events.KeyDown, this.OnKeyDown);
+    Script.Connect(this.Engine, Events.MouseMove, this.OnMouseMove);
+  }
+
+  function OnKeyDown(e : KeyboardEvent)
+  {
+    //Console.WriteLine("KeyDown: `e.Key`");
+  }
+
+  function OnMouseMove(e : MouseEvent)
+  {
+    //Console.WriteLine("MouseMove: `e.Position`");
+  }
+
+  function OnMouseDown(e : MouseEvent)
+  {
+    //Console.WriteLine("MouseMove: `e.Button`");
   }
 
   function OnLogicUpdate(event : UpdateEvent)
   {
+    var value = Keys.Space;
+    var keyboard = this.Engine.Keyboard;
     this.AccumulatedTime += event.Dt;
-    if(this.AccumulatedTime > this.Time)
-    {
-      this.Owner.Destroy();
-    }
+    //Console.WriteLine("Hiss");
+    //if(this.AccumulatedTime > this.Time)
+    //{
+    //  this.Owner.Destroy();
+    //}
   }
 }

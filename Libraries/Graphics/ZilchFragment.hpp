@@ -11,6 +11,7 @@ class ResourceMetaFile;
 struct ZilchFragmentFile : public Resource
 {
 public:
+  ZilchDeclareType(ZilchFragmentFile, Zilch::TypeCopyMode::ReferenceType);
   String mFileContents;
 };
 

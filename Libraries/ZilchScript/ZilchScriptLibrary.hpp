@@ -10,6 +10,7 @@ class ResourceSystem;
 class ZilchScriptLibrary
 {
 public:
+  Zilch::LibraryRef mOldZilchLibrary;
   Zilch::LibraryRef mZilchLibrary;
   ResourceLibrary* mResourceLibrary = nullptr;
 };
@@ -34,8 +35,10 @@ public:
   void SetNativeDependencies(Zilch::Module* dependencies);
   void BuildLibraries();
   void BuildLibrary(ResourceLibrary* resourceLibrary);
+  ZilchScriptLibrary* FindLibrary(ResourceLibrary* resourceLibrary);
 
   ZilchScriptModule* GetModule();
+  Array<ZilchScriptLibrary*>::range GetLibraries();
 
 private:
   static void OnError(Zilch::ErrorEvent* e, void* userData);

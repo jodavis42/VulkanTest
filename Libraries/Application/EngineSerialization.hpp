@@ -5,13 +5,23 @@
 
 class JsonLoader;
 class Composition;
+class Component;
 class Space;
 struct Level;
 class ZilchScriptModule;
+class ResourceSystem;
 
-bool LoadProperty(JsonLoader& loader, Zilch::Type* propertyType, const String& propertyName, Zilch::Any& result);
-bool LoadProperty(JsonLoader& loader, Zilch::Property* zilchProperty, Zilch::Handle objectInstanceHandle);
-bool LoadComponent(ZilchScriptModule* module, JsonLoader& loader, const String& componentName, Composition* compositionOwner);
-bool LoadComposition(ZilchScriptModule* module, const String& path, Composition* composition);
-bool LoadComposition(ZilchScriptModule* module, JsonLoader& loader, Composition* composition);
-bool LoadLevel(ZilchScriptModule* module, Level* level, Space* space);
+struct SerializerContext
+{
+  ZilchScriptModule* mModule = nullptr;
+  ResourceSystem* mResourceSystem = nullptr;
+  JsonLoader* mLoader = nullptr;
+};
+
+bool LoadProperty(SerializerContext& context, Zilch::Type* propertyType, const String& propertyName, Zilch::Any& result);
+bool LoadProperty(SerializerContext& context, Zilch::Property* zilchProperty, Zilch::Handle objectInstanceHandle);
+bool LoadComponent(SerializerContext& context, const String& componentName, Composition* compositionOwner);
+bool CloneComponent(SerializerContext& context, Component& oldComponent, Zilch::HandleOf<Component>& newComponent);
+bool LoadComposition(SerializerContext& context, const String& path, Composition* composition);
+bool LoadComposition(SerializerContext& context, Composition* composition);
+bool LoadLevel(SerializerContext& context, Level* level, Space* space);

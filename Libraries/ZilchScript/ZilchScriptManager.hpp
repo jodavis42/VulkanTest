@@ -10,6 +10,7 @@ class ResourceMetaFile;
 struct ZilchScript : public Resource
 {
 public:
+  ZilchDeclareType(ZilchScript, Zilch::TypeCopyMode::ReferenceType);
   String mScriptContents;
 };
 

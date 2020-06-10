@@ -4,6 +4,12 @@
 
 #include "ResourceMetaFile.hpp"
 
+//-------------------------------------------------------------------Level
+ZilchDefineType(Level, builder, type)
+{
+  ZilchBindDefaultCopyDestructor();
+}
+
 //-------------------------------------------------------------------LevelManager
 LevelManager::LevelManager()
 {

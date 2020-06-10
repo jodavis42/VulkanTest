@@ -21,7 +21,7 @@
       "Translation" : [0, 0, 0]
     },
     "Model": {
-      "Mesh": "Quad",
+      "Mesh": "Quad{6813585553662481159}",
       "Material": "ZilchTest"
     },
     "TimedDeath": {

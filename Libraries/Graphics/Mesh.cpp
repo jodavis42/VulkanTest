@@ -24,6 +24,12 @@ void FilloutMesh(Mesh* mesh, std::vector<tinyobj::shape_t>& shapes, tinyobj::att
   }
 }
 
+//-----------------------------------------------------------------------------Mesh
+ZilchDefineType(Mesh, builder, type)
+{
+  ZilchBindDefaultCopyDestructor();
+}
+
 //-------------------------------------------------------------------MeshManager
 MeshManager::MeshManager()
 {

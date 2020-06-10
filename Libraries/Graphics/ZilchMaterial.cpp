@@ -4,6 +4,12 @@
 
 #include "JsonSerializers.hpp"
 
+//-------------------------------------------------------------------ZilchMaterial
+ZilchDefineType(ZilchMaterial, builder, type)
+{
+  ZilchBindDefaultCopyDestructor();
+}
+
 //-------------------------------------------------------------------ZilchMaterialManager
 ZilchMaterialManager::ZilchMaterialManager()
 {
