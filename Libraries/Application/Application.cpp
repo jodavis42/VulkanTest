@@ -10,6 +10,7 @@
 #include "Engine/CompositionInitializer.hpp"
 #include "Engine/Composition.hpp"
 #include "Engine/Engine.hpp"
+#include "Engine/GameSession.hpp"
 #include "Engine/Keyboard.hpp"
 #include "Engine/Mouse.hpp"
 #include "Engine/Transform.hpp"
@@ -66,6 +67,7 @@ void Application::Initialize()
   InitializeResourceSystem();
   BuildZilchScripts();
   BuildEngine();
+  BuildGame();
   BuildSpace();
 
   mLastFrameTime = std::chrono::high_resolution_clock::now();
@@ -154,21 +156,37 @@ void Application::BuildEngine()
   mEngine->Initialize(CompositionInitializer());
 }
 
+void Application::BuildGame()
+{
+  ArchetypeManager* archetypeManager = mResourceSystem.FindResourceManager(ArchetypeManager);
+  Archetype* gameArchetype = archetypeManager->FindResource(ResourceName{"Game"});
+  Zilch::HandleOf<GameSession> game = ZilchAllocate(GameSession);
+
+  if(gameArchetype != nullptr)
+    LoadComposition(gameArchetype->mPath, game);
+
+  mEngine->Add(game);
+  game->Initialize(CompositionInitializer());
+  mGame = game;
+}
+
 void Application::BuildSpace()
 {
   ArchetypeManager* archetypeManager = mResourceSystem.FindResourceManager(ArchetypeManager);
   Archetype* spaceArchetype = archetypeManager->FindResource(ResourceName{"Space"});
-  mSpace = ZilchAllocate(Space);
+  Zilch::HandleOf<Space> space = ZilchAllocate(Space);
 
   if(spaceArchetype != nullptr)
-    LoadComposition(spaceArchetype->mPath, mSpace);
+    LoadComposition(spaceArchetype->mPath, space);
 
-  if(mSpace->Has<TimeSpace>() == nullptr)
-    mSpace->AddComponent(ZilchAllocate(TimeSpace));
-  if(mSpace->Has<GraphicsSpace>() == nullptr)
-    mSpace->AddComponent(ZilchAllocate(GraphicsSpace));
-  mEngine->Add(mSpace);
-  mSpace->Initialize(CompositionInitializer());
+  if(space->Has<TimeSpace>() == nullptr)
+    space->AddComponent(ZilchAllocate(TimeSpace));
+  if(space->Has<GraphicsSpace>() == nullptr)
+    space->AddComponent(ZilchAllocate(GraphicsSpace));
+
+  mGame->Add(space);
+  space->Initialize(CompositionInitializer());
+  mSpace = space;
 }
 
 void Application::LoadLevel(const String& levelName)
@@ -216,23 +234,26 @@ void Application::ReloadResources()
     zilchScriptManager->mModifiedScripts.Clear();
 
     // Have to re-allocate any zilch component otherwise the old library will free the memory when deallocated.
-    for(Space* space : mEngine->mSpaces)
+    for(GameSession* game : mEngine->mGameSessions)
     {
-      for(Composition* composition : space->mCompositions)
+      for(Space* space : game->mSpaces)
       {
-        for(size_t i = 0; i < composition->mComponents.Size(); ++i)
+        for(Composition* composition : space->mCompositions)
         {
-          Zilch::HandleOf<Component> component = composition->mComponents[i];
-          Zilch::BoundType* boundType = component->ZilchGetDerivedType();
-          if(boundType->IsA(ZilchTypeId(ZilchComponent)))
+          for(size_t i = 0; i < composition->mComponents.Size(); ++i)
           {
-            SerializerContext context{GetActiveModule(), &mResourceSystem, nullptr};
-            Zilch::HandleOf<Component> newComponent = nullptr;
-            CloneComponent(context, *component.Get<Component*>(), newComponent);
-            composition->mComponents[i] = newComponent;
-            component.Delete();
-            newComponent->mOwner = composition;
-            newComponent->Initialize(CompositionInitializer());
+            Zilch::HandleOf<Component> component = composition->mComponents[i];
+            Zilch::BoundType* boundType = component->ZilchGetDerivedType();
+            if(boundType->IsA(ZilchTypeId(ZilchComponent)))
+            {
+              SerializerContext context{GetActiveModule(), &mResourceSystem, nullptr};
+              Zilch::HandleOf<Component> newComponent = nullptr;
+              CloneComponent(context, *component.Get<Component*>(), newComponent);
+              composition->mComponents[i] = newComponent;
+              component.Delete();
+              newComponent->mOwner = composition;
+              newComponent->Initialize(CompositionInitializer());
+            }
           }
         }
       }

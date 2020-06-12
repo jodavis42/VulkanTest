@@ -14,6 +14,8 @@ target_sources(Engine
     ${CMAKE_CURRENT_LIST_DIR}/Engine.hpp
     ${CMAKE_CURRENT_LIST_DIR}/EngineZilchStaticLibrary.cpp
     ${CMAKE_CURRENT_LIST_DIR}/EngineZilchStaticLibrary.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/GameSession.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/GameSession.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Keyboard.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Keyboard.hpp
     ${CMAKE_CURRENT_LIST_DIR}/LevelManager.cpp

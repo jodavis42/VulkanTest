@@ -3,11 +3,17 @@
 #include "Space.hpp"
 #include "Component.hpp"
 
+#include "GameSession.hpp"
+#include "Engine.hpp"
+
 //-------------------------------------------------------------------Space
 ZilchDefineType(Space, builder, type)
 {
   ZilchBindDefaultConstructor();
   ZilchBindDestructor();
+
+  ZilchBindGetter(Game);
+  ZilchBindGetter(Engine);
 }
 
 Space::Space()
@@ -44,7 +50,15 @@ void Space::InitializeCompositions(const CompositionInitializer& initializer)
   }
 }
 
+GameSession* Space::GetGame() const
+{
+  return mGame;
+}
+
 Engine* Space::GetEngine() const
 {
-  return mEngine;
+  GameSession* game = GetGame();
+  if(game == nullptr)
+    return nullptr;
+  return game->GetEngine();
 }

@@ -5,6 +5,7 @@
 #include "Composition.hpp"
 
 class Engine;
+class GameSession;
 
 //-------------------------------------------------------------------Space
 class Space : public Composition
@@ -18,10 +19,11 @@ public:
   void DestroyQueuedCompositions();
 
   void InitializeCompositions(const CompositionInitializer& initializer);
+  GameSession* GetGame() const;
   Engine* GetEngine() const;
 
   using CompositionHandle = Zilch::HandleOf<Composition>;
   Array<CompositionHandle> mCompositions;
   Array<CompositionHandle> mCompositionsToDestroy;
-  Engine* mEngine = nullptr;
+  GameSession* mGame = nullptr;
 };

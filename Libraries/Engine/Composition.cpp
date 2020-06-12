@@ -5,6 +5,8 @@
 #include "CompositionInitializer.hpp"
 #include "Component.hpp"
 #include "Space.hpp"
+#include "Engine.hpp"
+#include "GameSession.hpp"
 
 //-------------------------------------------------------------------Composition
 ZilchDefineType(Composition, builder, type)
@@ -14,6 +16,8 @@ ZilchDefineType(Composition, builder, type)
   ZilchBindDestructor();
 
   ZilchBindGetter(Space);
+  ZilchBindGetter(Game);
+  ZilchBindGetter(Engine);
   ZilchBindOverloadedMethod(FindComponent, ZilchInstanceOverload(Component*, const String&));
   ZilchBindMethod(Destroy);
 }
@@ -77,4 +81,20 @@ void Composition::DestroyAllComponents()
 Space* Composition::GetSpace() const
 {
   return mSpace;
+}
+
+GameSession* Composition::GetGame() const
+{
+  Space* space = GetSpace();
+  if(space == nullptr)
+    return nullptr;
+  return space->GetGame();
+}
+
+Engine* Composition::GetEngine() const
+{
+  Space* space = GetSpace();
+  if(space == nullptr)
+    return nullptr;
+  return space->GetEngine();
 }

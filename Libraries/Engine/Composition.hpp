@@ -5,6 +5,8 @@
 
 class Component;
 class CompositionInitializer;
+class Engine;
+class GameSession;
 class Space;
 
 //-------------------------------------------------------------------Composition
@@ -31,6 +33,8 @@ public:
   }
 
   Space* GetSpace() const;
+  GameSession* GetGame() const;
+  Engine* GetEngine() const;
 
   using ComponentHandle = Zilch::HandleOf<Component>;
   HashMap<const Zilch::BoundType*, ComponentHandle> mComponentMap;

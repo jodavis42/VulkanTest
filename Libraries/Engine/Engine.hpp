@@ -4,20 +4,22 @@
 
 #include "Composition.hpp"
 
+class GameSession;
+
 //-------------------------------------------------------------------Engine
 class Engine : public Composition
 {
 public:
   ZilchDeclareType(Engine, Zilch::TypeCopyMode::ReferenceType);
 
-  void Add(Space* space);
-  void QueueForDestruction(Space* space);
-  void DestroyQueuedCompositions();
+  void Add(GameSession* game);
+  void QueueForDestruction(GameSession* game);
+  void DestroyQueuedGameSessions();
 
   void InitializeCompositions(const CompositionInitializer& initializer);
   void Update(float dt);
 
-  using SpaceHandle = Zilch::HandleOf<Space>;
-  Array<SpaceHandle> mSpaces;
-  Array<SpaceHandle> mSpacesToDestroy;
+  using GameSessionHandle = Zilch::HandleOf<GameSession>;
+  Array<GameSessionHandle> mGameSessions;
+  Array<GameSessionHandle> mGameSessionsToDestroy;
 };

@@ -5,6 +5,7 @@
 #include "Component.hpp"
 #include "Composition.hpp"
 #include "Engine.hpp"
+#include "GameSession.hpp"
 #include "Keyboard.hpp"
 #include "LevelManager.hpp"
 #include "Mouse.hpp"
@@ -134,6 +135,7 @@ ZilchDefineStaticLibrary(EngineStaticLibrary)
   // Compositions
   ZilchInitializeType(Composition);
   ZilchInitializeType(Space);
+  ZilchInitializeType(GameSession);
   ZilchInitializeType(Engine);
 
   // Components

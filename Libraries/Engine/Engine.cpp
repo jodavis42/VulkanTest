@@ -2,8 +2,7 @@
 
 #include "Engine.hpp"
 
-#include "Space.hpp"
-#include "TimeSpace.hpp"
+#include "GameSession.hpp"
 #include "UpdateEvent.hpp"
 
 //-------------------------------------------------------------------Engine
@@ -15,49 +14,44 @@ ZilchDefineType(Engine, builder, type)
   builder.AddSendsEvent(type, Events::EngineUpdate, ZilchTypeId(Zilch::EventData));
 }
 
-void Engine::Add(Space* space)
+void Engine::Add(GameSession* game)
 {
-  space->mEngine = this;
-  mSpaces.PushBack(space);
+  game->mEngine = this;
+  mGameSessions.PushBack(game);
 }
 
-void Engine::QueueForDestruction(Space* space)
+void Engine::QueueForDestruction(GameSession* game)
 {
-  size_t index = mSpaces.FindIndex(SpaceHandle(space));
-  Math::Swap(mSpaces[index], mSpaces[mSpaces.Size() - 1]);
-  mSpaces.PopBack();
-  mSpacesToDestroy.PushBack(space);
+  size_t index = mGameSessions.FindIndex(GameSessionHandle(game));
+  Math::Swap(mGameSessions[index], mGameSessions[mGameSessions.Size() - 1]);
+  mGameSessions.PopBack();
+  mGameSessionsToDestroy.PushBack(game);
 }
 
-void Engine::DestroyQueuedCompositions()
+void Engine::DestroyQueuedGameSessions()
 {
-  for(SpaceHandle space : mSpacesToDestroy)
-    space.Delete();
-  mSpacesToDestroy.Clear();
+  for(GameSessionHandle game : mGameSessionsToDestroy)
+    game.Delete();
+  mGameSessionsToDestroy.Clear();
 }
 
 void Engine::InitializeCompositions(const CompositionInitializer& initializer)
 {
-  for(Space* space : mSpaces)
+  for(GameSession* game : mGameSessions)
   {
-    space->Initialize(initializer);
+    game->Initialize(initializer);
   }
 }
 
 void Engine::Update(float dt)
 {
-  for(Space* space : mSpaces)
-  {
-    TimeSpace* timeSpace = space->Has<TimeSpace>();
-    if(timeSpace != nullptr)
-      timeSpace->Update(dt);
-  }
-
   Zilch::HandleOf<Zilch::EventData> toSend = ZilchAllocate(Zilch::EventData);
   toSend->EventName = Events::EngineUpdate;
   Zilch::EventSend(this, toSend->EventName, toSend);
 
-  for(Space* space : mSpaces)
-    space->DestroyQueuedCompositions();
-  DestroyQueuedCompositions();
+  for(GameSession* game : mGameSessions)
+  {
+    game->Update(dt);
+  }
+  DestroyQueuedGameSessions();
 }

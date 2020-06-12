@@ -29,6 +29,7 @@ private:
   void InitializeResourceSystem();
   void BuildZilchScripts();
   void BuildEngine();
+  void BuildGame();
   void BuildSpace();
 
   void LoadLevel(const String& levelName);
@@ -55,6 +56,7 @@ private:
   ZilchScriptLibraryManager mZilchScriptLibraryManager;
 
   Zilch::HandleOf<Engine> mEngine;
+  Zilch::HandleOf<GameSession> mGame;
   Zilch::HandleOf<Space> mSpace;
   
   GLFWwindow* mWindow;
