@@ -1,6 +1,8 @@
 #include "Precompiled.hpp"
 
 #include "EngineZilchStaticLibrary.hpp"
+
+#include "Resources/ResourceExtensions.hpp"
 #include "ArchetypeManager.hpp"
 #include "Component.hpp"
 #include "Composition.hpp"
@@ -35,8 +37,12 @@ void AddComponentExtensions(Zilch::LibraryBuilder& builder, Zilch::BoundType* bo
 
 void AddNativeLibraryExtensions(Zilch::LibraryBuilder& builder)
 {
+  AddResourceExtensions(builder);
   for(auto range = builder.BoundTypes.Values(); !range.Empty(); range.PopFront())
-    AddComponentExtensions(builder, range.Front());
+  {
+    Zilch::BoundType* boundType = range.Front();
+    AddComponentExtensions(builder, boundType);
+  }
 }
 
 ZilchDefineExternalBaseType(Keys::Enum, Zilch::TypeCopyMode::ValueType, builder, type)

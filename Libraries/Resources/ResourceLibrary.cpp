@@ -2,6 +2,8 @@
 
 #include "ResourceLibrary.hpp"
 #include "Zilch/Zilch.hpp"
+#include "ZilchHelpers/ZilchModule.hpp"
+#include "ResourceExtensions.hpp"
 #include "ResourceExtensionManager.hpp"
 #include "JsonSerializers.hpp"
 
@@ -118,4 +120,10 @@ ResourceMetaFile ResourceLibrary::LoadMetaFileForResource(const ResourcePath& pa
 ResourceLibrary::ResourceIdRangeOfResourceType ResourceLibrary::AllResourcesOfType(const ResourceTypeName& resourceTypeName)
 {
   return ResourceIdRangeOfResourceType(resourceTypeName, mResourceIdMetaMap.All());
+}
+
+void ResourceLibrary::OnPreParser(Zilch::ParseEvent* e)
+{
+  ZilchModule* dependencies = (ZilchModule*)e->BuildingProject->UserData;
+  AddResourcePropertyExtensions(*e->Builder, dependencies, this);
 }

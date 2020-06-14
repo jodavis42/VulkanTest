@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ZilchScriptStandard.hpp"
+#include "ZilchHelpers/ZilchModule.hpp"
 #include "Zilch/Zilch.hpp"
 
 class ResourceLibrary;
@@ -17,16 +18,6 @@ public:
   ResourceLibrary* mResourceLibrary = nullptr;
 };
 
-//-------------------------------------------------------------------ZilchScriptModule
-class ZilchScriptModule
-{
-public:
-  Zilch::BoundType* FindType(const String& typeName) const;
-  Zilch::BoundType* FindType(Zilch::Library* library, const String& typeName) const;
-
-  Zilch::Module mModule;
-};
-
 //-------------------------------------------------------------------ZilchScriptLibraryManager
 class ZilchScriptLibraryManager : public Zilch::EventHandler
 {
@@ -39,15 +30,15 @@ public:
   void BuildLibrary(ResourceLibrary* resourceLibrary);
   ZilchScriptLibrary* FindLibrary(ResourceLibrary* resourceLibrary);
 
-  ZilchScriptModule* GetModule();
+  ZilchModule* GetModule();
   Array<ZilchScriptLibrary*>::range GetLibraries();
 
 private:
-  static void OnError(Zilch::ErrorEvent* e, void* userData);
-  static void OnTypeParsed(Zilch::ParseEvent* e, void* userData);
+  void OnError(Zilch::ErrorEvent* e);
+  void OnTypeParsed(Zilch::ParseEvent* e);
 
-  Zilch::Module* mNativeDependencies = nullptr;
-  ZilchScriptModule* mModule = nullptr;
+  Zilch::Ref<ZilchModule> mNativeDependencies;
+  Zilch::Ref<ZilchModule> mModule;
   Array<ZilchScriptLibrary*> mLibraries;
   ResourceSystem* mResourceSystem = nullptr;
 };

@@ -134,6 +134,9 @@ void Application::InitializeResourceSystem()
   mResourceSystem.RegisterResourceManager(Mesh, MeshManager, ZilchAllocate(MeshManager));
   mResourceSystem.RegisterResourceManager(ZilchMaterial, ZilchMaterialManager, ZilchAllocate(ZilchMaterialManager));
   mResourceSystem.LoadLibrary("BasicProject", Zero::FilePath::Combine(mResourcesDir, "BasicProject"));
+
+  mCallingStateSingleton.mResourceSystem = &mResourceSystem;
+  Zilch::ExecutableState::CallingState->UserData = &mCallingStateSingleton;
 }
 
 void Application::BuildZilchScripts()
@@ -191,7 +194,7 @@ void Application::BuildSpace()
 
 void Application::LoadLevel(const String& levelName)
 {
-  ZilchScriptModule* module = GetActiveModule();
+  ZilchModule* module = GetActiveModule();
   LevelManager* levelManager = mResourceSystem.FindResourceManager(LevelManager);
   ArchetypeManager* archetypeManager = mResourceSystem.FindResourceManager(ArchetypeManager);
   Level* level = levelManager->FindResource(ResourceName{levelName});
@@ -225,7 +228,7 @@ void Application::ReloadResources()
   if(!zilchScriptManager->mModifiedScripts.Empty())
   {
     mZilchScriptLibraryManager.BuildLibraries();
-    ZilchScriptModule* zilchScriptModule = mZilchScriptLibraryManager.GetModule();
+    ZilchModule* zilchModule = mZilchScriptLibraryManager.GetModule();
     for(ZilchScriptLibrary* zilchScriptLibrary : mZilchScriptLibraryManager.GetLibraries())
     {
       if(zilchScriptLibrary->mOldZilchLibrary != nullptr)
@@ -291,7 +294,7 @@ void Application::ProcessFrame()
   mEngine->Update(dt);
 }
 
-ZilchScriptModule* Application::GetActiveModule()
+ZilchModule* Application::GetActiveModule()
 {
   return mZilchScriptLibraryManager.GetModule();
 }

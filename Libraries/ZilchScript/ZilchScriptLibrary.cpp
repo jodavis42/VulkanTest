@@ -4,44 +4,37 @@
 
 #include "Resources/ResourceSystem.hpp"
 #include "Resources/ResourceLibrary.hpp"
+#include "Resources/ResourceExtensions.hpp"
 #include "Engine/EngineZilchStaticLibrary.hpp"
 
 #include "ZilchScriptManager.hpp"
 
-//-------------------------------------------------------------------ZilchScriptModule
-Zilch::BoundType* ZilchScriptModule::FindType(const String& typeName) const
+//-------------------------------------------------------------------ZilchScriptLibrary
+ZilchDefineType(ZilchScriptLibrary, builder, type)
 {
-  Zilch::BoundType* result = nullptr;
-  for(auto range = mModule.All(); !range.Empty(); range.PopFront())
-  {
-    Zilch::Library* library = range.Front();
-    result = FindType(library, typeName);
-    if(result != nullptr)
-      return result;
-  }
-  return result;
-}
-
-Zilch::BoundType* ZilchScriptModule::FindType(Zilch::Library* library, const String& typeName) const
-{
-  return library->BoundTypes.FindValue(typeName, nullptr);
+  ZilchBindDefaultCopyDestructor();
 }
 
 //-------------------------------------------------------------------ZilchScriptManager
 ZilchScriptLibraryManager::ZilchScriptLibraryManager(ResourceSystem* resourceSystem)
   : mResourceSystem(resourceSystem)
 {
-  mModule = new ZilchScriptModule();
 }
 
 ZilchScriptLibraryManager::~ZilchScriptLibraryManager()
 {
-  delete mModule;
 }
 
 void ZilchScriptLibraryManager::SetNativeDependencies(Zilch::Module* dependencies)
 {
-  mNativeDependencies = dependencies;
+  mNativeDependencies = new ZilchModule();
+  for(size_t i = 0; i < dependencies->Size(); ++i)
+  {
+    Zilch::Library* library = (*dependencies)[i];
+    ZilchLibrary* zilchLibrary = new ZilchLibrary();
+    zilchLibrary->mZilchLibrary = library;
+    mNativeDependencies->mDependencies.PushBack(zilchLibrary);
+  }
 }
 
 void ZilchScriptLibraryManager::BuildLibraries()
@@ -50,11 +43,14 @@ void ZilchScriptLibraryManager::BuildLibraries()
   for(ResourceLibrary* library : libraryGraph->GetLibraries())
     BuildLibrary(library);
 
-  mModule->mModule.Clear();
-  mModule->mModule.Append(mNativeDependencies->All());
+  mModule = new ZilchModule();
+  mModule->mDependencies.Insert(mModule->mDependencies.End(), mNativeDependencies->mDependencies.All());
   for(ZilchScriptLibrary* library : mLibraries)
   {
-    mModule->mModule.PushBack(library->mZilchLibrary);
+    ZilchLibrary* zilchLibrary = new ZilchLibrary();
+    zilchLibrary->Add(library);
+    zilchLibrary->mZilchLibrary = library->mZilchLibrary;
+    mModule->mDependencies.PushBack(zilchLibrary);
   }
 }
 
@@ -69,10 +65,15 @@ void ZilchScriptLibraryManager::BuildLibrary(ResourceLibrary* resourceLibrary)
     if(zilchScript != nullptr)
       scriptProject.AddCodeFromString(zilchScript->mScriptContents, zilchScript->mPath, zilchScript);
   }
+  scriptProject.UserData = mNativeDependencies.GetObject();
   
-  Zilch::EventConnect(&scriptProject, Zilch::Events::TypeParsed, OnTypeParsed, this, nullptr);
-  Zilch::EventConnect(&scriptProject, Zilch::Events::CompilationError, OnError, this, nullptr);
-  Zilch::LibraryRef library = scriptProject.Compile(resourceLibrary->mLibraryName, *mNativeDependencies, Zilch::EvaluationMode::Project);
+  Zilch::Module dependencies;
+  mNativeDependencies->PopulateZilchModule(dependencies);
+
+  Zilch::EventConnect(&scriptProject, Zilch::Events::PreParser, &ResourceLibrary::OnPreParser, resourceLibrary);
+  Zilch::EventConnect(&scriptProject, Zilch::Events::TypeParsed, &ZilchScriptLibraryManager::OnTypeParsed, this, this);
+  Zilch::EventConnect(&scriptProject, Zilch::Events::CompilationError, &ZilchScriptLibraryManager::OnError, this, this);
+  Zilch::LibraryRef library = scriptProject.Compile(resourceLibrary->mLibraryName, dependencies, Zilch::EvaluationMode::Project);
   if(library == nullptr)
     return;
   
@@ -85,7 +86,6 @@ void ZilchScriptLibraryManager::BuildLibrary(ResourceLibrary* resourceLibrary)
   zilchScriptLibrary->mResourceLibrary = resourceLibrary;
   zilchScriptLibrary->mOldZilchLibrary = zilchScriptLibrary->mZilchLibrary;
   zilchScriptLibrary->mZilchLibrary = library;
-  
 }
 
 ZilchScriptLibrary* ZilchScriptLibraryManager::FindLibrary(ResourceLibrary* resourceLibrary)
@@ -98,7 +98,7 @@ ZilchScriptLibrary* ZilchScriptLibraryManager::FindLibrary(ResourceLibrary* reso
   return nullptr;
 }
 
-ZilchScriptModule* ZilchScriptLibraryManager::GetModule()
+ZilchModule* ZilchScriptLibraryManager::GetModule()
 {
   return mModule;
 }
@@ -108,13 +108,13 @@ Array<ZilchScriptLibrary*>::range ZilchScriptLibraryManager::GetLibraries()
   return mLibraries.All();
 }
 
-void ZilchScriptLibraryManager::OnError(Zilch::ErrorEvent* e, void* userData)
+void ZilchScriptLibraryManager::OnError(Zilch::ErrorEvent* e)
 {
   String msg = e->GetFormattedMessage(Zilch::MessageFormat::MsvcCpp);
   Zilch::Console::WriteLine(msg);
 }
 
-void ZilchScriptLibraryManager::OnTypeParsed(Zilch::ParseEvent* e, void* userData)
+void ZilchScriptLibraryManager::OnTypeParsed(Zilch::ParseEvent* e)
 {
   Zilch::LibraryBuilder* builder = e->Builder;
   Zilch::BoundType* boundType = e->Type;

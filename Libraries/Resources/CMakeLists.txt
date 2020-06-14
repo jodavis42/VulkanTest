@@ -23,6 +23,7 @@ target_link_libraries(Resources
                       Foundation
                       Memory
                       Zilch
+                      ZilchHelpers
 )
 
 set_target_properties(Resources PROPERTIES FOLDER "Libraries")

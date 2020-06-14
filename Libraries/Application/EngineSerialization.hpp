@@ -8,12 +8,12 @@ class Composition;
 class Component;
 class Space;
 struct Level;
-class ZilchScriptModule;
+class ZilchModule;
 class ResourceSystem;
 
 struct SerializerContext
 {
-  ZilchScriptModule* mModule = nullptr;
+  ZilchModule* mModule = nullptr;
   ResourceSystem* mResourceSystem = nullptr;
   JsonLoader* mLoader = nullptr;
 };

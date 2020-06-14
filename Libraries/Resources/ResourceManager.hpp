@@ -6,6 +6,7 @@
 #include "Resource.hpp"
 #include "ResourceMetaFile.hpp"
 #include "ResourceEvents.hpp"
+#include "ResourceExtensions.hpp"
 
 class ResourceManager : public Zilch::EventHandler
 {

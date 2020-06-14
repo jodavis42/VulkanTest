@@ -38,6 +38,8 @@ public:
   ResourceMetaFile LoadMetaFileForResource(const ResourcePath& path, const ResourceTypeName& resourceTypeName);
   ResourceIdRangeOfResourceType AllResourcesOfType(const ResourceTypeName& resourceTypeName);
 
+  void OnPreParser(Zilch::ParseEvent* e);
+
   String mLibraryName;
   String mLibraryPath;
   bool mRecursiveLoad = true;

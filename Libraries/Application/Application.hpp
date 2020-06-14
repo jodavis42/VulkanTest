@@ -3,6 +3,7 @@
 #include "ApplicationConfig.hpp"
 
 #include "ZilchScript/ZilchScriptLibrary.hpp"
+#include "ZilchHelpers/ZilchCallingStateSingleton.hpp"
 #include "Resources/ResourceSystem.hpp"
 #include "Engine/Composition.hpp"
 #include "Engine/Engine.hpp"
@@ -13,6 +14,7 @@
 
 class JsonLoader;
 struct GLFWwindow;
+class ZilchModule;
 
 class Application
 {
@@ -40,7 +42,7 @@ private:
   void MainLoop();
   void ProcessFrame();
 
-  ZilchScriptModule* GetActiveModule();
+  ZilchModule* GetActiveModule();
   
   void QueryWindowSize(size_t& outWidth, size_t& outHeight);
   static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
@@ -54,6 +56,7 @@ private:
   String mShaderCoreDir;
   ResourceSystem mResourceSystem;
   ZilchScriptLibraryManager mZilchScriptLibraryManager;
+  ZilchCallingStateSingleton mCallingStateSingleton;
 
   Zilch::HandleOf<Engine> mEngine;
   Zilch::HandleOf<GameSession> mGame;

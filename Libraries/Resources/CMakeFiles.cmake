@@ -11,6 +11,8 @@ target_sources(Resources
     ${CMAKE_CURRENT_LIST_DIR}/Resource.hpp
     ${CMAKE_CURRENT_LIST_DIR}/ResourceEvents.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ResourceEvents.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/ResourceExtensions.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/ResourceExtensions.hpp
     ${CMAKE_CURRENT_LIST_DIR}/ResourceManager.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ResourceManager.hpp
     ${CMAKE_CURRENT_LIST_DIR}/ResourceMetaFile.hpp
