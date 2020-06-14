@@ -11,6 +11,12 @@ ZilchDefineType(Archetype, builder, type)
 }
 
 //-------------------------------------------------------------------ArchetypeManager
+ZilchDefineType(ArchetypeManager, builder, type)
+{
+  ZilchBindDefaultConstructor();
+  ZilchBindDestructor();
+}
+
 ArchetypeManager::ArchetypeManager()
 {
  

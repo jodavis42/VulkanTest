@@ -11,6 +11,12 @@ ZilchDefineType(ZilchMaterial, builder, type)
 }
 
 //-------------------------------------------------------------------ZilchMaterialManager
+ZilchDefineType(ZilchMaterialManager, builder, type)
+{
+  ZilchBindDefaultConstructor();
+  ZilchBindDestructor();
+}
+
 ZilchMaterialManager::ZilchMaterialManager()
 {
 

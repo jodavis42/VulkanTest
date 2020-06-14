@@ -4,12 +4,18 @@
 #include "ResourceManager.hpp"
 #include "ResourceLibrary.hpp"
 
+ZilchDefineType(ResourceSystem, builder, type)
+{
+  ZilchBindDefaultConstructor();
+  ZilchBindDestructor();
+}
+
 ResourceSystem::~ResourceSystem()
 {
   DestroyAllManagers();
 }
 
-void ResourceSystem::Register(const ResourceTypeName& resourceTypeName, const ResourceManagerTypeName& resourceManagerTypeName, ResourceManager* manager)
+void ResourceSystem::Register(const ResourceTypeName& resourceTypeName, const ResourceManagerTypeName& resourceManagerTypeName, const ResourceManagerHandle& manager)
 {
   mResourceToManagerTypeMap.InsertOrError(resourceTypeName, resourceManagerTypeName);
   mResourceManagerMap.InsertOrError(resourceManagerTypeName, manager);
@@ -52,6 +58,7 @@ void ResourceSystem::LoadLibrary(const String& libraryName, const String& librar
 
 void ResourceSystem::LoadLibrary(ResourceLibrary* library)
 {
+  library->mResourceSystem = this;
   mResourceLibraryGraph.PushLibrary(library);
   for(auto pair : library->mExtensionsToMetaFilePaths)
   {
@@ -94,15 +101,15 @@ void ResourceSystem::ReloadLibraries()
   }
 }
 
-ResourceManager* ResourceSystem::FindManagerBase(const ResourceTypeName& typeName) const
+ResourceSystem::ResourceManagerHandle ResourceSystem::FindManagerBase(const ResourceTypeName& typeName) const
 {
   ResourceManagerTypeName managerTypeName = mResourceToManagerTypeMap.FindValue(typeName, ResourceManagerTypeName());
   return FindManagerBase(managerTypeName);
 }
 
-ResourceManager* ResourceSystem::FindManagerBase(const ResourceManagerTypeName& managerTypeName) const
+ResourceSystem::ResourceManagerHandle ResourceSystem::FindManagerBase(const ResourceManagerTypeName& managerTypeName) const
 {
-  return mResourceManagerMap.FindValue(managerTypeName, nullptr);
+  return mResourceManagerMap.FindValue(managerTypeName, ResourceManagerHandle());
 }
 
 ResourceLibraryGraph* ResourceSystem::GetLibraryGraph()

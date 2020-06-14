@@ -18,9 +18,13 @@ ZilchDefineStaticLibrary(GraphicsStaticLibrary)
   builder.CreatableInScriptDefault = false;
 
   ZilchInitializeType(Mesh);
+  ZilchInitializeType(MeshManager);
   ZilchInitializeType(ZilchMaterial);
+  ZilchInitializeType(ZilchMaterialManager);
   ZilchInitializeType(ZilchFragmentFile);
+  ZilchInitializeType(ZilchFragmentFileManager);
   ZilchInitializeType(Texture);
+  ZilchInitializeType(TextureManager);
 
   ZilchInitializeType(Graphical);
   ZilchInitializeType(Camera);

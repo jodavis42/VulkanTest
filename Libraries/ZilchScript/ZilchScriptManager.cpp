@@ -11,6 +11,12 @@ ZilchDefineType(ZilchScript, builder, type)
 }
 
 //-------------------------------------------------------------------ZilchScriptManager
+ZilchDefineType(ZilchScriptManager, builder, type)
+{
+  ZilchBindDefaultConstructor();
+  ZilchBindDestructor();
+}
+
 ZilchScriptManager::ZilchScriptManager()
 {
  

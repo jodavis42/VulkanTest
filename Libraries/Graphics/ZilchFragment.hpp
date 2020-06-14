@@ -19,6 +19,8 @@ public:
 struct ZilchFragmentFileManager : public ResourceManagerTyped<ZilchFragmentFile>
 {
 public:
+  ZilchDeclareType(ZilchFragmentFileManager, Zilch::TypeCopyMode::ReferenceType);
+
   ZilchFragmentFileManager();
   ~ZilchFragmentFileManager();
 

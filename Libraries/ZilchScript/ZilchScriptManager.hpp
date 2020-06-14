@@ -18,6 +18,8 @@ public:
 struct ZilchScriptManager : public ResourceManagerTyped<ZilchScript>
 {
 public:
+  ZilchDeclareType(ZilchScriptManager, Zilch::TypeCopyMode::ReferenceType);
+
   ZilchScriptManager();
   ~ZilchScriptManager();
 

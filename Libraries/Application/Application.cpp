@@ -126,13 +126,13 @@ void Application::LoadConfiguration()
 
 void Application::InitializeResourceSystem()
 {
-  mResourceSystem.RegisterResourceManager(Level, LevelManager, new LevelManager());
-  mResourceSystem.RegisterResourceManager(ArchetypeManager, ArchetypeManager, new ArchetypeManager());
-  mResourceSystem.RegisterResourceManager(ZilchScript, ZilchScriptManager, new ZilchScriptManager());
-  mResourceSystem.RegisterResourceManager(ZilchFragmentFile, ZilchFragmentFileManager, new ZilchFragmentFileManager());
-  mResourceSystem.RegisterResourceManager(Texture, TextureManager, new TextureManager());
-  mResourceSystem.RegisterResourceManager(Mesh, MeshManager, new MeshManager());
-  mResourceSystem.RegisterResourceManager(ZilchMaterial, ZilchMaterialManager, new ZilchMaterialManager());
+  mResourceSystem.RegisterResourceManager(Level, LevelManager, ZilchAllocate(LevelManager));
+  mResourceSystem.RegisterResourceManager(Archetype, ArchetypeManager, ZilchAllocate(ArchetypeManager));
+  mResourceSystem.RegisterResourceManager(ZilchScript, ZilchScriptManager, ZilchAllocate(ZilchScriptManager));
+  mResourceSystem.RegisterResourceManager(ZilchFragmentFile, ZilchFragmentFileManager, ZilchAllocate(ZilchFragmentFileManager));
+  mResourceSystem.RegisterResourceManager(Texture, TextureManager, ZilchAllocate(TextureManager));
+  mResourceSystem.RegisterResourceManager(Mesh, MeshManager, ZilchAllocate(MeshManager));
+  mResourceSystem.RegisterResourceManager(ZilchMaterial, ZilchMaterialManager, ZilchAllocate(ZilchMaterialManager));
   mResourceSystem.LoadLibrary("BasicProject", Zero::FilePath::Combine(mResourcesDir, "BasicProject"));
 }
 

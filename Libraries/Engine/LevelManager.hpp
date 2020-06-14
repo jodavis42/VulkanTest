@@ -17,6 +17,8 @@ public:
 struct LevelManager : public ResourceManagerTyped<Level>
 {
 public:
+  ZilchDeclareType(LevelManager, Zilch::TypeCopyMode::ReferenceType);
+
   LevelManager();
   ~LevelManager();
 

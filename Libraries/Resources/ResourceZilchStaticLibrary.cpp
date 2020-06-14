@@ -3,6 +3,7 @@
 #include "ResourceZilchStaticLibrary.hpp"
 
 #include "ResourceManager.hpp"
+#include "ResourceSystem.hpp"
 
 ZilchDefineStaticLibrary(ResourceStaticLibrary)
 {
@@ -11,4 +12,5 @@ ZilchDefineStaticLibrary(ResourceStaticLibrary)
   ZilchInitializeType(ResourceLoadEvent);
   ZilchInitializeType(Resource);
   ZilchInitializeType(ResourceManager);
+  ZilchInitializeType(ResourceSystem);
 }

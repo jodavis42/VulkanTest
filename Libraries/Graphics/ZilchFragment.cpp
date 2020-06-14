@@ -11,6 +11,12 @@ ZilchDefineType(ZilchFragmentFile, builder, type)
 }
 
 //-------------------------------------------------------------------ZilchFragmentFileManager
+ZilchDefineType(ZilchFragmentFileManager, builder, type)
+{
+  ZilchBindDefaultConstructor();
+  ZilchBindDestructor();
+}
+
 ZilchFragmentFileManager::ZilchFragmentFileManager()
 {
  

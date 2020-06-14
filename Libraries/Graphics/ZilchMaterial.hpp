@@ -24,6 +24,8 @@ struct ZilchMaterial : public Resource
 struct ZilchMaterialManager : public ResourceManagerTyped<ZilchMaterial>
 {
 public:
+  ZilchDeclareType(ZilchMaterialManager, Zilch::TypeCopyMode::ReferenceType);
+
   ZilchMaterialManager();
   ~ZilchMaterialManager();
 

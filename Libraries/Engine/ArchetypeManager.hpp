@@ -17,6 +17,8 @@ public:
 struct ArchetypeManager : public ResourceManagerTyped<Archetype>
 {
 public:
+  ZilchDeclareType(ArchetypeManager, Zilch::TypeCopyMode::ReferenceType);
+
   ArchetypeManager();
   ~ArchetypeManager();
 

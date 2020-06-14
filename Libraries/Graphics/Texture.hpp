@@ -59,6 +59,8 @@ public:
 struct TextureManager : public ResourceManagerTyped<Texture>
 {
 public:
+  ZilchDeclareType(TextureManager, Zilch::TypeCopyMode::ReferenceType);
+
   TextureManager();
   ~TextureManager();
 

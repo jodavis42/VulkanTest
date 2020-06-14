@@ -17,6 +17,8 @@ struct Mesh : public Resource
 struct MeshManager : public ResourceManagerTyped<Mesh>
 {
 public:
+  ZilchDeclareType(MeshManager, Zilch::TypeCopyMode::ReferenceType);
+
   MeshManager();
   ~MeshManager();
 

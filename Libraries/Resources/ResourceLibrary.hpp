@@ -5,9 +5,10 @@
 #include "Resource.hpp"
 #include "ResourceMetaFile.hpp"
 
+class ResourceSystem;
 struct ResourceExtensionManager;
 
-class ResourceLibrary
+class ResourceLibrary : public Zilch::EventHandler
 {
 public:
   struct ResourceIdRangeOfResourceType
@@ -41,6 +42,7 @@ public:
   String mLibraryPath;
   bool mRecursiveLoad = true;
 
+  ResourceSystem* mResourceSystem = nullptr;
   HashMap<ResourceId, ResourceMetaFile> mResourceIdMetaMap;
   HashMap<ResourcePath, ResourceId> mResourcePathToIdMap;
   HashMap<ResourceExtension, Array<ResourceId>> mExtensionsToMetaFilePaths;

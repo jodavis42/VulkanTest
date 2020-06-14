@@ -10,6 +10,8 @@ class ResourceSystem;
 class ZilchScriptLibrary
 {
 public:
+  ZilchDeclareType(ZilchScriptLibrary, Zilch::TypeCopyMode::ReferenceType);
+
   Zilch::LibraryRef mOldZilchLibrary;
   Zilch::LibraryRef mZilchLibrary;
   ResourceLibrary* mResourceLibrary = nullptr;
@@ -26,7 +28,7 @@ public:
 };
 
 //-------------------------------------------------------------------ZilchScriptLibraryManager
-class ZilchScriptLibraryManager
+class ZilchScriptLibraryManager : public Zilch::EventHandler
 {
 public:
   ZilchScriptLibraryManager(ResourceSystem* resourceSystem);

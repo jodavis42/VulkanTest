@@ -15,6 +15,12 @@ ZilchDefineType(Texture, builder, type)
 }
 
 //-------------------------------------------------------------------TextureManager
+ZilchDefineType(TextureManager, builder, type)
+{
+  ZilchBindDefaultConstructor();
+  ZilchBindDestructor();
+}
+
 TextureManager::TextureManager()
 {
 

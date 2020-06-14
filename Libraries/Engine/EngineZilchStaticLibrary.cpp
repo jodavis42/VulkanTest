@@ -130,7 +130,9 @@ ZilchDefineStaticLibrary(EngineStaticLibrary)
 
   // Resources
   ZilchInitializeType(Level);
+  ZilchInitializeType(LevelManager);
   ZilchInitializeType(Archetype);
+  ZilchInitializeType(ArchetypeManager);
 
   // Compositions
   ZilchInitializeType(Composition);

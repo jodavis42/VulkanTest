@@ -8,12 +8,15 @@
 class ResourceManager;
 class ResourceLibrary;
 
-class ResourceSystem
+class ResourceSystem : public Zilch::EventHandler
 {
 public:
+  using ResourceManagerHandle = Zilch::HandleOf<ResourceManager>;
+
+  ZilchDeclareType(ResourceSystem, Zilch::TypeCopyMode::ReferenceType);
   ~ResourceSystem();
 
-  void Register(const ResourceTypeName& resourceTypeName, const ResourceManagerTypeName& resourceManagerTypeName, ResourceManager* manager);
+  void Register(const ResourceTypeName& resourceTypeName, const ResourceManagerTypeName& resourceManagerTypeName, const ResourceManagerHandle& manager);
   void DestroyManager(const ResourceManagerTypeName& managerTypeName);
   void DestroyAllManagers();
 
@@ -21,18 +24,18 @@ public:
   void LoadLibrary(ResourceLibrary* library);
   void ReloadLibraries();
 
-  ResourceManager* FindManagerBase(const ResourceTypeName& typeName) const;
-  ResourceManager* FindManagerBase(const ResourceManagerTypeName& managerTypeName) const;
+  ResourceManagerHandle FindManagerBase(const ResourceTypeName& typeName) const;
+  ResourceManagerHandle FindManagerBase(const ResourceManagerTypeName& managerTypeName) const;
 
   template <typename ResourceManagerType>
   ResourceManagerType* FindManager(const ResourceManagerTypeName& managerTypeName) const
   {
-    return static_cast<ResourceManagerType*>(FindManagerBase(managerTypeName));
+    return FindManagerBase(managerTypeName).Get<ResourceManagerType*>();
   }
   template <typename ResourceManagerType>
   ResourceManagerType* FindManager(const ResourceTypeName& typeName) const
   {
-    return static_cast<ResourceManagerType*>(FindManagerBase(typeName));
+    return FindManagerBase(typeName).Get<ResourceManagerType*>();
   }
 
   ResourceLibraryGraph* GetLibraryGraph();
@@ -41,7 +44,7 @@ public:
 private:
   ResourceLibraryGraph mResourceLibraryGraph;
   HashMap<ResourceTypeName, ResourceManagerTypeName> mResourceToManagerTypeMap;
-  HashMap<ResourceManagerTypeName, ResourceManager*> mResourceManagerMap;
+  HashMap<ResourceManagerTypeName, ResourceManagerHandle> mResourceManagerMap;
 };
 
 #define RegisterResourceManager(ResourceType, ResourceManagerType, managerInstance) \

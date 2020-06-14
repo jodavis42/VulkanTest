@@ -31,6 +31,12 @@ ZilchDefineType(Mesh, builder, type)
 }
 
 //-------------------------------------------------------------------MeshManager
+ZilchDefineType(MeshManager, builder, type)
+{
+  ZilchBindDefaultConstructor();
+  ZilchBindDestructor();
+}
+
 MeshManager::MeshManager()
 {
 

@@ -11,6 +11,12 @@ ZilchDefineType(Level, builder, type)
 }
 
 //-------------------------------------------------------------------LevelManager
+ZilchDefineType(LevelManager, builder, type)
+{
+  ZilchBindDefaultConstructor();
+  ZilchBindDestructor();
+}
+
 LevelManager::LevelManager()
 {
  
