@@ -1,0 +1,12 @@
+{
+  "Name": "Cube",
+  "Transform": {
+    "Scale": [ 1, 1, 1 ],
+    "Rotation": [ 0, 0, 0, 1 ],
+    "Translation": [ 0, 1, 0 ]
+  },
+  "Model": {
+    "Mesh": "Cube",
+    "Material": "Cube"
+  }
+}

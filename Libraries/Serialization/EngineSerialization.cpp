@@ -3,12 +3,12 @@
 #include "EngineSerialization.hpp"
 
 #include "Utilities/JsonSerializers.hpp"
+#include "ZilchHelpers/ZilchModule.hpp"
 #include "Resources/ResourceSystem.hpp"
 #include "Engine/Component.hpp"
 #include "Engine/Composition.hpp"
 #include "Engine/Space.hpp"
 #include "Engine/LevelManager.hpp"
-#include "ZilchScript/ZilchScriptLibrary.hpp"
 
 void ParseResourceIdName(const String& resourceNameId, ResourceName& resourceName, ResourceId& resourceId)
 {
@@ -67,6 +67,16 @@ bool LoadProperty(SerializerContext& context, Zilch::Type* propertyType, const S
     SerializeArrayType<Quaternion, 4>(loader, result);
   else if(propertyType == ZilchTypeId(String))
     SerializeType<String>(loader, result);
+  else if(propertyType->IsA(ZilchTypeId(Zilch::Enum)))
+  {
+    String enumValue;
+    loader.SerializePrimitive(enumValue);
+
+    Zilch::BoundType* propertyBoundType = Zilch::BoundType::GetBoundType(propertyType);
+    Zilch::Property* zilchPropertyValue = propertyBoundType->FindProperty(enumValue, Zilch::FindMemberOptions::Static);
+    if(zilchPropertyValue != nullptr)
+      result = zilchPropertyValue->Get->Invoke(Zilch::Any(), nullptr);
+  }
   else if(propertyType->IsA(ZilchTypeId(Resource)))
   {
     Zilch::BoundType* propertyBoundType = Zilch::BoundType::GetBoundType(propertyType);

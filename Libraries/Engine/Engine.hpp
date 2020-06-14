@@ -5,6 +5,7 @@
 #include "Composition.hpp"
 
 class GameSession;
+class IApplication;
 
 //-------------------------------------------------------------------Engine
 class Engine : public Composition
@@ -22,4 +23,5 @@ public:
   using GameSessionHandle = Zilch::HandleOf<GameSession>;
   Array<GameSessionHandle> mGameSessions;
   Array<GameSessionHandle> mGameSessionsToDestroy;
+  IApplication* mApplication = nullptr;
 };

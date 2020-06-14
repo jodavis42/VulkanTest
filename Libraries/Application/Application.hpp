@@ -7,6 +7,7 @@
 #include "Resources/ResourceSystem.hpp"
 #include "Engine/Composition.hpp"
 #include "Engine/Engine.hpp"
+#include "Engine/IApplication.hpp"
 #include "Engine/Space.hpp"
 #include "Graphics/GraphicsZilchStaticLibrary.hpp"
 
@@ -16,7 +17,7 @@ class JsonLoader;
 struct GLFWwindow;
 class ZilchModule;
 
-class Application
+class Application : public IApplication
 {
 public:
   Application(ApplicationConfig* config);
@@ -33,6 +34,10 @@ private:
   void BuildEngine();
   void BuildGame();
   void BuildSpace();
+
+  virtual Zilch::HandleOf<Composition> CreateComposition(Archetype& archetype) override;
+  virtual Zilch::HandleOf<Space> CreateSpace(Archetype& archetype) override;
+  virtual Zilch::HandleOf<GameSession> CreateGame(Archetype& archetype) override;
 
   void LoadLevel(const String& levelName);
   bool LoadComposition(const String& path, Composition* composition);

@@ -7,14 +7,14 @@
 class ResourceMetaFile;
 
 //-------------------------------------------------------------------Archetype
-struct Archetype : public Resource
+class Archetype : public Resource
 {
 public:
   ZilchDeclareType(Archetype, Zilch::TypeCopyMode::ReferenceType);
 };
 
 //-------------------------------------------------------------------ArchetypeManager
-struct ArchetypeManager : public ResourceManagerTyped<Archetype>
+class ArchetypeManager : public ResourceManagerTyped<Archetype>
 {
 public:
   ZilchDeclareType(ArchetypeManager, Zilch::TypeCopyMode::ReferenceType);

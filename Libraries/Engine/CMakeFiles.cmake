@@ -8,6 +8,7 @@ target_sources(Engine
     ${CMAKE_CURRENT_LIST_DIR}/Component.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Composition.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Composition.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/CompositionInitializer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/CompositionInitializer.hpp
     ${CMAKE_CURRENT_LIST_DIR}/EngineStandard.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Engine.cpp
@@ -16,6 +17,8 @@ target_sources(Engine
     ${CMAKE_CURRENT_LIST_DIR}/EngineZilchStaticLibrary.hpp
     ${CMAKE_CURRENT_LIST_DIR}/GameSession.cpp
     ${CMAKE_CURRENT_LIST_DIR}/GameSession.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/IApplication.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/IApplication.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Keyboard.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Keyboard.hpp
     ${CMAKE_CURRENT_LIST_DIR}/LevelManager.cpp

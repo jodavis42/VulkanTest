@@ -1,6 +1,6 @@
 #pragma once
 
-#include "EngineStandard.hpp"
+#include "Resources/ResourcesStandard.hpp"
 #include "Zilch/Zilch.hpp"
 
 class JsonLoader;
@@ -25,3 +25,8 @@ bool CloneComponent(SerializerContext& context, Component& oldComponent, Zilch::
 bool LoadComposition(SerializerContext& context, const String& path, Composition* composition);
 bool LoadComposition(SerializerContext& context, Composition* composition);
 bool LoadLevel(SerializerContext& context, Level* level, Space* space);
+
+class EngineSerializationSystem
+{
+  SerializerContext mContext;
+};

@@ -1,0 +1,20 @@
+class CreateOnKeyDown : ZilchComponent
+{
+  [Property] var Key : Keys = Keys.P;
+  [Property] var Archetype : Archetype = Archetype.Cube;
+
+  [Property] var CreateTranslation = Real3(0, 2, 0);
+
+  function Initialize()
+  {
+    Script.Connect(this.Engine, Events.KeyDown, this.OnKeyDown);
+  }
+
+  function OnKeyDown(e : KeyboardEvent)
+  {
+    if(e.Key == this.Key)
+    {
+      this.Space.Create(this.Archetype, CompositionCreationContext(){Translation = this.CreateTranslation});
+    }
+  }
+}

@@ -14,6 +14,14 @@
     }
   },
   {
+    "Name" : "Helpers",
+    "CreateOnKeyDown" : {
+      "Archetype" : "Cube",
+      "Key" : "O",
+      "CreateTranslation": [1, 2, 0]
+    }
+  },
+  {
     "Name" : "Object1",
     "Transform" : {
       "Scale" : [1, 1, 1],

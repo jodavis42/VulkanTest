@@ -6,7 +6,5 @@ target_sources(Application
     ${CMAKE_CURRENT_LIST_DIR}/Application.hpp
     ${CMAKE_CURRENT_LIST_DIR}/ApplicationConfig.cpp
     ${CMAKE_CURRENT_LIST_DIR}/ApplicationConfig.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/EngineSerialization.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/EngineSerialization.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Main.cpp
 )

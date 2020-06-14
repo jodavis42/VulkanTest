@@ -6,6 +6,7 @@
 #include "ArchetypeManager.hpp"
 #include "Component.hpp"
 #include "Composition.hpp"
+#include "CompositionInitializer.hpp"
 #include "Engine.hpp"
 #include "GameSession.hpp"
 #include "Keyboard.hpp"
@@ -139,6 +140,8 @@ ZilchDefineStaticLibrary(EngineStaticLibrary)
   ZilchInitializeType(LevelManager);
   ZilchInitializeType(Archetype);
   ZilchInitializeType(ArchetypeManager);
+
+  ZilchInitializeType(CompositionCreationContext);
 
   // Compositions
   ZilchInitializeType(Composition);

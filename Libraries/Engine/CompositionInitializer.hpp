@@ -8,3 +8,13 @@ class CompositionInitializer
 {
 public:
 };
+
+//-------------------------------------------------------------------CompositionCreationContext
+class CompositionCreationContext 
+{
+  ZilchDeclareType(CompositionCreationContext, Zilch::TypeCopyMode::ReferenceType);
+
+  Vec3 mScale = Vec3(1, 1, 1);
+  Quaternion mRotation = Quaternion::cIdentity;
+  Vec3 mTranslation = Vec3(0, 0, 0);
+};

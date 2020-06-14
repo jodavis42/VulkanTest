@@ -18,10 +18,10 @@
 #include "Engine/TimeSpace.hpp"
 #include "Graphics/GraphicsEngine.hpp"
 #include "Graphics/GraphicsSpace.hpp"
+#include "Serialization/EngineSerialization.hpp"
 #include "ZilchScript/ZilchScriptManager.hpp"
 #include "ZilchScript/ZilchScriptLibrary.hpp"
 #include "ZilchScript/ZilchComponent.hpp"
-#include "EngineSerialization.hpp"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -156,6 +156,7 @@ void Application::BuildEngine()
 
   if(mEngine->Has<GraphicsEngine>() == nullptr)
     mEngine->AddComponent(ZilchAllocate(GraphicsEngine));
+  mEngine->mApplication = this;
   mEngine->Initialize(CompositionInitializer());
 }
 
@@ -163,24 +164,28 @@ void Application::BuildGame()
 {
   ArchetypeManager* archetypeManager = mResourceSystem.FindResourceManager(ArchetypeManager);
   Archetype* gameArchetype = archetypeManager->FindResource(ResourceName{"Game"});
-  Zilch::HandleOf<GameSession> game = ZilchAllocate(GameSession);
-
-  if(gameArchetype != nullptr)
-    LoadComposition(gameArchetype->mPath, game);
-
-  mEngine->Add(game);
-  game->Initialize(CompositionInitializer());
-  mGame = game;
+  mGame = CreateGame(*gameArchetype);
 }
 
 void Application::BuildSpace()
 {
   ArchetypeManager* archetypeManager = mResourceSystem.FindResourceManager(ArchetypeManager);
   Archetype* spaceArchetype = archetypeManager->FindResource(ResourceName{"Space"});
+  mSpace = CreateSpace(*spaceArchetype);
+}
+
+Zilch::HandleOf<Composition> Application::CreateComposition(Archetype& archetype)
+{
+  Zilch::HandleOf<Composition> composition = ZilchAllocate(Composition);
+  LoadComposition(archetype.mPath, composition);
+  return composition;
+}
+
+Zilch::HandleOf<Space> Application::CreateSpace(Archetype& archetype)
+{
   Zilch::HandleOf<Space> space = ZilchAllocate(Space);
 
-  if(spaceArchetype != nullptr)
-    LoadComposition(spaceArchetype->mPath, space);
+  LoadComposition(archetype.mPath, space);
 
   if(space->Has<TimeSpace>() == nullptr)
     space->AddComponent(ZilchAllocate(TimeSpace));
@@ -189,7 +194,18 @@ void Application::BuildSpace()
 
   mGame->Add(space);
   space->Initialize(CompositionInitializer());
-  mSpace = space;
+  return space;
+}
+
+Zilch::HandleOf<GameSession> Application::CreateGame(Archetype& archetype)
+{
+  Zilch::HandleOf<GameSession> game = ZilchAllocate(GameSession);
+
+  LoadComposition(archetype.mPath, game);
+
+  mEngine->Add(game);
+  game->Initialize(CompositionInitializer());
+  return game;
 }
 
 void Application::LoadLevel(const String& levelName)
