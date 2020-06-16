@@ -48,13 +48,11 @@ class QuaternionCamera : ZilchComponent
   function OnRightMouseDown(viewportMouseEvent : MouseEvent)
   {
     this.MouseReady = true;
-    Console.WriteLine("MouseReady: `this.MouseReady`");
   }
 
   function OnRightMouseUp(viewportMouseEvent : MouseEvent)
   {
     this.MouseReady = false;
-    Console.WriteLine("MouseReady: `this.MouseReady`");
   }
 
   function OnMouseMove(viewportMouseEvent : MouseEvent)
@@ -73,7 +71,6 @@ class QuaternionCamera : ZilchComponent
       var oldPhi = this.Phi;
       this.Phi = Math.Clamp(this.Phi + this.UpDelta, -halfPi, halfPi);
       this.UpDelta = this.Phi - oldPhi;
-      Console.WriteLine("MosueMove: `this.Phi` `this.UpDelta`");
     }
   }
 
