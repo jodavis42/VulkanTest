@@ -19,7 +19,7 @@ struct ViewBlock
 
   Zilch::Real4x4 mWorldToView;
   Zilch::Real4x4 mViewToPerspective;
-  RenderTaskEvent mRenderTaskEvent;
+  Zilch::HandleOf<RenderTaskEvent> mRenderTaskEvent;
 };
 
 struct RenderQueue

@@ -16,6 +16,8 @@ ZilchDefineType(GraphicsSpace, builder, type)
 {
   ZilchBindDefaultConstructor();
   ZilchBindDestructor();
+
+  builder.AddSendsEvent(type, Events::CollectRenderTasks, ZilchTypeId(RenderTaskEvent));
 }
 
 GraphicsSpace::GraphicsSpace()
@@ -85,22 +87,50 @@ void GraphicsSpace::RenderQueueUpdate(RenderQueue& renderQueue)
     viewBlock.mFrameBlockId = static_cast<uint32_t>(renderQueue.mFrameBlocks.Size()) - 1;
     camera->FilloutViewBlock(renderer, viewBlock);
   
-    RenderTaskEvent& renderTaskEvent = viewBlock.mRenderTaskEvent;
-    renderTaskEvent.mGraphicsSpace = this;
+    Zilch::HandleOf<RenderTaskEvent> renderTaskEvent = ZilchAllocate(RenderTaskEvent);
+    viewBlock.mRenderTaskEvent = renderTaskEvent;
+    renderTaskEvent->mGraphicsSpace = this;
+    renderTaskEvent->EventName = Events::CollectRenderTasks;
+
+    Zilch::EventSend(GetOwner(), renderTaskEvent->EventName, renderTaskEvent);
   
-    Array<GraphicalEntry> entries;
-    entries.Reserve(mModels.Size());
-    for(Model* model : mModels)
-    {
-      GraphicalEntry& entry = entries.PushBack();
-      entry.mGraphical = model;
-      entry.mSortId = 0;
-    }
-    Zero::Sort(mModels.All());
-  
-    renderTaskEvent.CreateClearTargetRenderTask();
-    RenderGroupRenderTask* renderGroupTask = renderTaskEvent.CreateRenderGroupRenderTask();
-    for(const GraphicalEntry& entry : entries)
-      renderGroupTask->Add(entry.mGraphical);
+    ProcessRenderGroupTasks(renderTaskEvent);
   }
+}
+
+void GraphicsSpace::ProcessRenderGroupTasks(RenderTaskEvent& renderTaskEvent) const
+{
+  for(RenderTask* renderTask : renderTaskEvent.mRenderTasks)
+  {
+    if(renderTask->mTaskType != RenderTaskType::RenderGroup)
+      continue;
+    
+    RenderGroupRenderTask* renderGroupTask = (RenderGroupRenderTask*)renderTask;
+    Array<GraphicalEntry> entries;
+    CollectRenderGroups(renderGroupTask, entries);
+    
+    for(const GraphicalEntry& entry : entries)
+    {
+      renderGroupTask->Add(entry.mGraphical);
+    }
+  }
+}
+
+void GraphicsSpace::CollectRenderGroups(RenderGroupRenderTask* renderGroupTask, Array<GraphicalEntry>& entries) const
+{
+  entries.Reserve(mModels.Size());
+  for(Model* model : mModels)
+  {
+    for(auto renderGroup : renderGroupTask->mRenderGroups)
+    {
+      if(model->mRenderGroupSet.Contains(renderGroup))
+      {
+        GraphicalEntry& entry = entries.PushBack();
+        entry.mGraphical = model;
+        entry.mSortId = 0;
+        break;
+      }
+    }
+  }
+  Zero::Sort(entries.All());
 }

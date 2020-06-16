@@ -19,6 +19,12 @@
       "Archetype" : "Cube",
       "Key" : "O",
       "CreateTranslation": [1, 2, 0]
+    },
+    "NativeRenderer": {
+      "Active": false
+    },
+    "ScriptRenderer": {
+      "Active": true
     }
   },
   {
@@ -30,7 +36,8 @@
     },
     "Model": {
       "Mesh": "Quad{6813585553662481159}",
-      "Material": "ZilchTest"
+      "Material": "ZilchTest",
+      "RenderGroupSet" : ["Opaque"]
     },
     "TimedDeath": {
       "Time" : 5
@@ -45,7 +52,8 @@
     },
     "Model": {
       "Mesh": "Cube",
-      "Material": "Cube"
+      "Material": "Cube",
+      "RenderGroupSet" : ["Opaque"]
     }
   }
 ]

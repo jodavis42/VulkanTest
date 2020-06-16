@@ -9,6 +9,9 @@ struct Model;
 struct GraphicsEngine;
 struct RenderFrame;
 struct RenderQueue;
+struct RenderGroupRenderTask;
+struct RenderTaskEvent;
+struct GraphicalEntry;
 
 class GraphicsSpace : public Component
 {
@@ -28,6 +31,8 @@ public:
 
   void OnLogicUpdate(UpdateEvent* e);
   void RenderQueueUpdate(RenderQueue& renderQueue);
+  void ProcessRenderGroupTasks(RenderTaskEvent& renderTaskEvent) const;
+  void CollectRenderGroups(RenderGroupRenderTask* renderGroupTask, Array<GraphicalEntry>& entries) const;
 
   float mTotalTimeElapsed = 0.0;
   Array<Camera*> mCameras;

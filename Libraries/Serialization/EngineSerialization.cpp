@@ -4,6 +4,7 @@
 
 #include "Utilities/JsonSerializers.hpp"
 #include "ZilchHelpers/ZilchModule.hpp"
+#include "Resources/ResourceSet.hpp"
 #include "Resources/ResourceSystem.hpp"
 #include "Engine/Component.hpp"
 #include "Engine/Composition.hpp"
@@ -95,6 +96,25 @@ bool LoadProperty(SerializerContext& context, Zilch::Type* propertyType, const S
       if(resource == nullptr && !resourceName.Empty())
         resource = manager->FindResourceBase(resourceName);
       result = resource;
+    }
+  }
+  else if(propertyType->IsA(ZilchTypeId(ResourceSet)))
+  {
+    Zilch::BoundType* propertyBoundType = Zilch::BoundType::GetBoundType(propertyType);
+    Zilch::ExceptionReport report;
+    Zilch::ExecutableState* state = Zilch::ExecutableState::CallingState;
+    result = state->AllocateDefaultConstructedHeapObject(propertyBoundType, report, Zilch::HeapFlags::ReferenceCounted);
+    ResourceSet* resourceSet = result.Get<ResourceSet*>();
+
+    size_t count = 0;
+    loader.BeginArray(count);
+    for(size_t i = 0; i < count; ++i)
+    {
+      loader.BeginArrayItem(i);
+      String resourceName;
+      loader.SerializePrimitive(resourceName);
+      resourceSet->AddResource(context.mResourceSystem, ResourceName{resourceName});
+      loader.EndArrayItem();
     }
   }
   else

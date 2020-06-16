@@ -33,8 +33,12 @@ target_sources(Graphics
     ${CMAKE_CURRENT_LIST_DIR}/Vertex.hpp
     ${CMAKE_CURRENT_LIST_DIR}/GraphicalEntry.cpp
     ${CMAKE_CURRENT_LIST_DIR}/GraphicalEntry.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/NativeRenderer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/NativeRenderer.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Renderer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Renderer.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/RenderGroup.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/RenderGroup.hpp
     ${CMAKE_CURRENT_LIST_DIR}/RenderTasks.cpp
     ${CMAKE_CURRENT_LIST_DIR}/RenderTasks.hpp
     ${CMAKE_CURRENT_LIST_DIR}/RenderQueue.cpp

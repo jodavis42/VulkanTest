@@ -15,3 +15,13 @@ void Resource::Initialize(const ResourceMetaFile& resourceMeta)
   mName = resourceMeta.mName;
   mPath = resourceMeta.mResourcePath;
 }
+
+bool Resource::operator==(const Resource& rhs) const
+{
+  return mId == rhs.mId;
+}
+
+size_t Resource::Hash() const
+{
+  return mId.Hash();
+}

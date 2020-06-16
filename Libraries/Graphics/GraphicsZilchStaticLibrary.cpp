@@ -9,6 +9,9 @@
 #include "Model.hpp"
 #include "GraphicsSpace.hpp"
 #include "GraphicsEngine.hpp"
+#include "NativeRenderer.hpp"
+#include "RenderGroup.hpp"
+#include "RenderTasks.hpp"
 #include "Texture.hpp"
 #include "ZilchMaterial.hpp"
 #include "ZilchFragment.hpp"
@@ -25,10 +28,19 @@ ZilchDefineStaticLibrary(GraphicsStaticLibrary)
   ZilchInitializeType(ZilchFragmentFileManager);
   ZilchInitializeType(Texture);
   ZilchInitializeType(TextureManager);
+  ZilchInitializeType(RenderGroup);
+  ZilchInitializeType(RenderGroupManager);
+
+  ZilchInitializeType(RenderGroupSet);
+  ZilchInitializeType(RenderTask);
+  ZilchInitializeType(ClearTargetRenderTask);
+  ZilchInitializeType(RenderGroupRenderTask);
+  ZilchInitializeType(RenderTaskEvent);
 
   ZilchInitializeType(Graphical);
   ZilchInitializeType(Camera);
   ZilchInitializeType(Model);
+  ZilchInitializeType(NativeRenderer);
   ZilchInitializeType(GraphicsSpace);
   ZilchInitializeType(GraphicsEngine);
 

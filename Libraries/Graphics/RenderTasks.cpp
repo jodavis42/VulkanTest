@@ -6,16 +6,36 @@
 #include "ZilchMaterial.hpp"
 #include "ZilchShader.hpp"
 
+//-------------------------------------------------------------------RenderTask
+ZilchDefineType(RenderTask, builder, type)
+{
+  ZilchBindDestructor();
+}
+
 RenderTask::RenderTask(RenderTaskType taskType)
   : mTaskType(taskType)
 {
 
 }
 
+//-------------------------------------------------------------------ClearTargetRenderTask
+ZilchDefineType(ClearTargetRenderTask, builder, type)
+{
+  ZilchBindDefaultCopyDestructor();
+}
+
 ClearTargetRenderTask::ClearTargetRenderTask()
   : RenderTask(RenderTaskType::ClearTarget)
 {
 
+}
+
+//-------------------------------------------------------------------RenderGroupRenderTask
+ZilchDefineType(RenderGroupRenderTask, builder, type)
+{
+  ZilchBindDefaultCopyDestructor();
+
+  ZilchBindMethod(AddRenderGroup);
 }
 
 RenderGroupRenderTask::RenderGroupRenderTask()
@@ -30,9 +50,22 @@ void RenderGroupRenderTask::Add(const Graphical* graphical)
   graphical->FilloutFrameData(frameData);
 }
 
+void RenderGroupRenderTask::AddRenderGroup(const RenderGroupHandle& renderGroup)
+{
+  mRenderGroups.PushBack(renderGroup);
+}
+
+//-------------------------------------------------------------------RenderTaskEvent
+ZilchDefineType(RenderTaskEvent, builder, type)
+{
+  ZilchBindDefaultCopyDestructor();
+  ZilchBindMethod(CreateClearTargetRenderTask);
+  ZilchBindMethod(CreateRenderGroupRenderTask);
+}
+
 ClearTargetRenderTask* RenderTaskEvent::CreateClearTargetRenderTask()
 {
-  ClearTargetRenderTask* result = new ClearTargetRenderTask();
+  Zilch::HandleOf<ClearTargetRenderTask> result = ZilchAllocate(ClearTargetRenderTask);
   result->mOwningEvent = this;
   mRenderTasks.PushBack(result);
   return result;
@@ -40,7 +73,7 @@ ClearTargetRenderTask* RenderTaskEvent::CreateClearTargetRenderTask()
 
 RenderGroupRenderTask* RenderTaskEvent::CreateRenderGroupRenderTask()
 {
-  RenderGroupRenderTask* result = new RenderGroupRenderTask();
+  Zilch::HandleOf<RenderGroupRenderTask> result = ZilchAllocate(RenderGroupRenderTask);
   result->mOwningEvent = this;
   mRenderTasks.PushBack(result);
   return result;
@@ -48,7 +81,12 @@ RenderGroupRenderTask* RenderTaskEvent::CreateRenderGroupRenderTask()
 
 RenderTaskEvent::~RenderTaskEvent()
 {
-  for(RenderTask* renderTask : mRenderTasks)
-    delete renderTask;
+  for(Zilch::HandleOf<RenderTask>& renderTask : mRenderTasks)
+    renderTask.Delete();
   mRenderTasks.Clear();
 }
+
+namespace Events
+{
+ZilchDefineEvent(CollectRenderTasks);
+}//namespace Events

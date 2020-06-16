@@ -5,4 +5,6 @@
 ZilchDefineType(Graphical, builder, type)
 {
   ZilchBindDestructor();
+
+  ZilchBindFieldProperty(mRenderGroupSet);
 }

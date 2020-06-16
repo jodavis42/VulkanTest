@@ -130,6 +130,7 @@ void Application::InitializeResourceSystem()
   mResourceSystem.RegisterResourceManager(Archetype, ArchetypeManager, ZilchAllocate(ArchetypeManager));
   mResourceSystem.RegisterResourceManager(ZilchScript, ZilchScriptManager, ZilchAllocate(ZilchScriptManager));
   mResourceSystem.RegisterResourceManager(ZilchFragmentFile, ZilchFragmentFileManager, ZilchAllocate(ZilchFragmentFileManager));
+  mResourceSystem.RegisterResourceManager(RenderGroup, RenderGroupManager, ZilchAllocate(RenderGroupManager));
   mResourceSystem.RegisterResourceManager(Texture, TextureManager, ZilchAllocate(TextureManager));
   mResourceSystem.RegisterResourceManager(Mesh, MeshManager, ZilchAllocate(MeshManager));
   mResourceSystem.RegisterResourceManager(ZilchMaterial, ZilchMaterialManager, ZilchAllocate(ZilchMaterialManager));

@@ -17,6 +17,8 @@ public:
   virtual ~Resource() {}
 
   void Initialize(const ResourceMetaFile& resourceMeta);
+  bool operator==(const Resource& rhs) const;
+  size_t Hash() const;
 
   ResourceId mId;
   ResourceName mName;

@@ -1,0 +1,19 @@
+class ScriptRenderer : ZilchComponent
+{
+  [Property] var Active : Boolean = true;
+
+  function Initialize()
+  {
+    Script.Connect(this.Space, Events.CollectRenderTasks, this.OnCollectRenderTasks);
+  }
+
+  function OnCollectRenderTasks(e : RenderTaskEvent)
+  {
+    if(!this.Active)
+      return;
+    
+    e.CreateClearTargetRenderTask();
+    var renderGroupTask = e.CreateRenderGroupRenderTask();
+    renderGroupTask.AddRenderGroup(RenderGroup.Opaque);
+  }
+}

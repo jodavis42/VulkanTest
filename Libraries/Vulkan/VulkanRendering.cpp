@@ -131,7 +131,7 @@ void ProcessRenderQueue(RendererData& rendererData, const RenderQueue& renderQue
   for(const ViewBlock& viewBlock : renderQueue.mViewBlocks)
   {
     const FrameBlock& frameBlock = renderQueue.mFrameBlocks[viewBlock.mFrameBlockId];
-    for(const RenderTask* task : viewBlock.mRenderTaskEvent.mRenderTasks)
+    for(const RenderTask* task : viewBlock.mRenderTaskEvent->mRenderTasks)
     {
       if(task->mTaskType == RenderTaskType::RenderGroup)
       {

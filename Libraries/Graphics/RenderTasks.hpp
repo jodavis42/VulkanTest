@@ -3,6 +3,7 @@
 #include "GraphicsStandard.hpp"
 #include "Zilch/Zilch.hpp"
 #include "GraphicsBufferTypes.hpp"
+#include "RenderGroup.hpp"
 
 struct Mesh;
 struct ZilchMaterial;
@@ -41,16 +42,20 @@ struct RenderSettings
   TargetId mColorTargetId = mInvalidTarget;
 };
 
+//-------------------------------------------------------------------RenderTask
 struct RenderTask
 {
+  ZilchDeclareType(RenderTask, Zilch::TypeCopyMode::ReferenceType);
   RenderTask(RenderTaskType taskType);
   virtual ~RenderTask() {}
   RenderTaskType mTaskType;
   RenderTaskEvent* mOwningEvent = nullptr;
 };
 
+//-------------------------------------------------------------------ClearTargetRenderTask
 struct ClearTargetRenderTask : public RenderTask
 {
+  ZilchDeclareType(ClearTargetRenderTask, Zilch::TypeCopyMode::ReferenceType);
   ClearTargetRenderTask();
 
   RenderSettings mRenderSettings;
@@ -59,23 +64,35 @@ struct ClearTargetRenderTask : public RenderTask
   uint32_t mStencil = 0;
 };
 
+//-------------------------------------------------------------------RenderGroupRenderTask
 struct RenderGroupRenderTask : public RenderTask
 {
+  ZilchDeclareType(RenderGroupRenderTask, Zilch::TypeCopyMode::ReferenceType);
+  using RenderGroupHandle = Zilch::HandleOf<RenderGroup>;
   RenderGroupRenderTask();
 
   void Add(const Graphical* graphical);
+  void AddRenderGroup(const RenderGroupHandle& renderGroup);
 
   RenderSettings mRenderSettings;
   Array<GraphicalFrameData> mFrameData;
+  Array<RenderGroupHandle> mRenderGroups;
 };
 
-struct RenderTaskEvent
+//-------------------------------------------------------------------RenderTaskEvent
+struct RenderTaskEvent : public Zilch::EventData
 {
+  ZilchDeclareType(RenderTaskEvent, Zilch::TypeCopyMode::ReferenceType);
   ~RenderTaskEvent();
 
   ClearTargetRenderTask* CreateClearTargetRenderTask();
   RenderGroupRenderTask* CreateRenderGroupRenderTask();
 
   GraphicsSpace* mGraphicsSpace = nullptr;
-  Array<RenderTask*> mRenderTasks;
+  Array<Zilch::HandleOf<RenderTask>> mRenderTasks;
 };
+
+namespace Events
+{
+ZilchDeclareEvent(CollectRenderTasks, RenderTaskEvent);
+}//namespace Events
