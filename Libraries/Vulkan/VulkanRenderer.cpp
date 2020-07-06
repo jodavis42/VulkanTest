@@ -304,11 +304,27 @@ void VulkanRenderer::WaitForIdle()
   vkDeviceWaitIdle(mInternal->mDevice);
 }
 
+void VulkanRenderer::BeginReshape()
+{
+  DestroyRenderFramesInternal();
+  DestroyDefaultRenderPass();
+  DestroySwapChainInternal();
+  DestroyDepthResourcesInternal();
+}
+
 void VulkanRenderer::Reshape(size_t width, size_t height, float aspectRatio)
 {
   mInternal->mWidth = static_cast<uint32_t>(width);
   mInternal->mHeight = static_cast<uint32_t>(height);
   mInternal->mResized = true;
+}
+
+void VulkanRenderer::EndReshape()
+{
+  CreateDepthResourcesInternal();
+  CreateSwapChainInternal();
+  CreateDefaultRenderPass();
+  CreateRenderFramesInternal();
 }
 
 void VulkanRenderer::GetShape(size_t& width, size_t& height, float& aspectRatio) const

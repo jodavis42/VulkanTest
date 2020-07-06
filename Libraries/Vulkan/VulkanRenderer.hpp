@@ -61,7 +61,9 @@ public:
   virtual void DrawRenderQueue(RenderQueue& renderQueue) override;
   virtual void WaitForIdle() override;
 
+  virtual void BeginReshape() override;
   virtual void Reshape(size_t width, size_t height, float aspectRatio) override;
+  virtual void EndReshape() override;
   virtual void GetShape(size_t& width, size_t& height, float& aspectRatio) const override;
 
   virtual Matrix4 BuildPerspectiveMatrix(float verticalFov, float aspectRatio, float nearDistance, float farDistance) const override;

@@ -48,7 +48,9 @@ public:
   virtual void DrawRenderQueue(RenderQueue& renderQueue) abstract;
   virtual void WaitForIdle() abstract;
 
+  virtual void BeginReshape() abstract;
   virtual void Reshape(size_t width, size_t height, float aspectRatio) abstract;
+  virtual void EndReshape() abstract;
   virtual void GetShape(size_t& width, size_t& height, float& aspectRatio) const abstract;
 
   virtual Matrix4 BuildPerspectiveMatrix(float verticalFov, float aspectRatio, float nearDistance, float farDistance) const abstract;

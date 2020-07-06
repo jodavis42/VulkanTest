@@ -51,17 +51,11 @@ void GraphicsEngine::InitializeGraphics(const GraphicsEngineInitData& initData)
 
 void GraphicsEngine::Shutdown()
 {
-  CleanupSwapChain();
-  for(Mesh* mesh : mMeshManager->Resources())
-  {
-    mRenderer.DestroyMesh(mesh);
-  }
-  for(Texture* texture : mTextureManager->Resources())
-  {
-    mRenderer.DestroyTexture(texture);
-  }
+  RemoveResourcesFromRenderer();
   mRenderer.CleanupResources();
+  mRenderer.Cleanup();
   mRenderer.Shutdown();
+  mRenderer.Destroy();
 }
 
 void GraphicsEngine::Add(GraphicsSpace* space)
@@ -89,7 +83,7 @@ void GraphicsEngine::Update()
   RenderFrameStatus status = mRenderer.BeginFrame();
   if(status == RenderFrameStatus::OutOfDate)
   {
-    RecreateSwapChain();
+    Reshape();
     return;
   }
 
@@ -102,7 +96,7 @@ void GraphicsEngine::Update()
 
   status = mRenderer.EndFrame();
   if(status == RenderFrameStatus::OutOfDate || status == RenderFrameStatus::SubOptimal)
-    RecreateSwapChain();
+    Reshape();
   else if(status != RenderFrameStatus::Success)
   {
     ErrorIf(true, "failed to present swap chain image!");
@@ -122,10 +116,23 @@ void GraphicsEngine::InitializeRenderer(GraphicsEngineRendererInitData& renderer
   vulkanInitData.mSurfaceCreationCallback = rendererInitData.mSurfaceCreationCallback;
   mRenderer.Initialize(vulkanInitData);
 
+  UploadResourcesToRenderer();
+}
+
+void GraphicsEngine::UploadResourcesToRenderer()
+{
   UploadImages();
   UploadShaders();
   UploadMaterials();
   UploadMeshes();
+}
+
+void GraphicsEngine::RemoveResourcesFromRenderer()
+{
+  RemoveMeshes();
+  RemoveMaterials();
+  RemoveShaders();
+  RemoveImages();
 }
 
 void GraphicsEngine::UploadImages()
@@ -133,6 +140,14 @@ void GraphicsEngine::UploadImages()
   for(Texture* texture : mTextureManager->Resources())
   {
     mRenderer.CreateTexture(texture);
+  }
+}
+
+void GraphicsEngine::RemoveImages()
+{
+  for(Texture* texture : mTextureManager->Resources())
+  {
+    mRenderer.DestroyTexture(texture);
   }
 }
 
@@ -145,19 +160,27 @@ void GraphicsEngine::UploadShaders()
   }
 }
 
-void GraphicsEngine::UploadMaterial(ZilchMaterial* zilchMaterial)
+void GraphicsEngine::RemoveShaders()
 {
-  ZilchShader* zilchShader = mZilchShaderManager.Find(zilchMaterial->mMaterialName);
- if(zilchShader != nullptr)
-    mRenderer.UpdateShaderMaterialInstance(zilchShader, zilchMaterial);
+  for(ZilchShader* shader : mZilchShaderManager.Values())
+  {
+    mRenderer.DestroyShader(shader);
+    mRenderer.DestroyShaderMaterial(shader);
+  }
 }
 
 void GraphicsEngine::UploadMaterials()
 {
-  for(ZilchMaterial* material : mZilchMaterialManager->Resources())
+  for(ZilchMaterial* zilchMaterial : mZilchMaterialManager->Resources())
   {
-    UploadMaterial(material);
+    ZilchShader* zilchShader = mZilchShaderManager.Find(zilchMaterial->mMaterialName);
+    if(zilchShader != nullptr)
+      mRenderer.UpdateShaderMaterialInstance(zilchShader, zilchMaterial);
   }
+}
+
+void GraphicsEngine::RemoveMaterials()
+{
 }
 
 void GraphicsEngine::UploadMeshes()
@@ -168,13 +191,31 @@ void GraphicsEngine::UploadMeshes()
   }
 }
 
+void GraphicsEngine::RemoveMeshes()
+{
+  for(Mesh* mesh : mMeshManager->Resources())
+  {
+    mRenderer.DestroyMesh(mesh);
+  }
+}
+
 void GraphicsEngine::ReloadResources()
 {
   WaitIdle();
-  CleanupSwapChain();
+  
+  RemoveShaders();
+  mRenderer.BeginReshape();
+  
   mZilchShaderManager.BuildFragmentsLibrary();
   mZilchShaderManager.BuildShadersLibrary();
-  CreateSwapChain();
+
+  mRenderer.EndReshape();
+
+  // This is heavier than needs to happen as a lot of the shader's don't have to be destroyed (modules, etc...). For simplicity do everything right now.
+  UploadShaders();
+  UploadMaterials();
+  PopulateMaterialBuffer();
+
   mReloadResources = false;
 }
 
@@ -202,43 +243,22 @@ void GraphicsEngine::PopulateMaterialBuffer()
   mRenderer.UploadShaderMaterialInstances(materialBatchUploadData);
 }
 
-void GraphicsEngine::CreateSwapChain()
+void GraphicsEngine::Reshape()
 {
   size_t width, height;
   mWindowSizeQueryFn(width, height);
+
+  WaitIdle();
+
+  RemoveShaders();
+  mRenderer.BeginReshape();
   mRenderer.Reshape(width, height, width / (float)height);
-  mRenderer.CreateDepthResourcesInternal();
-  mRenderer.CreateSwapChainInternal();
-  mRenderer.CreateDefaultRenderPass();
-  mRenderer.CreateRenderFramesInternal();
+  mRenderer.EndReshape();
 
   // This is heavier than needs to happen as a lot of the shader's don't have to be destroyed (modules, etc...). For simplicity do everything right now.
   UploadShaders();
   UploadMaterials();
   PopulateMaterialBuffer();
-}
-
-void GraphicsEngine::CleanupSwapChain()
-{
-  for(ZilchMaterial* zilchMaterial : mZilchMaterialManager->Resources())
-  {
-    ZilchShader* zilchShader = mZilchShaderManager.Find(zilchMaterial->mMaterialName);
-    mRenderer.DestroyShaderMaterial(zilchShader);
-    mRenderer.DestroyShader(zilchShader);
-  }
-
-  mRenderer.DestroyRenderFramesInternal();
-  mRenderer.DestroyDefaultRenderPass();
-  mRenderer.DestroySwapChainInternal();
-  mRenderer.DestroyDepthResourcesInternal();
-}
-
-void GraphicsEngine::RecreateSwapChain()
-{
-  WaitIdle();
-
-  CleanupSwapChain();
-  CreateSwapChain();
 }
 
 void GraphicsEngine::WaitIdle()

@@ -46,20 +46,24 @@ public:
   Renderer* GetRenderer();
 
   void InitializeRenderer(GraphicsEngineRendererInitData& rendererInitData);
+  void UploadResourcesToRenderer();
+  void RemoveResourcesFromRenderer();
+
   void UploadImages();
+  void RemoveImages();
   void UploadShaders();
-  void UploadMaterial(ZilchMaterial* zilchMaterial);
+  void RemoveShaders();
   void UploadMaterials();
+  void RemoveMaterials();
   void UploadMeshes();
+  void RemoveMeshes();
   void ReloadResources();
 
   void OnResourceLoaded(ResourceLoadEvent* event);
   void OnResourceReLoaded(ResourceLoadEvent* event);
 
   void PopulateMaterialBuffer();
-  void CreateSwapChain();
-  void CleanupSwapChain();
-  void RecreateSwapChain();
+  void Reshape();
   void WaitIdle();
 
   SurfaceCreationDelegate mSurfaceCreationCallback;
