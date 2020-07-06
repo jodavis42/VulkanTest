@@ -43,7 +43,7 @@ VulkanPerFrameBuffers::FrameBuffers* VulkanUniformBufferManager::CreatePerFrameB
 
   if(frameBuffers.mBuffers.Empty())
   {
-    uint32_t frameCount = mRuntimeData->mSwapChain.GetCount();
+    uint32_t frameCount = mRuntimeData->mSwapChain->GetCount();
     frameBuffers.mBuffers.Resize(frameCount);
     VulkanBufferCreationData vulkanData{mRuntimeData->mPhysicalDevice, mRuntimeData->mDevice, mRuntimeData->mGraphicsQueue, mRuntimeData->mCommandPool};
     for(size_t i = 0; i < frameCount; i++)

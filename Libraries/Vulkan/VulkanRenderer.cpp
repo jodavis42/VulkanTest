@@ -10,24 +10,15 @@
 #include "VulkanInitialization.hpp"
 #include "VulkanValidationLayers.hpp"
 #include "VulkanStructures.hpp"
+#include "VulkanBuffer.hpp"
+#include "VulkanSampler.hpp"
+#include "VulkanImage.hpp"
 #include "VulkanImages.hpp"
+#include "VulkanImageView.hpp"
 #include "EnumConversions.hpp"
 #include "VulkanCommandBuffer.hpp"
 #include "VulkanMaterials.hpp"
 #include "VulkanRendering.hpp"
-
-VkFramebuffer& FindFrameBuffer(size_t id, VulkanRuntimeData* data)
-{
-  return data->mRenderFrames[id].mFrameBuffer;
-}
-VkRenderPass& FindRenderPass(size_t id, VulkanRuntimeData* data)
-{
-  return data->mRenderFrames[id].mRenderPass;
-}
-VkCommandBuffer& FindCommandBuffer(size_t id, VulkanRuntimeData* data)
-{
-  return data->mRenderFrames[id].mCommandBuffer;
-}
 
 VulkanRenderer::VulkanRenderer()
 {
@@ -48,12 +39,14 @@ void VulkanRenderer::Initialize(const VulkanInitializationData& initData)
   InitializeVulkan(*mInternal);
   CreateDepthResourcesInternal();
   CreateSwapChainInternal();
+  CreateDefaultRenderPass();
   CreateRenderFramesInternal();
 }
 
 void VulkanRenderer::Cleanup()
 {
   DestroyRenderFramesInternal();
+  DestroyDefaultRenderPass();
   DestroySwapChainInternal();
   DestroyDepthResourcesInternal();
 }
@@ -64,8 +57,8 @@ void VulkanRenderer::CleanupResources()
     DestroyMeshInternal(mesh);
   mMeshMap.Clear();
 
-  for(VulkanImage* image : mTextureMap.Values())
-    DestroyTextureInternal(image);
+  for(VulkanTexturedImageData* texturedImageData : mTextureMap.Values())
+    DestroyTextureInternal(texturedImageData);
   mTextureMap.Clear();
 
   for(VulkanShader* shader : mZilchShaderMap.Values())
@@ -81,6 +74,8 @@ void VulkanRenderer::CleanupResources()
 
 void VulkanRenderer::Shutdown()
 {
+  mInternal->mResourcePool.Free(*mInternal);
+  mInternal->mAllocator->FreeAllAllocations();
   for(size_t i = 0; i < mInternal->mMaxFramesInFlight; i++)
   {
     vkDestroyFence(mInternal->mDevice, mInternal->mSyncObjects.mInFlightFences[i], nullptr);
@@ -99,6 +94,7 @@ void VulkanRenderer::Shutdown()
 
 void VulkanRenderer::Destroy()
 {
+  delete mInternal->mAllocator;
   delete mInternal;
 }
 
@@ -136,22 +132,23 @@ void VulkanRenderer::DestroyMesh(const Mesh* mesh)
 
 void VulkanRenderer::CreateTexture(const Texture* texture)
 {
-  VulkanImage* vulkanImage = new VulkanImage();
+  VulkanTexturedImageData* texturedImageData = new VulkanTexturedImageData();
+  texturedImageData->mSampler = CreateSamplerInternal(texture);
+  texturedImageData->mImage = CreateImageInternal(texture);
+  CreateImageMemoryInternal(texture, texturedImageData->mImage, *texturedImageData);
+  texturedImageData->mImageView = CreateImageViewInternal(texture, texturedImageData->mImage);
 
-  CreateImageInternal(texture, vulkanImage);
-  CreateImageViewInternal(texture, vulkanImage);
-
-  mTextureMap[texture] = vulkanImage;
-  mTextureNameMap[texture->mName] = vulkanImage;
+  mTextureMap[texture] = texturedImageData;
+  mTextureNameMap[texture->mName] = texturedImageData;
 }
 
 void VulkanRenderer::DestroyTexture(const Texture* texture)
 {
-  VulkanImage* vulkanImage = mTextureMap[texture];
+  VulkanTexturedImageData* texturedImageData = mTextureMap[texture];
   mTextureMap.Erase(texture);
   mTextureNameMap.Erase(texture->mName);
 
-  DestroyTextureInternal(vulkanImage);
+  DestroyTextureInternal(texturedImageData);
 }
 
 void VulkanRenderer::CreateShader(const ZilchShader* zilchShader)
@@ -224,13 +221,19 @@ RenderFrameStatus VulkanRenderer::BeginFrame()
   vkWaitForFences(mInternal->mDevice, 1, &syncObjects.mInFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
   uint32_t imageIndex;
-  VkResult result = vkAcquireNextImageKHR(mInternal->mDevice, mInternal->mSwapChain.mSwapChain, UINT64_MAX, syncObjects.mImageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+  VkResult result = vkAcquireNextImageKHR(mInternal->mDevice, mInternal->mSwapChain->GetVulkanSwapChain(), UINT64_MAX, syncObjects.mImageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
   if(result == VK_ERROR_OUT_OF_DATE_KHR)
     return RenderFrameStatus::OutOfDate;
   else if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
     return RenderFrameStatus::Error;
   
   mInternal->mCurrentImageIndex = imageIndex;
+  
+  // Free any one-time resources for the frame now that we know it's finished
+  VulkanRenderFrame& renderFrame = mInternal->mRenderFrames[imageIndex];
+  renderFrame.mResources.Free(*mInternal);
+  renderFrame.mResources.Clear();
+
   return RenderFrameStatus::Success;
 }
 
@@ -254,7 +257,8 @@ RenderFrameStatus VulkanRenderer::EndFrame()
   submitInfo.pWaitSemaphores = waitSemaphores;
   submitInfo.pWaitDstStageMask = waitStages;
   submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &vulkanRenderFrame.mCommandBuffer;
+  VkCommandBuffer commandBuffer = vulkanRenderFrame.mCommandBuffer->GetVulkanCommandBuffer();
+  submitInfo.pCommandBuffers = &commandBuffer;
 
   VkSemaphore signalSemaphores[] = {syncObjects.mRenderFinishedSemaphores[currentFrame]};
   submitInfo.signalSemaphoreCount = 1;
@@ -271,7 +275,7 @@ RenderFrameStatus VulkanRenderer::EndFrame()
   presentInfo.waitSemaphoreCount = 1;
   presentInfo.pWaitSemaphores = signalSemaphores;
 
-  VkSwapchainKHR swapChains[] = {mInternal->mSwapChain.mSwapChain};
+  VkSwapchainKHR swapChains[] = {mInternal->mSwapChain->GetVulkanSwapChain()};
   presentInfo.swapchainCount = 1;
   presentInfo.pSwapchains = swapChains;
   presentInfo.pImageIndices = &imageIndex;
@@ -387,12 +391,12 @@ void VulkanRenderer::DestroyMeshInternal(VulkanMesh* vulkanMesh)
   vkFreeMemory(mInternal->mDevice, vulkanMesh->mVertexBufferMemory, nullptr);
 }
 
-void VulkanRenderer::DestroyTextureInternal(VulkanImage* vulkanImage)
+void VulkanRenderer::DestroyTextureInternal(VulkanTexturedImageData* texturedImageData)
 {
-  vkDestroySampler(mInternal->mDevice, vulkanImage->mSampler, nullptr);
-  vkDestroyImageView(mInternal->mDevice, vulkanImage->mImageView, nullptr);
-  vkFreeMemory(mInternal->mDevice, vulkanImage->mImageMemory, nullptr);
-  vkDestroyImage(mInternal->mDevice, vulkanImage->mImage, nullptr);
+  delete texturedImageData->mSampler;
+  delete texturedImageData->mImageView;
+  mInternal->mAllocator->FreeAllocation(texturedImageData->mImage);
+  delete texturedImageData->mImage;
 }
 
 void VulkanRenderer::DestroyShaderInternal(VulkanShader* vulkanShader)
@@ -423,163 +427,261 @@ void VulkanRenderer::DestroyShaderMaterialInternal(VulkanShaderMaterial* vulkanS
 void VulkanRenderer::RecreateFramesInternal()
 {
   DestroyRenderFramesInternal();
+  DestroyDefaultRenderPass();
   DestroySwapChainInternal();
   DestroyDepthResourcesInternal();
 
   CreateDepthResourcesInternal();
   CreateSwapChainInternal();
+  CreateDefaultRenderPass();
   CreateRenderFramesInternal();
 }
 
 void VulkanRenderer::CreateSwapChainInternal()
 {
-  SwapChainCreationInfo swapChainInfo;
+  VulkanSwapChainCreationInfo swapChainInfo;
   swapChainInfo.mDevice = mInternal->mDevice;
   swapChainInfo.mPhysicalDevice = mInternal->mPhysicalDevice;
+  swapChainInfo.mCommandPool = mInternal->mCommandPool;
+  swapChainInfo.mGraphicsQueue = mInternal->mGraphicsQueue;
   swapChainInfo.mSurface = mInternal->mSurface;
   swapChainInfo.mExtent = Integer2(mInternal->mWidth, mInternal->mHeight);
 
-  SwapChainResultInfo swapChainResultInfo;
-  CreateSwapChainAndViews(swapChainInfo, mInternal->mSwapChain);
-  mInternal->mSyncObjects.mImagesInFlight.Resize(mInternal->mSwapChain.GetCount(), VK_NULL_HANDLE);
+  mInternal->mSwapChain = new VulkanSwapChain(swapChainInfo);
+  mInternal->mSyncObjects.mImagesInFlight.Resize(mInternal->mSwapChain->GetCount(), VK_NULL_HANDLE);
+}
+
+void VulkanRenderer::CreateDefaultRenderPass()
+{
+  uint32_t frameId = mInternal->mCurrentImageIndex;
+  VulkanImage* finalColorImage = mInternal->mSwapChain->GetImage(frameId);
+  VulkanImage* finalDepthImage = mInternal->mDepthImage;
+
+  VulkanImageViewInfo colorImageViewInfo;
+  colorImageViewInfo.mFormat = mInternal->mSwapChain->GetImageFormat();
+  colorImageViewInfo.mAspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+  VulkanImageView* colorImageView = new VulkanImageView(mInternal->mDevice, finalColorImage, colorImageViewInfo);
+
+  VulkanImageViewInfo depthImageViewInfo;
+  depthImageViewInfo.mFormat = mInternal->mDepthFormat;
+  depthImageViewInfo.mAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+  VulkanImageView* depthImageView = new VulkanImageView(mInternal->mDevice, finalDepthImage, depthImageViewInfo);
+
+  mInternal->mResourcePool.Add(colorImageView);
+  mInternal->mResourcePool.Add(depthImageView);
+
+  VulkanRenderPassInfo renderPassInfo;
+  renderPassInfo.mColorAttachments[0] = colorImageView;
+  renderPassInfo.mColorDescriptions[0].mInitialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  renderPassInfo.mColorDescriptions[0].mFinalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+  renderPassInfo.mColorDescriptions[0].mLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  renderPassInfo.mDepthAttachment = depthImageView;
+  renderPassInfo.mDepthDescription.mInitialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  renderPassInfo.mDepthDescription.mFinalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+  renderPassInfo.mColorAttachmentCount = 1;
+  auto& subPass = renderPassInfo.mSubPasses.PushBack();
+  subPass.mColorAttachmentCount = 1;
+  subPass.mColorAttachments[0] = 0;
+
+  mInternal->mDefaultRenderPass = new VulkanRenderPass(mInternal->mDevice, renderPassInfo);
+}
+
+void VulkanRenderer::DestroyDefaultRenderPass()
+{
+  delete mInternal->mDefaultRenderPass;
+  mInternal->mDefaultRenderPass = nullptr;
 }
 
 void VulkanRenderer::CreateRenderFramesInternal()
 {
-  size_t count = mInternal->mSwapChain.mImages.Size();
+  size_t count = mInternal->mSwapChain->GetCount();
   mInternal->mRenderFrames.Resize(count);
 
   Array<VkCommandBuffer> commandBuffers(count);
-  CreateCommandBuffer(mInternal->mDevice, mInternal->mCommandPool, commandBuffers.Data(), static_cast<uint32_t>(count));
+  CreateCommandBuffers(mInternal->mDevice, mInternal->mCommandPool, commandBuffers.Data(), static_cast<uint32_t>(count));
   for(size_t i = 0; i < count; ++i)
   {
     VulkanRenderFrame& vulkanFrame = mInternal->mRenderFrames[i];
     vulkanFrame.mRenderer = this;
-    vulkanFrame.mSwapChainImage = mInternal->mSwapChain.mImages[i];
-    vulkanFrame.mSwapChainImageView = mInternal->mSwapChain.mImageViews[i];
-    vulkanFrame.mCommandBuffer = commandBuffers[i];
-
-
-    RenderPassCreationData creationData;
-    creationData.mRenderPass = vulkanFrame.mRenderPass;
-    creationData.mDevice = mInternal->mDevice;
-    creationData.mSwapChainImageFormat = mInternal->mSwapChain.mImageFormat;
-    creationData.mDepthFormat = mInternal->mDepthFormat;
-    CreateRenderPass(creationData);
-    vulkanFrame.mRenderPass = creationData.mRenderPass;
-
-    std::array<VkImageView, 2> attachments = {mInternal->mSwapChain.mImageViews[i], mInternal->mDepthImage.mImageView};
-    VkFramebufferCreateInfo framebufferInfo = {};
-    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferInfo.renderPass = vulkanFrame.mRenderPass;
-    framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-    framebufferInfo.pAttachments = attachments.data();
-    framebufferInfo.width = mInternal->mSwapChain.mExtent.width;
-    framebufferInfo.height = mInternal->mSwapChain.mExtent.height;
-    framebufferInfo.layers = 1;
-
-    if(vkCreateFramebuffer(mInternal->mDevice, &framebufferInfo, nullptr, &vulkanFrame.mFrameBuffer) != VK_SUCCESS)
-      throw std::runtime_error("failed to create framebuffer!");
+    VulkanCommandBufferCreationInfo commandBufferCreationInfo{mInternal->mDevice, commandBuffers[i]};
+    vulkanFrame.mCommandBuffer = new VulkanCommandBuffer(commandBufferCreationInfo);
   }
 }
 
 void VulkanRenderer::DestroyRenderFramesInternal()
 {
-  size_t count = mInternal->mSwapChain.mImages.Size();
+  size_t count = mInternal->mSwapChain->GetCount();
   for(VulkanRenderFrame& renderFrame : mInternal->mRenderFrames)
   {
-    vkDestroyFramebuffer(mInternal->mDevice, renderFrame.mFrameBuffer, nullptr);
-    vkDestroyRenderPass(mInternal->mDevice, renderFrame.mRenderPass, nullptr);
+    renderFrame.mResources.Free(*mInternal);
+    renderFrame.mResources.Clear();
   }
   mInternal->mRenderFrames.Clear();
 }
 
 void VulkanRenderer::DestroySwapChainInternal()
 {
-  if(mInternal->mSwapChain.mImageViews.Empty())
-    return;
-
-  for(VkImageView& imageView : mInternal->mSwapChain.mImageViews)
-    vkDestroyImageView(mInternal->mDevice, imageView, nullptr);
-  mInternal->mSwapChain.mImageViews.Clear();
-  mInternal->mSwapChain.mImages.Clear();
-
-  vkDestroySwapchainKHR(mInternal->mDevice, mInternal->mSwapChain.mSwapChain, nullptr);
+  delete mInternal->mSwapChain;
+  mInternal->mSwapChain = nullptr;
 }
 
-void VulkanRenderer::CreateImageInternal(const Texture* texture, VulkanImage* image)
+VulkanSampler* VulkanRenderer::CreateSamplerInternal(const Texture* texture)
 {
-  TextureImageCreationInfo textureInfo;
-  textureInfo.mPhysicalDevice = mInternal->mPhysicalDevice;
-  textureInfo.mDevice = mInternal->mDevice;
-  textureInfo.mGraphicsQueue = mInternal->mGraphicsQueue;
-  textureInfo.mGraphicsPipeline = mInternal->mGraphicsPipeline;
-  textureInfo.mCommandPool = mInternal->mCommandPool;
-  textureInfo.mFormat = GetImageFormat(texture->mFormat);
-  textureInfo.mPixels = texture->mTextureData.Data();
-  textureInfo.mPixelsSize = static_cast<uint32_t>(texture->mTextureData.Size());
-  textureInfo.mWidth = static_cast<uint32_t>(texture->mSizeX);
-  textureInfo.mHeight = static_cast<uint32_t>(texture->mSizeY);
-  textureInfo.mMipLevels = static_cast<uint32_t>(texture->mMipLevels);
-  CreateTextureImage(textureInfo, *image);
-
-  SamplerCreationInfo samplerInfo;
-  samplerInfo.mDevice = mInternal->mDevice;
-  samplerInfo.mMaxLod = static_cast<float>(texture->mMipLevels);
-  samplerInfo.mAddressingU = ConvertSamplerAddressMode(texture->mAddressingX);
-  samplerInfo.mAddressingV = ConvertSamplerAddressMode(texture->mAddressingY);
-  samplerInfo.mMinFilter = ConvertFilterMode(texture->mMinFilter);
-  samplerInfo.mMagFilter = ConvertFilterMode(texture->mMagFilter);
-  CreateTextureSampler(samplerInfo, image->mSampler);
+  VulkanSamplerCreationInfo creationInfo;
+  creationInfo.mDevice = mInternal->mDevice;
+  creationInfo.mMaxLod = static_cast<float>(texture->mMipLevels);
+  creationInfo.mAddressingU = ConvertSamplerAddressMode(texture->mAddressingX);
+  creationInfo.mAddressingV = ConvertSamplerAddressMode(texture->mAddressingY);
+  creationInfo.mMinFilter = ConvertFilterMode(texture->mMinFilter);
+  creationInfo.mMagFilter = ConvertFilterMode(texture->mMagFilter);
+  VulkanSampler* sampler = new VulkanSampler(creationInfo);
+  return sampler;
 }
 
-void VulkanRenderer::CreateImageViewInternal(const Texture* texture, VulkanImage* image)
+VulkanImage* VulkanRenderer::CreateImageInternal(const Texture* texture)
 {
-  ImageViewCreationInfo info(mInternal->mDevice, image->mImage);
-  info.mFormat = GetImageFormat(texture->mFormat);
-  info.mViewType = VK_IMAGE_VIEW_TYPE_2D;
-  info.mAspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-  info.mMipLevels = static_cast<uint32_t>(texture->mMipLevels);
-  VulkanStatus status = CreateImageView(info, image->mImageView);
+  VulkanImageCreationInfo creationInfo;
+  creationInfo.mDevice = mInternal->mDevice;
+  creationInfo.mFormat = GetImageFormat(texture->mFormat);
+  creationInfo.mWidth = static_cast<uint32_t>(texture->mSizeX);
+  creationInfo.mHeight = static_cast<uint32_t>(texture->mSizeY);
+  creationInfo.mMipLevels = static_cast<uint32_t>(texture->mMipLevels);
+  creationInfo.mTiling = VK_IMAGE_TILING_OPTIMAL;
+  creationInfo.mUsage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+  creationInfo.mProperties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+  creationInfo.mType = VK_IMAGE_TYPE_2D;
+  VulkanImage* image = new VulkanImage(creationInfo);
+  return image;
+}
+
+void VulkanRenderer::CreateImageMemoryInternal(const Texture* texture, VulkanImage* image, VulkanTexturedImageData& texturedImageData)
+{
+  VkDeviceMemory& imageMemory = texturedImageData.mImageMemory;
+  VulkanMemoryAllocator& allocator = *mInternal->mAllocator;
+  const float* pixels = texture->mTextureData.Data();
+  VkDeviceSize imageSize = static_cast<uint32_t>(texture->mTextureData.Size());
+
+  VulkanImageCreationInfo creationInfo = image->GetCreationInfo();
+  VkImage vkImage = image->GetVulkanImage();
+  
+  VkMemoryPropertyFlags propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+  VulkanBufferCreationInfo stagingBufferCreationInfo;
+  stagingBufferCreationInfo.mDevice = mInternal->mDevice;
+  stagingBufferCreationInfo.mSize = imageSize;
+  stagingBufferCreationInfo.mUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+  VulkanBuffer stagingBuffer(stagingBufferCreationInfo);
+
+  VkDeviceMemory stagingBufferMemory = allocator.AllocateBufferMemory(&stagingBuffer, propertyFlags, true);
+  vkBindBufferMemory(mInternal->mDevice, stagingBuffer.GetVulkanBuffer(), stagingBufferMemory, 0);
+
+  {
+    void* data;
+    vkMapMemory(mInternal->mDevice, stagingBufferMemory, 0, imageSize, 0, &data);
+    memcpy(data, pixels, static_cast<size_t>(imageSize));
+    vkUnmapMemory(mInternal->mDevice, stagingBufferMemory);
+  }
+
+  imageMemory = allocator.AllocateImageMemory(image, false);
+  vkBindImageMemory(mInternal->mDevice, vkImage, imageMemory, 0);
+
+  
+  {
+    ImageLayoutTransitionInfo transitionInfo;
+    transitionInfo.mDevice = mInternal->mDevice;
+    transitionInfo.mGraphicsQueue = mInternal->mGraphicsQueue;
+    transitionInfo.mCommandPool = mInternal->mCommandPool;
+    transitionInfo.mFormat = creationInfo.mFormat;
+    transitionInfo.mImage = vkImage;
+    transitionInfo.mOldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    transitionInfo.mNewLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    transitionInfo.mMipLevels = creationInfo.mMipLevels;
+    TransitionImageLayout(transitionInfo);
+  }
+
+  {
+    ImageCopyInfo copyInfo;
+    copyInfo.mDevice = mInternal->mDevice;
+    copyInfo.mGraphicsQueue = mInternal->mGraphicsQueue;
+    copyInfo.mCommandPool = mInternal->mCommandPool;
+    copyInfo.mBuffer = stagingBuffer.GetVulkanBuffer();
+    copyInfo.mWidth = creationInfo.mWidth;
+    copyInfo.mHeight = creationInfo.mHeight;
+    copyInfo.mImage = vkImage;
+    CopyBufferToImage(copyInfo);
+  }
+  //transitioned to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL while generating mipmaps
+
+  stagingBuffer.Free();
+  allocator.FreeAllocation(stagingBufferMemory);
+
+  {
+    MipmapGenerationInfo mipGenerationInfo;
+    mipGenerationInfo.mPhysicalDevice = mInternal->mPhysicalDevice;
+    mipGenerationInfo.mDevice = mInternal->mDevice;
+    mipGenerationInfo.mGraphicsQueue = mInternal->mGraphicsQueue;
+    mipGenerationInfo.mCommandPool = mInternal->mCommandPool;
+    mipGenerationInfo.mImage = vkImage;
+    mipGenerationInfo.mWidth = creationInfo.mWidth;
+    mipGenerationInfo.mHeight = creationInfo.mHeight;
+    mipGenerationInfo.mFormat = creationInfo.mFormat;
+    mipGenerationInfo.mMipLevels = creationInfo.mMipLevels;
+    GenerateMipmaps(mipGenerationInfo);
+  }
+}
+
+VulkanImageView* VulkanRenderer::CreateImageViewInternal(const Texture* texture, VulkanImage* image)
+{
+  VulkanImageViewInfo creationInfo;
+  creationInfo.mFormat = GetImageFormat(texture->mFormat);
+  creationInfo.mViewType = VK_IMAGE_VIEW_TYPE_2D;
+  creationInfo.mAspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+  creationInfo.mMipLevels = static_cast<uint32_t>(texture->mMipLevels);
+  creationInfo.mComponents[0] = VK_COMPONENT_SWIZZLE_IDENTITY;
+  creationInfo.mComponents[1] = VK_COMPONENT_SWIZZLE_IDENTITY;
+  creationInfo.mComponents[2] = VK_COMPONENT_SWIZZLE_IDENTITY;
+  creationInfo.mComponents[3] = VK_COMPONENT_SWIZZLE_IDENTITY;
+  creationInfo.mAspectFlags  = creationInfo.mAspectFlags;
+  creationInfo.mBaseMipLevel = 0;
+  creationInfo.mBaseArrayLayer = 0;
+  creationInfo.mLayerCount = 1;
+
+  VulkanImageView* imageView = new VulkanImageView(mInternal->mDevice, image, creationInfo);
+  return imageView;
 }
 
 void VulkanRenderer::CreateDepthResourcesInternal()
 {
   mInternal->mDepthFormat = FindDepthFormat(mInternal->mPhysicalDevice);
 
-  ImageCreationInfo imageInfo;
-  imageInfo.mDevice = mInternal->mDevice;
-  imageInfo.mWidth = mInternal->mWidth;
-  imageInfo.mHeight = mInternal->mHeight;
-  imageInfo.mMipLevels = 1;
-  imageInfo.mFormat = mInternal->mDepthFormat;
-  imageInfo.mTiling = VK_IMAGE_TILING_OPTIMAL;
-  imageInfo.mUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-  imageInfo.mType = VK_IMAGE_TYPE_2D;
-  CreateImage(imageInfo, mInternal->mDepthImage.mImage);
+  VulkanImageCreationInfo creationInfo;
+  creationInfo.mDevice = mInternal->mDevice;
+  creationInfo.mWidth = mInternal->mWidth;
+  creationInfo.mHeight = mInternal->mHeight;
+  creationInfo.mMipLevels = 1;
+  creationInfo.mFormat = mInternal->mDepthFormat;
+  creationInfo.mTiling = VK_IMAGE_TILING_OPTIMAL;
+  creationInfo.mUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+  creationInfo.mType = VK_IMAGE_TYPE_2D;
+  mInternal->mDepthImage = new VulkanImage(creationInfo);
 
-  ImageMemoryCreationInfo memoryInfo;
-  memoryInfo.mImage = mInternal->mDepthImage.mImage;
-  memoryInfo.mDevice = mInternal->mDevice;
-  memoryInfo.mPhysicalDevice = mInternal->mPhysicalDevice;
-  memoryInfo.mProperties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-  CreateImageMemory(memoryInfo, mInternal->mDepthImage.mImageMemory);
+  VkImage depthImage = mInternal->mDepthImage->GetVulkanImage();
+  VkDeviceMemory depthImageMemory = mInternal->mAllocator->AllocateImageMemory(mInternal->mDepthImage, false);
+  vkBindImageMemory(mInternal->mDevice, depthImage, depthImageMemory, 0);
 
-  vkBindImageMemory(mInternal->mDevice, mInternal->mDepthImage.mImage, mInternal->mDepthImage.mImageMemory, 0);
-
-  ImageViewCreationInfo viewCreationInfo(mInternal->mDevice, mInternal->mDepthImage.mImage);
+  VulkanImageViewInfo viewCreationInfo;
   viewCreationInfo.mFormat = mInternal->mDepthFormat;
   viewCreationInfo.mViewType = VK_IMAGE_VIEW_TYPE_2D;
+  viewCreationInfo.mComponents[4] = {VK_COMPONENT_SWIZZLE_IDENTITY};
   viewCreationInfo.mAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
   viewCreationInfo.mMipLevels = 1;
-  VulkanStatus status = CreateImageView(viewCreationInfo, mInternal->mDepthImage.mImageView);
+  mInternal->mDepthImageView = new VulkanImageView(mInternal->mDevice, mInternal->mDepthImage, viewCreationInfo);
 
   ImageLayoutTransitionInfo transitionInfo;
   transitionInfo.mDevice = mInternal->mDevice;
   transitionInfo.mGraphicsQueue = mInternal->mGraphicsQueue;
   transitionInfo.mCommandPool = mInternal->mCommandPool;
   transitionInfo.mFormat = mInternal->mDepthFormat;
-  transitionInfo.mImage = mInternal->mDepthImage.mImage;
+  transitionInfo.mImage = depthImage;
   transitionInfo.mOldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   transitionInfo.mNewLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
   transitionInfo.mMipLevels = 1;
@@ -588,5 +690,7 @@ void VulkanRenderer::CreateDepthResourcesInternal()
 
 void VulkanRenderer::DestroyDepthResourcesInternal()
 {
-  ::Cleanup(mInternal->mDevice, mInternal->mDepthImage);
+  mInternal->mAllocator->FreeAllocation(mInternal->mDepthImage);
+  delete mInternal->mDepthImage;
+  delete mInternal->mDepthImageView;
 }

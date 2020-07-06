@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <set>
+#include "VulkanStatus.hpp"
 
 struct QueueFamilyIndices
 {
@@ -111,7 +112,8 @@ inline VkFormat FindSupportedFormat(VkPhysicalDevice physicalDevice, const Array
       return format;
   }
 
-  throw std::runtime_error("failed to find supported format!");
+  VulkanStatus("failed to find supported format!");
+  return VK_FORMAT_UNDEFINED;
 }
 
 inline VkFormat FindDepthFormat(VkPhysicalDevice physicalDevice)

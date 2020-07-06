@@ -13,10 +13,13 @@ struct RenderQueue;
 struct VulkanRuntimeData;
 struct VulkanMesh;
 struct VulkanShader;
-struct VulkanImage;
+class VulkanSampler;
+class VulkanImage;
+class VulkanImageView;
 struct VulkanRenderFrame;
 struct VulkanShaderMaterial;
 struct VulkanUniformBuffers;
+struct VulkanTexturedImageData;
 class VulkanRenderer;
 
 enum class RenderFrameStatus
@@ -72,24 +75,28 @@ public:
 //private:
 
   void DestroyMeshInternal(VulkanMesh* vulkanMesh);
-  void DestroyTextureInternal(VulkanImage* vulkanImage);
+  void DestroyTextureInternal(VulkanTexturedImageData* texturedImageData);
   void DestroyShaderInternal(VulkanShader* vulkanShader);
   void DestroyShaderMaterialInternal(VulkanShaderMaterial* vulkanShaderMaterial);
   void RecreateFramesInternal();
   void CreateSwapChainInternal();
   void DestroySwapChainInternal();
+  void CreateDefaultRenderPass();
+  void DestroyDefaultRenderPass();
   void CreateRenderFramesInternal();
   void DestroyRenderFramesInternal();
-  void CreateImageInternal(const Texture* texture, VulkanImage* image);
-  void CreateImageViewInternal(const Texture* texture, VulkanImage* image);
+  VulkanSampler* CreateSamplerInternal(const Texture* texture);
+  VulkanImage* CreateImageInternal(const Texture* texture);
+  void CreateImageMemoryInternal(const Texture* texture, VulkanImage* image, VulkanTexturedImageData& texturedImageData);
+  VulkanImageView* CreateImageViewInternal(const Texture* texture, VulkanImage* image);
   void CreateDepthResourcesInternal();
   void DestroyDepthResourcesInternal();
 
   VulkanRuntimeData* mInternal;
 
   HashMap<const Mesh*, VulkanMesh*> mMeshMap;
-  HashMap<const Texture*, VulkanImage*> mTextureMap;
-  HashMap<String, VulkanImage*> mTextureNameMap;
+  HashMap<const Texture*, VulkanTexturedImageData*> mTextureMap;
+  HashMap<String, VulkanTexturedImageData*> mTextureNameMap;
   HashMap<const ZilchShader*, VulkanShader*> mZilchShaderMap;
   HashMap<const ZilchShader*, VulkanShaderMaterial*> mUniqueZilchShaderMaterialMap;
 };

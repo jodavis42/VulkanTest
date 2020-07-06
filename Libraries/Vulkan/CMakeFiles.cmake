@@ -3,15 +3,28 @@ target_sources(Vulkan
     ${CMAKE_CURRENT_LIST_DIR}/EnumConversions.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Precompiled.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Precompiled.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/SimpleRendererComponent.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/SimpleRendererComponent.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanBuffer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanBuffer.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanBufferCreation.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanCommandBuffer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanCommandBuffer.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanDeviceQueries.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanExtensions.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanImages.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanImage.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanImage.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanImageView.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanImageView.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanInitialization.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanFrameBuffer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanFrameBuffer.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanLogicalDeviceCreation.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanMaterials.cpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanMaterials.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanMemoryAllocator.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanMemoryAllocator.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanPhysicsDeviceSelection.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanPipeline.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanRenderer.cpp
@@ -19,12 +32,22 @@ target_sources(Vulkan
     ${CMAKE_CURRENT_LIST_DIR}/VulkanRendering.cpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanRendering.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanRendererInit.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanRenderPass.cpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanRenderPass.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanRenderPassCache.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanRenderPassCache.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanResourcePool.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanResourcePool.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanSampler.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanSampler.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanStatus.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanStructures.cpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanStructures.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanSwapChain.cpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanSwapChain.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanSyncronization.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanValidationLayers.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanStandard.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanZilchStaticLibrary.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanZilchStaticLibrary.hpp
 )

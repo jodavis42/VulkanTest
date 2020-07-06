@@ -91,6 +91,7 @@ void GraphicsSpace::RenderQueueUpdate(RenderQueue& renderQueue)
     viewBlock.mRenderTaskEvent = renderTaskEvent;
     renderTaskEvent->mGraphicsSpace = this;
     renderTaskEvent->EventName = Events::CollectRenderTasks;
+    renderTaskEvent->mViewBlock = &viewBlock;
 
     Zilch::EventSend(GetOwner(), renderTaskEvent->EventName, renderTaskEvent);
   

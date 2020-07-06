@@ -209,6 +209,7 @@ void GraphicsEngine::CreateSwapChain()
   mRenderer.Reshape(width, height, width / (float)height);
   mRenderer.CreateDepthResourcesInternal();
   mRenderer.CreateSwapChainInternal();
+  mRenderer.CreateDefaultRenderPass();
   mRenderer.CreateRenderFramesInternal();
 
   // This is heavier than needs to happen as a lot of the shader's don't have to be destroyed (modules, etc...). For simplicity do everything right now.
@@ -227,6 +228,7 @@ void GraphicsEngine::CleanupSwapChain()
   }
 
   mRenderer.DestroyRenderFramesInternal();
+  mRenderer.DestroyDefaultRenderPass();
   mRenderer.DestroySwapChainInternal();
   mRenderer.DestroyDepthResourcesInternal();
 }

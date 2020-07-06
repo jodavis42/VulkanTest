@@ -9,6 +9,8 @@
 #include "EnumConversions.hpp"
 #include "VulkanMaterials.hpp"
 #include "VulkanRenderer.hpp"
+#include "VulkanSampler.hpp"
+#include "VulkanImageView.hpp"
 #include "VulkanStructures.hpp"
 #include "VulkanInitialization.hpp"
 
@@ -100,7 +102,7 @@ void CreateMaterialDescriptorSetLayouts(RendererData& rendererData, const ZilchS
 void CreateMaterialDescriptorPool(RendererData& rendererData, const ZilchShader& zilchShader, VulkanShaderMaterial& vulkanShaderMaterial)
 {
   VulkanRuntimeData* runtimeData = rendererData.mRuntimeData;
-  uint32_t frameCount = runtimeData->mSwapChain.GetCount();
+  uint32_t frameCount = runtimeData->mSwapChain->GetCount();
 
   std::array<uint32_t, VK_DESCRIPTOR_TYPE_RANGE_SIZE> poolCounts = {};
 
@@ -142,7 +144,7 @@ void CreateMaterialDescriptorPool(RendererData& rendererData, const ZilchShader&
 void CreateMaterialDescriptorSets(RendererData& rendererData, VulkanShaderMaterial& vulkanShaderMaterial)
 {
   VulkanRuntimeData* runtimeData = rendererData.mRuntimeData;
-  uint32_t frameCount = runtimeData->mSwapChain.GetCount();
+  uint32_t frameCount = runtimeData->mSwapChain->GetCount();
 
   Array<VkDescriptorSetLayout> layouts(frameCount, vulkanShaderMaterial.mDescriptorSetLayout);
   VkDescriptorSetAllocateInfo allocInfo = {};
@@ -199,12 +201,12 @@ void UpdateMaterialDescriptorSet(RendererData& rendererData, const ZilchShader& 
     }
     else if(bindingDescriptor.mDescriptorType == MaterialDescriptorType::SampledImage)
     {
-      VulkanImage* vulkanImage = rendererData.mRenderer->mTextureNameMap[bindingDescriptor.mSampledImageName];
+      VulkanTexturedImageData* vulkanImage = rendererData.mRenderer->mTextureNameMap[bindingDescriptor.mSampledImageName];
       
       VkDescriptorImageInfo& imageInfo = imageInfos[index];
       imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-      imageInfo.imageView = vulkanImage->mImageView;
-      imageInfo.sampler = vulkanImage->mSampler;
+      imageInfo.imageView = vulkanImage->mImageView->GetVulkanImageView();
+      imageInfo.sampler = vulkanImage->mSampler->GetVulkanSampler();
       writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
       writeInfo.pImageInfo = &imageInfo;
     }
@@ -218,7 +220,7 @@ void UpdateMaterialDescriptorSet(RendererData& rendererData, const ZilchShader& 
 void UpdateMaterialDescriptorSets(RendererData& rendererData, const ZilchShader& zilchShader, const ZilchMaterial& zilchMaterial, VulkanShaderMaterial& vulkanShaderMaterial)
 {
   VulkanRuntimeData* runtimeData = rendererData.mRuntimeData;
-  for(size_t i = 0; i < runtimeData->mSwapChain.GetCount(); ++i)
+  for(size_t i = 0; i < runtimeData->mSwapChain->GetCount(); ++i)
     UpdateMaterialDescriptorSet(rendererData, zilchShader, zilchMaterial, vulkanShaderMaterial, i, vulkanShaderMaterial.mDescriptorSets[i]);
 }
 
@@ -235,8 +237,10 @@ void CreateGraphicsPipeline(RendererData& rendererData, const VulkanShader& vulk
   creationInfo.mPixelShaderMainFnName = vulkanShader.mPixelEntryPointName;
   creationInfo.mDevice = runtimeData->mDevice;
   creationInfo.mPipelineLayout = vulkanShaderMaterial.mPipelineLayout;
-  creationInfo.mRenderPass = runtimeData->mRenderFrames[0].mRenderPass;
-  creationInfo.mViewportSize = Vec2((float)runtimeData->mSwapChain.mExtent.width, (float)runtimeData->mSwapChain.mExtent.height);
+  VulkanRenderPass* renderPass = runtimeData->mDefaultRenderPass;
+  creationInfo.mRenderPass = renderPass->GetVulkanRenderPass();
+  VkExtent2D extent = runtimeData->mSwapChain->GetExtent();
+  creationInfo.mViewportSize = Vec2((float)extent.width, (float)extent.height);
   creationInfo.mVertexAttributeDescriptions = VulkanVertex::getAttributeDescriptions();
   creationInfo.mVertexBindingDescriptions = VulkanVertex::getBindingDescription();
   CreateGraphicsPipeline(creationInfo, vulkanShaderMaterial.mPipeline);

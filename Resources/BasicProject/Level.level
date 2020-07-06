@@ -23,8 +23,11 @@
     "NativeRenderer": {
       "Active": false
     },
-    "ScriptRenderer": {
+    "SimpleRendererComponent": {
       "Active": true
+    },
+    "ScriptRenderer": {
+      "Active": false
     }
   },
   {

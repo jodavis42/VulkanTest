@@ -5,6 +5,7 @@
 #include "Resources/ResourceZilchStaticLibrary.hpp"
 #include "Engine/EngineZilchStaticLibrary.hpp"
 #include "Graphics/GraphicsZilchStaticLibrary.hpp"
+#include "Vulkan/VulkanZilchStaticLibrary.hpp"
 #include "ZilchScript/ZilchScriptZilchStaticLibrary.hpp"
 #include "ZilchScript/ZilchScriptLibrary.hpp"
 
@@ -19,6 +20,8 @@ ApplicationConfig::ApplicationConfig()
   mNativeModule->PushBack(EngineStaticLibrary::GetInstance().GetLibrary());
   GraphicsStaticLibrary::InitializeInstance();
   mNativeModule->PushBack(GraphicsStaticLibrary::GetInstance().GetLibrary());
+  VulkanStaticLibrary::InitializeInstance();
+  mNativeModule->PushBack(VulkanStaticLibrary::GetInstance().GetLibrary());
   ZilchScriptStaticLibrary::InitializeInstance();
   mNativeModule->PushBack(ZilchScriptStaticLibrary::GetInstance().GetLibrary());
   Zilch::ExecutableState::CallingState = mNativeModule->Link();

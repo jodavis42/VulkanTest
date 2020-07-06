@@ -12,23 +12,20 @@
 #include "VulkanLogicalDeviceCreation.hpp"
 #include "VulkanBufferCreation.hpp"
 #include "VulkanStructures.hpp"
+#include "VulkanMemoryAllocator.hpp"
 #include "VulkanRenderPass.hpp"
+#include "VulkanRenderPassCache.hpp"
 #include "VulkanPipeline.hpp"
 #include "VulkanStatus.hpp"
 #include "VulkanSyncronization.hpp"
 #include "VulkanRendererInit.hpp"
 #include "VulkanSwapChain.hpp"
 
-struct ConstantSwapChainInfo
-{
-  VkSurfaceFormatKHR mFormat;
-};
-
 struct VulkanRuntimeData
 {
   const Array<const char*> mDeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-
   static constexpr size_t mMaxFramesInFlight = 2;
+
   VkInstance mInstance = VK_NULL_HANDLE;
   VkDebugUtilsMessengerEXT mDebugMessenger = VK_NULL_HANDLE;
   SurfaceCreationDelegate mSurfaceCreationCallback;
@@ -39,44 +36,32 @@ struct VulkanRuntimeData
   VkCommandPool mCommandPool;
   SyncObjects mSyncObjects;
 
-  
-  VulkanImage mDepthImage;
-  VkFormat mDepthFormat;
-  uint32_t mWidth;
-  uint32_t mHeight;
-  bool mResized = false;
-
-  ConstantSwapChainInfo mSwapChainInfo;
-  SwapChainData mSwapChain;
-
-  
-  Array<VulkanRenderFrame> mRenderFrames;
-  
-  
-  
   VkQueue mGraphicsQueue;
-  
   VkQueue mPresentQueue;
   VkRenderPass mRenderPass;
   VkPipelineLayout mPipelineLayout;
   VkPipeline mGraphicsPipeline;
+
   
+  VulkanResourcePool mResourcePool;
+  VulkanUniformBufferManager mBufferManager;
+  VulkanRenderPass* mDefaultRenderPass = nullptr;
 
-  Array<VkFramebuffer> mSwapChainFramebuffers;
-  Array<VkCommandBuffer> mCommandBuffers;
-
+  VulkanSwapChain* mSwapChain = nullptr;
+  VulkanMemoryAllocator* mAllocator = nullptr;
+  VulkanImage* mDepthImage = nullptr;
+  VulkanImageView* mDepthImageView = nullptr;
+  Array<VulkanRenderFrame> mRenderFrames;
+  
+  VkFormat mDepthFormat;
+  uint32_t mWidth;
+  uint32_t mHeight;
+  bool mResized = false;
   
   uint32_t mCurrentFrame = 0;
   uint32_t mCurrentImageIndex = 0;
 
   bool mFramebufferResized = false;
-  VkBuffer mVertexBuffer;
-  VkDeviceMemory mVertexBufferMemory;
-
-  VkBuffer mIndexBuffer;
-  VkDeviceMemory mIndexBufferMemory;
-
-  VulkanUniformBufferManager mBufferManager;
 };
 
 inline Array<const char*> GetRequiredExtensions()
@@ -195,38 +180,6 @@ inline void CreateLogicalDevice(VulkanRuntimeData& runtimeData)
   runtimeData.mPresentQueue = resultData.mPresentQueue;
 }
 
-inline void CreateRenderPass(VulkanRuntimeData& runtimeData)
-{
-  RenderPassCreationData creationData;
-  creationData.mRenderPass = runtimeData.mRenderPass;
-  creationData.mDevice = runtimeData.mDevice;
-  creationData.mSwapChainImageFormat = runtimeData.mSwapChain.mImageFormat;
-  CreateRenderPass(creationData);
-
-  runtimeData.mRenderPass = creationData.mRenderPass;
-}
-
-inline void CreateGraphicsPipeline(VulkanRuntimeData& runtimeData)
-{
-  auto vertexShaderCode = readFile("shaders/vertex.spv");
-  auto pixelShaderCode = readFile("shaders/pixel.spv");
-
-  GraphicsPipelineData graphicsPipelineData;
-  graphicsPipelineData.mDevice = runtimeData.mDevice;
-  graphicsPipelineData.mGraphicsPipeline = runtimeData.mGraphicsPipeline;
-  graphicsPipelineData.mPipelineLayout = runtimeData.mPipelineLayout;
-  graphicsPipelineData.mPixelShaderCode = pixelShaderCode;
-  graphicsPipelineData.mVertexShaderCode = vertexShaderCode;
-  graphicsPipelineData.mRenderPass = runtimeData.mRenderPass;
-  graphicsPipelineData.mViewportOffset = Vec2((float)runtimeData.mSwapChain.mExtent.width, (float)runtimeData.mSwapChain.mExtent.height);
-  graphicsPipelineData.mVertexAttributeDescriptions = VulkanVertex::getAttributeDescriptions();
-  graphicsPipelineData.mVertexBindingDescriptions = VulkanVertex::getBindingDescription();
-  CreateGraphicsPipeline(graphicsPipelineData);
-
-  runtimeData.mGraphicsPipeline = graphicsPipelineData.mGraphicsPipeline;
-  runtimeData.mPipelineLayout = graphicsPipelineData.mPipelineLayout;
-}
-
 inline VulkanStatus CreateCommandPool(VkPhysicalDevice physicalDevice, VkDevice device, VkSurfaceKHR surface, VkCommandPool& commandPool)
 {
   QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(physicalDevice, surface);
@@ -252,17 +205,12 @@ inline void InitializeVulkan(VulkanRuntimeData& runtimeData)
   CreateLogicalDevice(runtimeData);
   CreateCommandPool(runtimeData.mPhysicalDevice, runtimeData.mDevice, runtimeData.mSurface, runtimeData.mCommandPool);
   CreateSyncObjects(runtimeData.mDevice, VulkanRuntimeData::mMaxFramesInFlight, runtimeData.mSyncObjects);
-  //CreateSwapChain(runtimeData);
-  //CreateImageViews(runtimeData);
-  //CreateRenderPass(runtimeData);
-  //CreateGraphicsPipeline(runtimeData);
-  //CreateFramebuffers(runtimeData);
-  //CreateCommandPool(runtimeData);
-  //CreateVertexBuffer(runtimeData);
-  //CreateIndexBuffer(runtimeData);
-  //CreateCommandBuffers(runtimeData);
-  //CreateSyncObjects(runtimeData);
 
-
+  VulkanMemoryAllocatorCreationInfo creationInfo;
+  creationInfo.mPhysicalDevice = runtimeData.mPhysicalDevice;
+  creationInfo.mDevice = runtimeData.mDevice;
+  creationInfo.mGraphicsQueue = runtimeData.mGraphicsQueue;
+  creationInfo.mCommandPool = runtimeData.mCommandPool;
+  runtimeData.mAllocator = new VulkanMemoryAllocator(creationInfo);
 }
 

@@ -11,6 +11,7 @@ struct ZilchShader;
 struct Graphical;
 class GraphicsSpace;
 struct RenderTaskEvent;
+struct ViewBlock;
 
 enum class RenderTaskType : char
 {
@@ -60,7 +61,7 @@ struct ClearTargetRenderTask : public RenderTask
 
   RenderSettings mRenderSettings;
   Vec4 mClearColor = Vec4(0, 0, 0, 1);
-  float mDepthdepth = 1.0f;
+  float mDepth = 1.0f;
   uint32_t mStencil = 0;
 };
 
@@ -88,6 +89,7 @@ struct RenderTaskEvent : public Zilch::EventData
   ClearTargetRenderTask* CreateClearTargetRenderTask();
   RenderGroupRenderTask* CreateRenderGroupRenderTask();
 
+  ViewBlock* mViewBlock = nullptr;
   GraphicsSpace* mGraphicsSpace = nullptr;
   Array<Zilch::HandleOf<RenderTask>> mRenderTasks;
 };

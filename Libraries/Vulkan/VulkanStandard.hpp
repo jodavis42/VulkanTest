@@ -11,3 +11,4 @@ using Math::Vec4;
 using Math::Matrix3;
 using Math::Matrix4;
 using Integer2 = Math::IntVec2;
+#include <array>

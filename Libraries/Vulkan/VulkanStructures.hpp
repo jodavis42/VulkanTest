@@ -2,8 +2,17 @@
 
 #include "VulkanStandard.hpp"
 
+#include "VulkanResourcePool.hpp"
+
 struct VulkanRuntimeData;
 class VulkanRenderer;
+class VulkanSampler;
+class VulkanImage;
+class VulkanImageView;
+class VulkanFrameBuffer;
+class VulkanRenderer;
+class VulkanCommandBuffer;
+class VulkanRenderPass;
 
 struct RendererData
 {
@@ -28,23 +37,6 @@ struct VulkanShader
   String mVertexEntryPointName;
   String mPixelEntryPointName;
 };
-
-//struct VulkanMaterial
-//{
-//  VkShaderModule mVertexShaderModule;
-//  VkShaderModule mPixelShaderModule;
-//  VkDescriptorSetLayout mDescriptorSetLayout;
-//  uint32_t mBufferOffset;
-//  uint32_t mBufferSize;
-//};
-//
-//struct VulkanMaterialPipeline
-//{
-//  VkPipelineLayout mPipelineLayout;
-//  VkPipeline mPipeline;
-//  VkDescriptorPool mDescriptorPool;
-//  Array<VkDescriptorSet> mDescriptorSets;
-//};
 
 struct VulkanShaderMaterial
 {
@@ -106,23 +98,20 @@ struct VulkanVertex
   static Array<VkVertexInputAttributeDescription> getAttributeDescriptions();
 };
 
-struct VulkanImage
+struct VulkanTexturedImageData
 {
-  VkImage mImage = VK_NULL_HANDLE;
+  VulkanImage* mImage = nullptr;
+  VulkanImageView* mImageView = nullptr;
+  VulkanSampler* mSampler = nullptr;
   VkDeviceMemory mImageMemory = VK_NULL_HANDLE;
-  VkImageView mImageView = VK_NULL_HANDLE;
-  VkSampler mSampler = VK_NULL_HANDLE;
 };
 
-class VulkanRenderer;
 struct VulkanRenderFrame
 {
-  VulkanRenderer* mRenderer;
-  VkImage mSwapChainImage;
-  VkImageView mSwapChainImageView;
-  VkRenderPass mRenderPass;
-  VkFramebuffer mFrameBuffer;
-  VkCommandBuffer mCommandBuffer;
+  VulkanRenderer* mRenderer = nullptr;
+  VulkanCommandBuffer* mCommandBuffer = nullptr;
 
   VkDescriptorSet mDescriptorSet;
+
+  VulkanResourcePool mResources;
 };
