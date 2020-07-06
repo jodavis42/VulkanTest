@@ -23,6 +23,14 @@ struct MaterialBatchUploadData
   Array<MaterialData> mMaterials;
 };
 
+enum class RenderFrameStatus
+{
+  Success = 0,
+  OutOfDate,
+  SubOptimal,
+  Error
+};
+
 struct Renderer
 {
 public:
@@ -45,7 +53,9 @@ public:
   virtual void UploadShaderMaterialInstances(MaterialBatchUploadData& materialBatchUploadData) abstract;
   virtual void DestroyShaderMaterial(const ZilchShader* zilchShader) abstract;
 
+  virtual RenderFrameStatus BeginFrame() abstract;
   virtual void DrawRenderQueue(RenderQueue& renderQueue) abstract;
+  virtual RenderFrameStatus EndFrame() abstract;
   virtual void WaitForIdle() abstract;
 
   virtual void BeginReshape() abstract;

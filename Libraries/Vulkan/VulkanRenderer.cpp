@@ -237,6 +237,12 @@ RenderFrameStatus VulkanRenderer::BeginFrame()
   return RenderFrameStatus::Success;
 }
 
+void VulkanRenderer::DrawRenderQueue(RenderQueue& renderQueue)
+{
+  RendererData rendererData{this, mInternal};
+  ProcessRenderQueue(rendererData, renderQueue);
+}
+
 RenderFrameStatus VulkanRenderer::EndFrame()
 {
   uint32_t& currentFrame = mInternal->mCurrentFrame;
@@ -291,12 +297,6 @@ RenderFrameStatus VulkanRenderer::EndFrame()
 
   currentFrame = (currentFrame + 1) % mInternal->mMaxFramesInFlight;
   return RenderFrameStatus::Success;
-}
-
-void VulkanRenderer::DrawRenderQueue(RenderQueue& renderQueue)
-{
-  RendererData rendererData{this, mInternal};
-  ProcessRenderQueue(rendererData, renderQueue);
 }
 
 void VulkanRenderer::WaitForIdle()

@@ -22,13 +22,7 @@ struct VulkanUniformBuffers;
 struct VulkanTexturedImageData;
 class VulkanRenderer;
 
-enum class RenderFrameStatus
-{
-  Success = 0,
-  OutOfDate,
-  SubOptimal,
-  Error
-};
+
 
 class VulkanRenderer : public Renderer
 {
@@ -56,9 +50,9 @@ public:
   virtual void UploadShaderMaterialInstances(MaterialBatchUploadData& materialBatchUploadData) override;
   virtual void DestroyShaderMaterial(const ZilchShader* zilchShader) override;
 
-  RenderFrameStatus BeginFrame();
-  RenderFrameStatus EndFrame();
+  virtual RenderFrameStatus BeginFrame() override;
   virtual void DrawRenderQueue(RenderQueue& renderQueue) override;
+  virtual RenderFrameStatus EndFrame() override;
   virtual void WaitForIdle() override;
 
   virtual void BeginReshape() override;
