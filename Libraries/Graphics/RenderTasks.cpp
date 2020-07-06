@@ -22,6 +22,10 @@ RenderTask::RenderTask(RenderTaskType taskType)
 ZilchDefineType(ClearTargetRenderTask, builder, type)
 {
   ZilchBindDefaultCopyDestructor();
+
+  ZilchBindField(mClearColor);
+  ZilchBindField(mDepth);
+  ZilchBindField(mStencil);
 }
 
 ClearTargetRenderTask::ClearTargetRenderTask()
