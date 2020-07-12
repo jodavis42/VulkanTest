@@ -45,10 +45,9 @@ void Camera::FilloutViewBlock(const Renderer* renderer, ViewBlock& viewBlock) co
 
   viewBlock.mWorldToView = GenerateWorldToViewMatrix();
   viewBlock.mViewToPerspective = renderer->BuildPerspectiveMatrix(Math::DegToRad(45.0f), aspectRatio, mNearPlane, mFarPlane);
-  viewBlock.mViewToPerspective.Transpose();
   viewBlock.mNearPlane = mNearPlane;
   viewBlock.mFarPlane = mFarPlane;
-  viewBlock.mViewportSize = Vec2(1);
+  viewBlock.mViewportSize = Vec2(static_cast<float>(width), static_cast<float>(height));
 }
 
 Matrix4 Camera::GenerateWorldToViewMatrix() const

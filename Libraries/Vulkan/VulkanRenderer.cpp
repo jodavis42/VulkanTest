@@ -340,7 +340,7 @@ Matrix4 VulkanRenderer::BuildPerspectiveMatrix(float verticalFov, float aspectRa
   float depth = farDistance - nearDistance;
   // tan(fov/2) = t/n
   // n/t = cot(fov/2)
-  float n_t = 1.0f / std::tan(verticalFov * 0.5f);
+  float n_t = Math::Cot(verticalFov * 0.5f);
 
   // r = t*(r/t) = t*aspect
   // n/r = n/(t*aspect) = (n/t)/aspect
@@ -348,12 +348,12 @@ Matrix4 VulkanRenderer::BuildPerspectiveMatrix(float verticalFov, float aspectRa
 
   Matrix4 m;
   m.SetIdentity();
-  m[0][0] = n_r;
-  m[1][1] = -n_t;
-  m[2][2] = -farDistance / depth;
-  m[3][3] = 0.0f;
-  m[3][2] = -farDistance * nearDistance / depth;
-  m[2][3] = -1.0f;
+  m.m00 = n_r;
+  m.m11 = -n_r;
+  m.m22 = -farDistance / depth;
+  m.m33 = 0.0f;
+  m.m23 = -farDistance * nearDistance / depth;
+  m.m32 = -1.0f;
 
   return m;
 }
