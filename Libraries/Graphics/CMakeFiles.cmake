@@ -39,6 +39,9 @@ target_sources(Graphics
     ${CMAKE_CURRENT_LIST_DIR}/Renderer.hpp
     ${CMAKE_CURRENT_LIST_DIR}/RenderGroup.cpp
     ${CMAKE_CURRENT_LIST_DIR}/RenderGroup.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/RenderPipelineEnums.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/RenderPipelineSettings.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/RenderPipelineSettings.hpp
     ${CMAKE_CURRENT_LIST_DIR}/RenderTasks.cpp
     ${CMAKE_CURRENT_LIST_DIR}/RenderTasks.hpp
     ${CMAKE_CURRENT_LIST_DIR}/RenderQueue.cpp

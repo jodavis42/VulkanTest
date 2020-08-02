@@ -64,7 +64,8 @@ ZilchDefineType(RenderTaskEvent, builder, type)
 {
   ZilchBindDefaultCopyDestructor();
   ZilchBindMethod(CreateClearTargetRenderTask);
-  ZilchBindMethod(CreateRenderGroupRenderTask);
+  ZilchBindOverloadedMethod(CreateRenderGroupRenderTask, ZilchInstanceOverload(RenderGroupRenderTask*));
+  ZilchBindOverloadedMethod(CreateRenderGroupRenderTask, ZilchInstanceOverload(RenderGroupRenderTask*, const RenderPipelineSettings&));
 }
 
 ClearTargetRenderTask* RenderTaskEvent::CreateClearTargetRenderTask()
@@ -79,6 +80,15 @@ RenderGroupRenderTask* RenderTaskEvent::CreateRenderGroupRenderTask()
 {
   Zilch::HandleOf<RenderGroupRenderTask> result = ZilchAllocate(RenderGroupRenderTask);
   result->mOwningEvent = this;
+  mRenderTasks.PushBack(result);
+  return result;
+}
+
+RenderGroupRenderTask* RenderTaskEvent::CreateRenderGroupRenderTask(const RenderPipelineSettings& renderPipelineSettings)
+{
+  Zilch::HandleOf<RenderGroupRenderTask> result = ZilchAllocate(RenderGroupRenderTask);
+  result->mOwningEvent = this;
+  result->mRenderPipelineSettings = renderPipelineSettings;
   mRenderTasks.PushBack(result);
   return result;
 }

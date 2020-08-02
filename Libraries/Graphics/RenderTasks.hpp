@@ -4,6 +4,7 @@
 #include "Zilch/Zilch.hpp"
 #include "GraphicsBufferTypes.hpp"
 #include "RenderGroup.hpp"
+#include "RenderPipelineSettings.hpp"
 
 struct Mesh;
 struct ZilchMaterial;
@@ -19,10 +20,6 @@ enum class RenderTaskType : char
   RenderGroup
 };
 
-using TargetId = uint32_t;
-using ObjectId = size_t;
-constexpr TargetId mInvalidTarget = static_cast<TargetId>(-1);
-
 struct GraphicalFrameData
 {
   Matrix4 mLocalToWorld = Matrix4::cIdentity;
@@ -36,11 +33,6 @@ struct GraphicalViewData
   Zilch::Real4x4 mWorldToView;
   Zilch::Real4x4 mViewToPerspective;
   Zilch::Real4x4 mPerspectiveToApiPerspective;
-};
-
-struct RenderSettings
-{
-  TargetId mColorTargetId = mInvalidTarget;
 };
 
 //-------------------------------------------------------------------RenderTask
@@ -59,7 +51,6 @@ struct ClearTargetRenderTask : public RenderTask
   ZilchDeclareType(ClearTargetRenderTask, Zilch::TypeCopyMode::ReferenceType);
   ClearTargetRenderTask();
 
-  RenderSettings mRenderSettings;
   Vec4 mClearColor = Vec4(0, 0, 0, 1);
   float mDepth = 1.0f;
   uint32_t mStencil = 0;
@@ -75,7 +66,7 @@ struct RenderGroupRenderTask : public RenderTask
   void Add(const Graphical* graphical);
   void AddRenderGroup(const RenderGroupHandle& renderGroup);
 
-  RenderSettings mRenderSettings;
+  RenderPipelineSettings mRenderPipelineSettings;
   Array<GraphicalFrameData> mFrameData;
   Array<RenderGroupHandle> mRenderGroups;
 };
@@ -88,6 +79,7 @@ struct RenderTaskEvent : public Zilch::EventData
 
   ClearTargetRenderTask* CreateClearTargetRenderTask();
   RenderGroupRenderTask* CreateRenderGroupRenderTask();
+  RenderGroupRenderTask* CreateRenderGroupRenderTask(const RenderPipelineSettings& renderPipelineSettings);
 
   ViewBlock* mViewBlock = nullptr;
   GraphicsSpace* mGraphicsSpace = nullptr;

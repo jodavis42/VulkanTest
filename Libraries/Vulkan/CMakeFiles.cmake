@@ -1,6 +1,7 @@
 target_sources(Vulkan
   PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/EnumConversions.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/EnumConversions.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Precompiled.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Precompiled.hpp
     ${CMAKE_CURRENT_LIST_DIR}/SimpleRendererComponent.cpp
