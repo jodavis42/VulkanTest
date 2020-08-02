@@ -1,6 +1,8 @@
 target_sources(Utilities
   PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/Asserts.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cookie.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cookie.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Enums.hpp
     ${CMAKE_CURRENT_LIST_DIR}/File.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Hasher.cpp
