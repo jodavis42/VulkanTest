@@ -3,6 +3,8 @@ target_sources(Utilities
     ${CMAKE_CURRENT_LIST_DIR}/Asserts.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Enums.hpp
     ${CMAKE_CURRENT_LIST_DIR}/File.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/Hasher.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Hasher.hpp
     ${CMAKE_CURRENT_LIST_DIR}/JsonSerializers.cpp
     ${CMAKE_CURRENT_LIST_DIR}/JsonSerializers.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Precompiled.cpp
