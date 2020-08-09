@@ -16,6 +16,7 @@
 #include "VulkanRenderPass.hpp"
 #include "VulkanFrameBuffer.hpp"
 #include "VulkanRendering.hpp"
+#include "RenderGraph.hpp"
 
 //-------------------------------------------------------------------SimpleRendererComponent
 ZilchDefineType(SimpleRendererComponent, builder, type)
@@ -86,14 +87,13 @@ void SimpleRendererComponent::OnCollectRenderTasks(RenderTaskEvent* renderTaskEv
   auto& subPass = renderPassInfo.mSubPasses.PushBack();
   subPass.mColorAttachmentCount = 1;
   subPass.mColorAttachments[0] = 0;
-  VulkanRenderPass* renderPass = new VulkanRenderPass(runtimeData.mDevice, renderPassInfo);
+  VulkanRenderPass* renderPass = runtimeData.mRenderPassCache->FindOrCreate(renderPassInfo);
 
   VkExtent2D extent = runtimeData.mSwapChain->GetExtent();
   VulkanFrameBuffer* frameBuffer = new VulkanFrameBuffer(runtimeData.mDevice, *renderPass, renderPassInfo, extent.width, extent.height);
 
   vulkanRenderFrame.mResources.Add(colorImageView);
   vulkanRenderFrame.mResources.Add(depthImageView);
-  vulkanRenderFrame.mResources.Add(renderPass);
   vulkanRenderFrame.mResources.Add(frameBuffer);
 
   VkRenderPassBeginInfo renderPassBeginInfo = {};
@@ -117,7 +117,7 @@ void SimpleRendererComponent::OnCollectRenderTasks(RenderTaskEvent* renderTaskEv
 
   vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-  AddGraphicalDrawCommands(vulkanRenderer, *vulkanCommandBuffer, frameData);
+  AddGraphicalDrawCommands(vulkanRenderer, *renderPass, *vulkanCommandBuffer, frameData);
 
   vulkanCommandBuffer->EndRenderPass();
   vulkanCommandBuffer->End();
@@ -147,7 +147,10 @@ void SimpleRendererComponent::UploadBuffers(VulkanRenderer& renderer, ViewBlock&
   PopulateTransformBuffers(renderer, viewBlock, frameData);
 }
 
-void SimpleRendererComponent::AddGraphicalDrawCommands(VulkanRenderer& renderer, VulkanCommandBuffer& commandBuffer, Array<GraphicalFrameData>& frameData)
+void SimpleRendererComponent::AddGraphicalDrawCommands(VulkanRenderer& renderer, VulkanRenderPass& renderPass, VulkanCommandBuffer& commandBuffer, Array<GraphicalFrameData>& frameData)
 {
-  AddFrameDataDrawCommands(renderer, commandBuffer, frameData);
+  RenderPipelineSettings pipelineSettings;
+  RenderRanges renderRanges;
+  renderRanges.Build(renderer, pipelineSettings, renderPass, frameData);
+  AddFrameDataDrawCommands(renderer, commandBuffer, renderRanges, frameData);
 }

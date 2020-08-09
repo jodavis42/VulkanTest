@@ -5,7 +5,7 @@
 #include "VulkanStatus.hpp"
 
 //-------------------------------------------------------------------VulkanRenderPass
-VulkanRenderPass::VulkanRenderPass(VkDevice device, VulkanRenderPassInfo& info)
+VulkanRenderPass::VulkanRenderPass(VkDevice device, const VulkanRenderPassInfo& info)
 {
   mDevice = device;
 

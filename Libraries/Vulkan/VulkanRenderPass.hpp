@@ -1,6 +1,7 @@
 #pragma once
 
 #include "VulkanStandard.hpp"
+#include "Utilities/Cookie.hpp"
 
 class VulkanImageView;
 
@@ -36,10 +37,10 @@ public:
 };
 
 //-------------------------------------------------------------------VulkanRenderPass
-class VulkanRenderPass
+class VulkanRenderPass : public TypedCookie<VulkanRenderPass>
 {
 public:
-  VulkanRenderPass(VkDevice device, VulkanRenderPassInfo& info);
+  VulkanRenderPass(VkDevice device, const VulkanRenderPassInfo& info);
   ~VulkanRenderPass();
 
   void Free();

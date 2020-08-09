@@ -13,6 +13,7 @@ class VulkanFrameBuffer;
 class VulkanRenderer;
 class VulkanCommandBuffer;
 class VulkanRenderPass;
+class VulkanPipeline;
 
 struct RendererData
 {
@@ -28,27 +29,6 @@ struct VulkanMesh
   VkBuffer mIndexBuffer;
   VkDeviceMemory mIndexBufferMemory;
   uint32_t mIndexCount;
-};
-
-struct VulkanShader
-{
-  VkShaderModule mVertexShaderModule;
-  VkShaderModule mPixelShaderModule;
-  String mVertexEntryPointName;
-  String mPixelEntryPointName;
-};
-
-struct VulkanShaderMaterial
-{
-  VkDescriptorSetLayout mDescriptorSetLayout;
-  VkPipelineLayout mPipelineLayout;
-  Array<VkDescriptorSet> mDescriptorSets;
-  
-  VkPipeline mPipeline;
-  VkDescriptorPool mDescriptorPool;
-  
-  uint32_t mBufferId = 0;
-  size_t mBufferOffset = 0;
 };
 
 struct VulkanUniformBuffer

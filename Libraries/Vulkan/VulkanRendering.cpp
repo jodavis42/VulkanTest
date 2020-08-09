@@ -8,7 +8,10 @@
 #include "VulkanRenderPass.hpp"
 #include "VulkanFrameBuffer.hpp"
 #include "VulkanImageView.hpp"
+#include "VulkanMaterials.hpp"
+#include "RenderGraph.hpp"
 #include "RenderQueue.hpp"
+#include "VulkanShaders.hpp"
 
 uint32_t GetFrameId(RendererData& rendererData)
 {
@@ -53,11 +56,6 @@ void PopulateGlobalBuffers(RendererData& rendererData, const RenderQueue& render
   renderer.UnMapPerFrameUniformBufferMemory(GlobalsBufferName, 0, frameId);
 }
 
-void PopulateTransformBuffers(RendererData& rendererData, const ViewBlock& viewBlock, const RenderGroupRenderTask& renderGroupTask)
-{
-  PopulateTransformBuffers(*rendererData.mRenderer, viewBlock, renderGroupTask.mFrameData);
-}
-
 void PopulateTransformBuffers(VulkanRenderer& renderer, const ViewBlock& viewBlock, const Array<GraphicalFrameData>& frameData)
 {
   uint32_t frameId = GetFrameId(renderer);
@@ -81,7 +79,7 @@ void PopulateTransformBuffers(VulkanRenderer& renderer, const ViewBlock& viewBlo
   renderer.UnMapPerFrameUniformBufferMemory(TransformsBufferName, 0, frameId);
 }
 
-void AddFrameDataDrawCommands(VulkanRenderer& renderer, VulkanCommandBuffer& commandBuffer, const Array<GraphicalFrameData>& frameData)
+void AddFrameDataDrawCommands(VulkanRenderer& renderer, VulkanCommandBuffer& commandBuffer, const RenderRanges& renderRanges, const Array<GraphicalFrameData>& frameData)
 {
   VkCommandBuffer vkCommandBuffer = commandBuffer.GetVulkanCommandBuffer();
 
@@ -93,91 +91,79 @@ void AddFrameDataDrawCommands(VulkanRenderer& renderer, VulkanCommandBuffer& com
   uint32_t baseOffset = 0;
   uint32_t dynamicOffsetsBase[1] = {baseOffset};
   uint32_t dynamicOffsetsCount = 1;
-  for(size_t i = 0; i < frameData.Size(); ++i)
+  for(size_t rangeIndex = 0; rangeIndex < renderRanges.mRenderRanges.Size(); ++rangeIndex)
   {
-    const GraphicalFrameData& graphicalFrameData = frameData[i];
-    VulkanMesh* vulkanMesh = renderer.mMeshMap.FindValue(graphicalFrameData.mMesh, nullptr);
-    VulkanShaderMaterial* vulkanShaderMaterial = renderer.mUniqueZilchShaderMaterialMap.FindValue(graphicalFrameData.mZilchShader, nullptr);
-    if(vulkanShaderMaterial != nullptr)
+    const RenderRanges::RenderRange& range = renderRanges.mRenderRanges[rangeIndex];
+    for(size_t graphicalIndex = range.mStart; graphicalIndex < range.mEnd; ++graphicalIndex)
     {
-      vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanShaderMaterial->mPipeline);
+      const GraphicalFrameData& graphicalFrameData = frameData[graphicalIndex];
+      VulkanMesh* vulkanMesh = renderer.mMeshMap.FindValue(graphicalFrameData.mMesh, nullptr);
+      VulkanShaderMaterial* vulkanShaderMaterial = renderer.mUniqueZilchShaderMaterialMap.FindValue(graphicalFrameData.mZilchShader, nullptr);
+      if(vulkanShaderMaterial == nullptr)
+        continue;
+      
+      VulkanShader* vulkanShader = renderer.mZilchShaderMap[graphicalFrameData.mZilchShader];
+      const VulkanPipeline* pipeline = range.mPipeline;
+      ErrorIf(pipeline == nullptr, "Shouldn't happen");
+      vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVulkanPipeline());
 
       VkBuffer vertexBuffers[] = {vulkanMesh->mVertexBuffer};
       VkDeviceSize offsets[] = {0};
       vkCmdBindVertexBuffers(vkCommandBuffer, 0, 1, vertexBuffers, offsets);
       vkCmdBindIndexBuffer(vkCommandBuffer, vulkanMesh->mIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-      vkCmdBindDescriptorSets(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vulkanShaderMaterial->mPipelineLayout, 0, 1, &vulkanShaderMaterial->mDescriptorSets[frameId], dynamicOffsetsCount, dynamicOffsetsBase);
+      vkCmdBindDescriptorSets(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->GetVulkanPipelineLayout(), 0, 1, &vulkanShaderMaterial->mDescriptorSets[frameId], dynamicOffsetsCount, dynamicOffsetsBase);
       vkCmdDrawIndexed(vkCommandBuffer, vulkanMesh->mIndexCount, 1, 0, 0, 0);
-    }
 
-    for(size_t j = 0; j < dynamicOffsetsCount; ++j)
-      dynamicOffsetsBase[j] += dynamicOffsets[j];
+      for(size_t j = 0; j < dynamicOffsetsCount; ++j)
+        dynamicOffsetsBase[j] += dynamicOffsets[j];
+    }
   }
 }
 
-void DrawModels(RendererData& rendererData, const ViewBlock& viewBlock, const RenderGroupRenderTask& renderGroupTask)
+void DrawPass(RendererData& rendererData, const RenderGraph::PhysicalPass& physicalPass)
 {
   VulkanRenderer& renderer = *rendererData.mRenderer;
-  VulkanRuntimeData& runtimeData = *rendererData.mRuntimeData;
   uint32_t frameId = GetFrameId(rendererData);
+  VulkanRuntimeData& runtimeData = *rendererData.mRuntimeData;
   VulkanRenderFrame& vulkanRenderFrame = runtimeData.mRenderFrames[frameId];
-  VulkanImage* finalColorImage = runtimeData.mSwapChain->GetImage(frameId);
-  VulkanImage* finalDepthImage = runtimeData.mDepthImage;
   VulkanCommandBuffer* commandBuffer = vulkanRenderFrame.mCommandBuffer;
 
-  VulkanImageViewInfo colorImageViewInfo;
-  colorImageViewInfo.mFormat = runtimeData.mSwapChain->GetImageFormat();
-  colorImageViewInfo.mAspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-  VulkanImageView* colorImageView = new VulkanImageView(runtimeData.mDevice, finalColorImage, colorImageViewInfo);
+  PopulateTransformBuffers(renderer, *physicalPass.mViewBlock, physicalPass.mFrameData);
 
-  VulkanImageViewInfo depthImageViewInfo;
-  depthImageViewInfo.mFormat = runtimeData.mDepthFormat;
-  depthImageViewInfo.mAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
-  VulkanImageView* depthImageView = new VulkanImageView(runtimeData.mDevice, finalDepthImage, depthImageViewInfo);
-
-  vulkanRenderFrame.mResources.Add(colorImageView);
-  vulkanRenderFrame.mResources.Add(depthImageView);
-
-  VulkanRenderPassInfo renderPassInfo;
-  renderPassInfo.mColorAttachments[0] = colorImageView;
-  //renderPassInfo.mColorDescriptions[0].mInitialLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-  renderPassInfo.mColorDescriptions[0].mInitialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  renderPassInfo.mColorDescriptions[0].mFinalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-  renderPassInfo.mColorDescriptions[0].mLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-  //renderPassInfo.mColorDescriptions[0].mLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-  renderPassInfo.mDepthAttachment = depthImageView;
-  renderPassInfo.mDepthDescription.mInitialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  renderPassInfo.mDepthDescription.mFinalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-  renderPassInfo.mColorAttachmentCount = 1;
-  auto& subPass = renderPassInfo.mSubPasses.PushBack();
-  subPass.mColorAttachmentCount = 1;
-  subPass.mColorAttachments[0] = 0;
-
-  VulkanRenderPass* renderPass = new VulkanRenderPass(runtimeData.mDevice, renderPassInfo);
-  vulkanRenderFrame.mResources.Add(renderPass);
+  Array<VkClearValue> clearValues;
+  clearValues.Resize(physicalPass.mClearColors.Size() + physicalPass.mClearDepths.Size());
+  for(size_t i = 0; i < physicalPass.mClearColors.Size(); ++i)
+  {
+    Vec4 color = physicalPass.mClearColors[i].mColor;
+    clearValues[i].color = {color.x, color.y, color.z, color.w};
+  }
+  for(size_t i = 0; i < physicalPass.mClearDepths.Size(); ++i)
+  {
+    size_t index = i + physicalPass.mClearColors.Size();
+    float depth = physicalPass.mClearDepths[i].mDepth;
+    uint32_t stencil = physicalPass.mClearDepths[i].mStencil;
+    clearValues[index].depthStencil.depth = depth;
+    clearValues[index].depthStencil.stencil = stencil;
+  }
 
   VkExtent2D extent = runtimeData.mSwapChain->GetExtent();
-  VulkanFrameBuffer* frameBuffer = new VulkanFrameBuffer(runtimeData.mDevice, *renderPass, renderPassInfo, extent.width, extent.height);
-  vulkanRenderFrame.mResources.Add(frameBuffer);
-
-  std::array<VkClearValue, 2> clearValues = {};
-  clearValues[0].color = {0.0f, 1.0f, 0.0f, 0.0f};
-  clearValues[1].depthStencil = {1.0f, 0};
+  
   VkRenderPassBeginInfo renderPassBeginInfo = {};
   renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  renderPassBeginInfo.renderPass = renderPass->GetVulkanRenderPass();
-  renderPassBeginInfo.framebuffer = frameBuffer->GetVulkanFrameBuffer();
+  renderPassBeginInfo.framebuffer = physicalPass.mFrameBuffer->GetVulkanFrameBuffer();
+  renderPassBeginInfo.renderPass = physicalPass.mRenderPass->GetVulkanRenderPass();
   renderPassBeginInfo.renderArea.offset = {0, 0};
   renderPassBeginInfo.renderArea.extent = extent;
-  renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-  renderPassBeginInfo.pClearValues = clearValues.data();
+  renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.Size());
+  renderPassBeginInfo.pClearValues = clearValues.Data();
 
   VkCommandBuffer vkCommandBuffer = commandBuffer->GetVulkanCommandBuffer();
   commandBuffer->Begin();
+
   vkCmdBeginRenderPass(vkCommandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-  AddFrameDataDrawCommands(renderer, *commandBuffer, renderGroupTask.mFrameData);
+  AddFrameDataDrawCommands(renderer, *commandBuffer, physicalPass.mRenderRanges, physicalPass.mFrameData);
 
   commandBuffer->EndRenderPass();
   commandBuffer->End();
@@ -187,22 +173,14 @@ void ProcessRenderQueue(RendererData& rendererData, const RenderQueue& renderQue
 {
   GlobalBufferOffset offsets;
   PopulateGlobalBuffers(rendererData, renderQueue, offsets);
-  for(const ViewBlock& viewBlock : renderQueue.mViewBlocks)
+
+  RenderGraphCreationInfo renderGraphCreationInfo;
+  renderGraphCreationInfo.mDevice = rendererData.mRuntimeData->mDevice;
+  RenderGraph renderGraph(renderGraphCreationInfo);
+  renderGraph.Bake(*rendererData.mRenderer, renderQueue);
+
+  for(auto&& physicalPass : renderGraph.mPasses)
   {
-    const FrameBlock& frameBlock = renderQueue.mFrameBlocks[viewBlock.mFrameBlockId];
-    for(const RenderTask* task : viewBlock.mRenderTaskEvent->mRenderTasks)
-    {
-      if(task->mTaskType == RenderTaskType::ClearTarget)
-      {
-        const ClearTargetRenderTask* clearTargetTask = reinterpret_cast<const ClearTargetRenderTask*>(task);
-        //ClearTarget(rendererData, viewBlock, *clearTargetTask);
-      }
-      else if(task->mTaskType == RenderTaskType::RenderGroup)
-      {
-        const RenderGroupRenderTask* renderGroupTask = reinterpret_cast<const RenderGroupRenderTask*>(task);
-        PopulateTransformBuffers(rendererData, viewBlock, *renderGroupTask);
-        DrawModels(rendererData, viewBlock, *renderGroupTask);
-      }
-    }
+    DrawPass(rendererData, physicalPass);
   }
 }

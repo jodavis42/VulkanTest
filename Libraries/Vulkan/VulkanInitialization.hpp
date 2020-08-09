@@ -20,6 +20,9 @@
 #include "VulkanSyncronization.hpp"
 #include "VulkanRendererInit.hpp"
 #include "VulkanSwapChain.hpp"
+#include "VulkanMaterialPipelineCache.hpp"
+
+class VulkanRenderer;
 
 struct VulkanRuntimeData
 {
@@ -42,10 +45,12 @@ struct VulkanRuntimeData
   VkPipelineLayout mPipelineLayout;
   VkPipeline mGraphicsPipeline;
 
-  
+  VulkanRenderer* mRenderer = nullptr;
   VulkanResourcePool mResourcePool;
   VulkanUniformBufferManager mBufferManager;
   VulkanRenderPass* mDefaultRenderPass = nullptr;
+  RenderPassCache* mRenderPassCache = nullptr;
+  VulkanMaterialPipelineCache* mMaterialPipelineCache = nullptr;
 
   VulkanSwapChain* mSwapChain = nullptr;
   VulkanMemoryAllocator* mAllocator = nullptr;
@@ -212,5 +217,11 @@ inline void InitializeVulkan(VulkanRuntimeData& runtimeData)
   creationInfo.mGraphicsQueue = runtimeData.mGraphicsQueue;
   creationInfo.mCommandPool = runtimeData.mCommandPool;
   runtimeData.mAllocator = new VulkanMemoryAllocator(creationInfo);
+  runtimeData.mRenderPassCache = new RenderPassCache(runtimeData.mDevice);
+  VulkanMaterialPipelineCacheCreationInfo materialCacheInfo;
+  materialCacheInfo.mDevice = runtimeData.mDevice;
+  materialCacheInfo.mRenderer = runtimeData.mRenderer;
+  materialCacheInfo.mRenderPassCache = runtimeData.mRenderPassCache;
+  runtimeData.mMaterialPipelineCache = new VulkanMaterialPipelineCache(materialCacheInfo);
 }
 

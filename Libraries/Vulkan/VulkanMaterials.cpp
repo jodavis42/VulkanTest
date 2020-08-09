@@ -11,7 +11,7 @@
 #include "VulkanRenderer.hpp"
 #include "VulkanSampler.hpp"
 #include "VulkanImageView.hpp"
-#include "VulkanStructures.hpp"
+#include "VulkanShaders.hpp"
 #include "VulkanInitialization.hpp"
 
 struct BufferLocation
@@ -224,28 +224,6 @@ void UpdateMaterialDescriptorSets(RendererData& rendererData, const ZilchShader&
     UpdateMaterialDescriptorSet(rendererData, zilchShader, zilchMaterial, vulkanShaderMaterial, i, vulkanShaderMaterial.mDescriptorSets[i]);
 }
 
-void CreateGraphicsPipeline(RendererData& rendererData, const VulkanShader& vulkanShader, VulkanShaderMaterial& vulkanShaderMaterial)
-{
-  VulkanRuntimeData* runtimeData = rendererData.mRuntimeData;
-  VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-  CreatePipelineLayout(runtimeData->mDevice, &vulkanShaderMaterial.mDescriptorSetLayout, 1, vulkanShaderMaterial.mPipelineLayout);
-
-  GraphicsPipelineCreationInfo creationInfo;
-  creationInfo.mVertexShaderModule = vulkanShader.mVertexShaderModule;
-  creationInfo.mPixelShaderModule = vulkanShader.mPixelShaderModule;
-  creationInfo.mVertexShaderMainFnName = vulkanShader.mVertexEntryPointName;
-  creationInfo.mPixelShaderMainFnName = vulkanShader.mPixelEntryPointName;
-  creationInfo.mDevice = runtimeData->mDevice;
-  creationInfo.mPipelineLayout = vulkanShaderMaterial.mPipelineLayout;
-  VulkanRenderPass* renderPass = runtimeData->mDefaultRenderPass;
-  creationInfo.mRenderPass = renderPass->GetVulkanRenderPass();
-  VkExtent2D extent = runtimeData->mSwapChain->GetExtent();
-  creationInfo.mViewportSize = Vec2((float)extent.width, (float)extent.height);
-  creationInfo.mVertexAttributeDescriptions = VulkanVertex::getAttributeDescriptions();
-  creationInfo.mVertexBindingDescriptions = VulkanVertex::getBindingDescription();
-  CreateGraphicsPipeline(creationInfo, vulkanShaderMaterial.mPipeline);
-}
-
 void PopulateMaterialBuffers(RendererData& rendererData, MaterialBatchUploadData& materialBatchData)
 {
   VulkanRenderer& renderer = *rendererData.mRenderer;
@@ -313,10 +291,3 @@ void PopulateMaterialBuffers(RendererData& rendererData, MaterialBatchUploadData
     renderer.UnMapGlobalUniformBufferMemory(MaterialBufferName, bufferId);
   }
 }
-
-//void DestroyVulkanPipeline(RendererData& rendererData, VulkanMaterialPipeline* vulkanPipeline)
-//{
-//  vkDestroyPipeline(rendererData.mRuntimeData->mDevice, vulkanPipeline->mPipeline, nullptr);
-//  vkDestroyPipelineLayout(rendererData.mRuntimeData->mDevice, vulkanPipeline->mPipelineLayout, nullptr);
-//  vkDestroyDescriptorPool(rendererData.mRuntimeData->mDevice, vulkanPipeline->mDescriptorPool, nullptr);
-//}

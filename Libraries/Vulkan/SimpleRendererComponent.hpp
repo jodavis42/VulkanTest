@@ -9,6 +9,7 @@ struct RenderTaskEvent;
 class GraphicsSpace;
 class VulkanRenderer;
 class VulkanCommandBuffer;
+class VulkanRenderPass;
 struct ViewBlock;
 
 //-------------------------------------------------------------------SimpleRendererComponent
@@ -21,7 +22,7 @@ struct SimpleRendererComponent : public Component
 
   void CollectFrameData(GraphicsSpace* graphicsSpace, Array<GraphicalFrameData>& frameData);
   void UploadBuffers(VulkanRenderer& renderer, ViewBlock& viewBlock, Array<GraphicalFrameData>& frameData);
-  void AddGraphicalDrawCommands(VulkanRenderer& renderer, VulkanCommandBuffer& commandBuffer, Array<GraphicalFrameData>& frameData);
+  void AddGraphicalDrawCommands(VulkanRenderer& renderer, VulkanRenderPass& renderPass, VulkanCommandBuffer& commandBuffer, Array<GraphicalFrameData>& frameData);
 
   bool mActive = true;
 };

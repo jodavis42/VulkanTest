@@ -12,8 +12,33 @@ class ScriptRenderer : ZilchComponent
     if(!this.Active)
       return;
     
-    e.CreateClearTargetRenderTask();
+    var clearTargetTask = e.CreateClearTargetRenderTask();
+    clearTargetTask.ClearColor = Real4(0.1, 0.2, 0.3, 1);
+    
+    this.OpaquePass(e);
+    this.AdditiveBlendPass(e);
+  }
+
+  function OpaquePass(e : RenderTaskEvent)
+  {
+    var settings = RenderPipelineSettings();
+    settings.BlendSettings.BlendMode = BlendMode.Disabled;
     var renderGroupTask = e.CreateRenderGroupRenderTask();
     renderGroupTask.AddRenderGroup(RenderGroup.Opaque);
+  }
+
+  function AdditiveBlendPass(e : RenderTaskEvent)
+  {
+    var settings = RenderPipelineSettings();
+    settings.BlendSettings.BlendMode = BlendMode.Enabled;
+    settings.BlendSettings.ColorSourceFactor = BlendFactor.SourceAlpha;
+    settings.BlendSettings.ColorDestFactor = BlendFactor.InvSourceAlpha;
+    settings.BlendSettings.ColorBlendEquation = BlendEquation.Add;
+    settings.BlendSettings.AlphaSourceFactor = BlendFactor.SourceAlpha;
+    settings.BlendSettings.AlphaDestFactor = BlendFactor.InvSourceAlpha;
+    settings.BlendSettings.AlphaBlendEquation = BlendEquation.Add;
+
+    var additiveBlendGroupTask = e.CreateRenderGroupRenderTask(settings);
+    additiveBlendGroupTask.AddRenderGroup(RenderGroup.AdditiveBlend);
   }
 }

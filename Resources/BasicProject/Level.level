@@ -24,10 +24,10 @@
       "Active": false
     },
     "SimpleRendererComponent": {
-      "Active": true
+      "Active": false
     },
     "ScriptRenderer": {
-      "Active": false
+      "Active": true
     }
   },
   {

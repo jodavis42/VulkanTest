@@ -9,6 +9,7 @@
 #include "Graphics/RenderQueue.hpp"
 #include "VulkanInitialization.hpp"
 #include "VulkanValidationLayers.hpp"
+#include "VulkanShaders.hpp"
 #include "VulkanStructures.hpp"
 #include "VulkanBuffer.hpp"
 #include "VulkanSampler.hpp"
@@ -32,6 +33,7 @@ VulkanRenderer::~VulkanRenderer()
 
 void VulkanRenderer::Initialize(const VulkanInitializationData& initData)
 {
+  mInternal->mRenderer = this;
   mInternal->mWidth = static_cast<uint32_t>(initData.mWidth);
   mInternal->mHeight = static_cast<uint32_t>(initData.mHeight);
   mInternal->mSurfaceCreationCallback = initData.mSurfaceCreationCallback;
@@ -75,6 +77,8 @@ void VulkanRenderer::CleanupResources()
 void VulkanRenderer::Shutdown()
 {
   mInternal->mResourcePool.Free(*mInternal);
+  mInternal->mMaterialPipelineCache->Free();
+  mInternal->mRenderPassCache->Free();
   mInternal->mAllocator->FreeAllAllocations();
   for(size_t i = 0; i < mInternal->mMaxFramesInFlight; i++)
   {
@@ -94,6 +98,8 @@ void VulkanRenderer::Shutdown()
 
 void VulkanRenderer::Destroy()
 {
+  delete mInternal->mMaterialPipelineCache;
+  delete mInternal->mRenderPassCache;
   delete mInternal->mAllocator;
   delete mInternal;
 }
@@ -196,7 +202,6 @@ void VulkanRenderer::UpdateShaderMaterialInstance(const ZilchShader* zilchShader
 
   RendererData rendererData{this, mInternal};
   UpdateMaterialDescriptorSets(rendererData, *zilchShader, *zilchMaterial, *vulkanShaderMaterial);
-  CreateGraphicsPipeline(rendererData, *vulkanShader, *vulkanShaderMaterial);
 }
 
 void VulkanRenderer::UploadShaderMaterialInstances(MaterialBatchUploadData& materialBatchUploadData)
@@ -428,12 +433,8 @@ void VulkanRenderer::DestroyShaderMaterialInternal(VulkanShaderMaterial* vulkanS
   if(vulkanShaderMaterial == nullptr)
     return;
 
-  vkDestroyPipeline(mInternal->mDevice, vulkanShaderMaterial->mPipeline, nullptr);
-  vkDestroyPipelineLayout(mInternal->mDevice, vulkanShaderMaterial->mPipelineLayout, nullptr);
   vkDestroyDescriptorPool(mInternal->mDevice, vulkanShaderMaterial->mDescriptorPool, nullptr);
   vkDestroyDescriptorSetLayout(mInternal->mDevice, vulkanShaderMaterial->mDescriptorSetLayout, nullptr);
-  vulkanShaderMaterial->mPipeline = VK_NULL_HANDLE;
-  vulkanShaderMaterial->mPipelineLayout = VK_NULL_HANDLE;
   vulkanShaderMaterial->mDescriptorPool = VK_NULL_HANDLE;
   vulkanShaderMaterial->mDescriptorSetLayout = VK_NULL_HANDLE;
   vulkanShaderMaterial->mDescriptorSets.Clear();

@@ -6,6 +6,8 @@ target_sources(Vulkan
     ${CMAKE_CURRENT_LIST_DIR}/Precompiled.hpp
     ${CMAKE_CURRENT_LIST_DIR}/SimpleRendererComponent.cpp
     ${CMAKE_CURRENT_LIST_DIR}/SimpleRendererComponent.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/RenderGraph.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/RenderGraph.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanBuffer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanBuffer.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanBufferCreation.hpp
@@ -24,9 +26,12 @@ target_sources(Vulkan
     ${CMAKE_CURRENT_LIST_DIR}/VulkanLogicalDeviceCreation.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanMaterials.cpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanMaterials.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanMaterialPipelineCache.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanMaterialPipelineCache.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanMemoryAllocator.cpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanMemoryAllocator.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanPhysicsDeviceSelection.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanPipeline.cpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanPipeline.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanRenderer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanRenderer.hpp
@@ -41,6 +46,8 @@ target_sources(Vulkan
     ${CMAKE_CURRENT_LIST_DIR}/VulkanResourcePool.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanSampler.cpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanSampler.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanShaders.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanShaders.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanStatus.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanStructures.cpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanStructures.hpp

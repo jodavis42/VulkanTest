@@ -16,7 +16,7 @@ struct BlendSettings
   size_t Hash() const;
   bool operator==(const BlendSettings& rhs) const = default;
 
-  BlendMode::Enum mBlendMode = BlendMode::Enabled;
+  BlendMode::Enum mBlendMode = BlendMode::Disabled;
 
   BlendFactor::Enum mColorSourceFactor = BlendFactor::Zero;
   BlendFactor::Enum mColorDestFactor = BlendFactor::One;
