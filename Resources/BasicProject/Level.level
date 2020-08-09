@@ -47,11 +47,37 @@
     }
   },
   {
+    "Name" : "Circle",
+    "Transform" : {
+      "Scale" : [1, 1, 1],
+      "Rotation" : [0, 0, 0, 1],
+      "Translation" : [2, 1, 0]
+    },
+    "Model": {
+      "Mesh": "Quad{6813585553662481159}",
+      "Material": "Circle",
+      "RenderGroupSet" : ["AdditiveBlend"]
+    }
+  },
+  {
+    "Name" : "Square",
+    "Transform" : {
+      "Scale" : [1, 1, 1],
+      "Rotation" : [0, 0, 0, 1],
+      "Translation" : [5, 1, 0]
+    },
+    "Model": {
+      "Mesh": "Quad{6813585553662481159}",
+      "Material": "Square",
+      "RenderGroupSet" : ["AdditiveBlend"]
+    }
+  },
+  {
     "Name" : "Object2",
     "Transform": {
-      "Scale": [ 1, 1, 1 ],
-      "Rotation": [ 0, 0, 0, 1 ],
-      "Translation": [ 0, 1, 0 ]
+      "Scale" : [1, 1, 1],
+      "Rotation" : [0, 0, 0, 1],
+      "Translation" : [0, 1, 0]
     },
     "Model": {
       "Mesh": "Cube",

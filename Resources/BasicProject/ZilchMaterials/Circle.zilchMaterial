@@ -1,0 +1,26 @@
+{
+  "Name": "Circle",
+  "Fragments": {
+    "Vertex": {
+    },
+    "ImageColor": {
+      "Properties": {
+        "Image": {
+          "PrimitiveType": "SampledImage",
+          "Value": "Circle"
+        }
+      }
+    },
+    "AlbedoColor": {
+      "Properties": {
+        "Albedo": {
+          "PrimitiveType": "Float3",
+          "Value": [1, 1, 1]
+        }
+      }
+    },
+    "Pixel": {
+      "Properties": {}
+    }
+  }
+}
