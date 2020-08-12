@@ -5,7 +5,7 @@
 #include "Graphics/MaterialShared.hpp"
 #include "RenderPipelineEnums.hpp"
 
-VkFormat GetImageFormat(TextureFormat format);
+VkFormat GetImageFormat(TextureFormat::Enum format);
 VkSamplerAddressMode ConvertSamplerAddressMode(TextureAddressing mode);
 VkFilter ConvertFilterMode(TextureFiltering mode);
 VkShaderStageFlags ConvertStageFlags(ShaderStageFlags::Enum flags);

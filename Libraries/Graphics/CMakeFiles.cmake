@@ -30,6 +30,7 @@ target_sources(Graphics
     ${CMAKE_CURRENT_LIST_DIR}/ShaderEnumTypes.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Texture.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Texture.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/TextureFormat.hpp
     ${CMAKE_CURRENT_LIST_DIR}/Vertex.hpp
     ${CMAKE_CURRENT_LIST_DIR}/GraphicalEntry.cpp
     ${CMAKE_CURRENT_LIST_DIR}/GraphicalEntry.hpp

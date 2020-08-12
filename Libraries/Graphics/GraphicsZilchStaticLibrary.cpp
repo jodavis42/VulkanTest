@@ -76,6 +76,37 @@ ZilchDefineExternalBaseType(TextureCompareFunc::Enum, Zilch::TypeCopyMode::Value
   ZilchFullBindEnumValue(builder, type, TextureCompareFunc::NotEqual, "NotEqual");
 }
 
+ZilchDefineExternalBaseType(TextureFormat::Enum, Zilch::TypeCopyMode::ValueType, builder, type)
+{
+  ZilchFullBindEnum(builder, type, Zilch::SpecialType::Enumeration);
+
+  ZilchFullBindEnumValue(builder, type, TextureFormat::None, "None");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::R8, "R8");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::RG8, "RG8");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::RGB8, "RGB8");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::RGBA8, "RGBA8");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::R16, "R16");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::RG16, "RG16");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::RGB16, "RGB16");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::RGBA16, "RGBA16");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::R16f, "R16f");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::RG16f, "RG16f");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::RGB16f, "RGB16f");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::RGBA16f, "RGBA16f");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::R32f, "R32f");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::RG32f, "RG32f");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::RGB32f, "RGB32f");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::RGBA32f, "RGBA32f");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::SRGB8, "SRGB8");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::SRGB8A8, "SRGB8A8");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::Depth16, "Depth16");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::Depth24, "Depth24");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::Depth32, "Depth32");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::Depth32f, "Depth32f");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::Depth24Stencil8, "Depth24Stencil8");
+  ZilchFullBindEnumValue(builder, type, TextureFormat::Depth32fStencil8Pad24, "Depth32fStencil8Pad24");
+}
+
 ZilchDefineStaticLibrary(GraphicsStaticLibrary)
 {
   builder.CreatableInScriptDefault = false;
@@ -86,6 +117,7 @@ ZilchDefineStaticLibrary(GraphicsStaticLibrary)
   ZilchInitializeExternalTypeAs(BlendMode::Enum, "BlendMode");
   ZilchInitializeExternalTypeAs(DepthMode::Enum, "DepthMode");
   ZilchInitializeExternalTypeAs(TextureCompareFunc::Enum, "TextureCompareFunc");
+  ZilchInitializeExternalTypeAs(TextureFormat::Enum, "TextureFormat");
 
   ZilchInitializeType(Mesh);
   ZilchInitializeType(MeshManager);
