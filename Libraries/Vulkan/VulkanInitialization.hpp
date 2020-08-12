@@ -48,7 +48,6 @@ struct VulkanRuntimeData
   VulkanRenderer* mRenderer = nullptr;
   VulkanResourcePool mResourcePool;
   VulkanUniformBufferManager mBufferManager;
-  VulkanRenderPass* mDefaultRenderPass = nullptr;
   RenderPassCache* mRenderPassCache = nullptr;
   VulkanMaterialPipelineCache* mMaterialPipelineCache = nullptr;
 

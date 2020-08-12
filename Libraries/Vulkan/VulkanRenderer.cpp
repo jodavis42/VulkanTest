@@ -41,14 +41,12 @@ void VulkanRenderer::Initialize(const VulkanInitializationData& initData)
   InitializeVulkan(*mInternal);
   CreateDepthResourcesInternal();
   CreateSwapChainInternal();
-  CreateDefaultRenderPass();
   CreateRenderFramesInternal();
 }
 
 void VulkanRenderer::Cleanup()
 {
   DestroyRenderFramesInternal();
-  DestroyDefaultRenderPass();
   DestroySwapChainInternal();
   DestroyDepthResourcesInternal();
 }
@@ -312,7 +310,6 @@ void VulkanRenderer::WaitForIdle()
 void VulkanRenderer::BeginReshape()
 {
   DestroyRenderFramesInternal();
-  DestroyDefaultRenderPass();
   DestroySwapChainInternal();
   DestroyDepthResourcesInternal();
 }
@@ -328,7 +325,6 @@ void VulkanRenderer::EndReshape()
 {
   CreateDepthResourcesInternal();
   CreateSwapChainInternal();
-  CreateDefaultRenderPass();
   CreateRenderFramesInternal();
 }
 
@@ -444,13 +440,11 @@ void VulkanRenderer::DestroyShaderMaterialInternal(VulkanShaderMaterial* vulkanS
 void VulkanRenderer::RecreateFramesInternal()
 {
   DestroyRenderFramesInternal();
-  DestroyDefaultRenderPass();
   DestroySwapChainInternal();
   DestroyDepthResourcesInternal();
 
   CreateDepthResourcesInternal();
   CreateSwapChainInternal();
-  CreateDefaultRenderPass();
   CreateRenderFramesInternal();
 }
 
@@ -466,47 +460,6 @@ void VulkanRenderer::CreateSwapChainInternal()
 
   mInternal->mSwapChain = new VulkanSwapChain(swapChainInfo);
   mInternal->mSyncObjects.mImagesInFlight.Resize(mInternal->mSwapChain->GetCount(), VK_NULL_HANDLE);
-}
-
-void VulkanRenderer::CreateDefaultRenderPass()
-{
-  uint32_t frameId = mInternal->mCurrentImageIndex;
-  VulkanImage* finalColorImage = mInternal->mSwapChain->GetImage(frameId);
-  VulkanImage* finalDepthImage = mInternal->mDepthImage;
-
-  VulkanImageViewInfo colorImageViewInfo;
-  colorImageViewInfo.mFormat = mInternal->mSwapChain->GetImageFormat();
-  colorImageViewInfo.mAspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-  VulkanImageView* colorImageView = new VulkanImageView(mInternal->mDevice, finalColorImage, colorImageViewInfo);
-
-  VulkanImageViewInfo depthImageViewInfo;
-  depthImageViewInfo.mFormat = mInternal->mDepthFormat;
-  depthImageViewInfo.mAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
-  VulkanImageView* depthImageView = new VulkanImageView(mInternal->mDevice, finalDepthImage, depthImageViewInfo);
-
-  mInternal->mResourcePool.Add(colorImageView);
-  mInternal->mResourcePool.Add(depthImageView);
-
-  VulkanRenderPassInfo renderPassInfo;
-  renderPassInfo.mColorAttachments[0] = colorImageView;
-  renderPassInfo.mColorDescriptions[0].mInitialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  renderPassInfo.mColorDescriptions[0].mFinalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-  renderPassInfo.mColorDescriptions[0].mLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-  renderPassInfo.mDepthAttachment = depthImageView;
-  renderPassInfo.mDepthDescription.mInitialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  renderPassInfo.mDepthDescription.mFinalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-  renderPassInfo.mColorAttachmentCount = 1;
-  auto& subPass = renderPassInfo.mSubPasses.PushBack();
-  subPass.mColorAttachmentCount = 1;
-  subPass.mColorAttachments[0] = 0;
-
-  mInternal->mDefaultRenderPass = new VulkanRenderPass(mInternal->mDevice, renderPassInfo);
-}
-
-void VulkanRenderer::DestroyDefaultRenderPass()
-{
-  delete mInternal->mDefaultRenderPass;
-  mInternal->mDefaultRenderPass = nullptr;
 }
 
 void VulkanRenderer::CreateRenderFramesInternal()

@@ -77,8 +77,6 @@ public:
   void RecreateFramesInternal();
   void CreateSwapChainInternal();
   void DestroySwapChainInternal();
-  void CreateDefaultRenderPass();
-  void DestroyDefaultRenderPass();
   void CreateRenderFramesInternal();
   void DestroyRenderFramesInternal();
   VulkanSampler* CreateSamplerInternal(const Texture* texture);
