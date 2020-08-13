@@ -3,10 +3,9 @@
 #include "VulkanImage.hpp"
 
 #include "VulkanStatus.hpp"
-#include "VulkanStatus.hpp"
 
 //-------------------------------------------------------------------VulkanImage
-VulkanImage::VulkanImage(VulkanImageCreationInfo& creationInfo)
+VulkanImage::VulkanImage(const VulkanImageCreationInfo& creationInfo)
 {
   VkImageCreateInfo imageInfo = {};
   imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -30,7 +29,7 @@ VulkanImage::VulkanImage(VulkanImageCreationInfo& creationInfo)
   mInfo = creationInfo;
 }
 
-VulkanImage::VulkanImage(VkImage image, VulkanImageCreationInfo& creationInfo)
+VulkanImage::VulkanImage(VkImage image, const VulkanImageCreationInfo& creationInfo)
 {
   mImage = image;
   mInfo = creationInfo;

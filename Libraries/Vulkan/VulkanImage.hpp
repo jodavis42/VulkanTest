@@ -21,8 +21,8 @@ class VulkanImage
 {
 public:
   VulkanImage() {}
-  VulkanImage(VulkanImageCreationInfo& creationInfo);
-  VulkanImage(VkImage image, VulkanImageCreationInfo& creationInfo);
+  VulkanImage(const VulkanImageCreationInfo& creationInfo);
+  VulkanImage(VkImage image, const VulkanImageCreationInfo& creationInfo);
 
   VulkanImage(VulkanImage&&) = delete;
   VulkanImage& operator=(VulkanImage&&) = delete;
