@@ -18,6 +18,8 @@ target_sources(Vulkan
     ${CMAKE_CURRENT_LIST_DIR}/VulkanImages.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanImage.cpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanImage.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanImageCache.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/VulkanImageCache.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanImageView.cpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanImageView.hpp
     ${CMAKE_CURRENT_LIST_DIR}/VulkanInitialization.hpp

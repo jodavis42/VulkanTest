@@ -4,10 +4,6 @@
 #include "Zilch/Zilch.hpp"
 #include "RenderPipelineEnums.hpp"
 
-using TargetId = uint32_t;
-using ObjectId = size_t;
-constexpr TargetId mInvalidTarget = static_cast<TargetId>(-1);
-
 //-------------------------------------------------------------------BlendSettings
 struct BlendSettings
 {
@@ -50,7 +46,6 @@ struct RenderPipelineSettings
   size_t Hash() const;
   bool operator==(const RenderPipelineSettings& rhs) const = default;
 
-  TargetId mColorTargetId = mInvalidTarget;
   BlendSettings mBlendSettings;
   DepthSettings mDepthSettings;
 };

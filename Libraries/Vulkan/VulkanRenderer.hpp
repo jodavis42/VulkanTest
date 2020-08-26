@@ -9,6 +9,7 @@ struct Mesh;
 struct Texture;
 struct ZilchShader;
 struct RenderQueue;
+struct RenderTarget;
 
 struct VulkanRuntimeData;
 struct VulkanMesh;
@@ -85,6 +86,8 @@ public:
   VulkanImageView* CreateImageViewInternal(const Texture* texture, VulkanImage* image);
   void CreateDepthResourcesInternal();
   void DestroyDepthResourcesInternal();
+  void CreateRenderTargetImageAndView(const RenderTarget& renderTarget, VulkanImage*& image, VulkanImageView*& imageView);
+  VulkanImageView* CreateRenderTargetImageView(const RenderTarget& renderTarget);
 
   VulkanRuntimeData* mInternal;
 

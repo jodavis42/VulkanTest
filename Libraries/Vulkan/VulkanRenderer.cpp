@@ -75,6 +75,7 @@ void VulkanRenderer::CleanupResources()
 void VulkanRenderer::Shutdown()
 {
   mInternal->mResourcePool.Free(*mInternal);
+  mInternal->mImageCache->Free();
   mInternal->mMaterialPipelineCache->Free();
   mInternal->mRenderPassCache->Free();
   mInternal->mAllocator->FreeAllAllocations();
@@ -96,6 +97,7 @@ void VulkanRenderer::Shutdown()
 
 void VulkanRenderer::Destroy()
 {
+  delete mInternal->mImageCache;
   delete mInternal->mMaterialPipelineCache;
   delete mInternal->mRenderPassCache;
   delete mInternal->mAllocator;
@@ -236,6 +238,7 @@ RenderFrameStatus VulkanRenderer::BeginFrame()
   VulkanRenderFrame& renderFrame = mInternal->mRenderFrames[imageIndex];
   renderFrame.mResources.Free(*mInternal);
   renderFrame.mResources.Clear();
+  mInternal->mImageCache->Update();
 
   return RenderFrameStatus::Success;
 }
@@ -663,4 +666,60 @@ void VulkanRenderer::DestroyDepthResourcesInternal()
   mInternal->mAllocator->FreeAllocation(mInternal->mDepthImage);
   delete mInternal->mDepthImage;
   delete mInternal->mDepthImageView;
+}
+
+void VulkanRenderer::CreateRenderTargetImageAndView(const RenderTarget& renderTarget, VulkanImage*& image, VulkanImageView*& imageView)
+{
+  VulkanRuntimeData& runtimeData = *mInternal;
+  uint32_t frameId = runtimeData.mCurrentImageIndex;
+  VulkanRenderFrame& vulkanRenderFrame = runtimeData.mRenderFrames[frameId];
+  VkDevice device = runtimeData.mDevice;
+
+  VulkanImageCreationInfo imageCreationInfo;
+  imageCreationInfo.mDevice = device;
+  imageCreationInfo.mWidth = renderTarget.mSize.x;
+  imageCreationInfo.mHeight = renderTarget.mSize.y;
+  imageCreationInfo.mMipLevels = 1;
+  imageCreationInfo.mFormat = GetImageFormat(renderTarget.mFormat);
+  imageCreationInfo.mTiling = VK_IMAGE_TILING_OPTIMAL;
+  imageCreationInfo.mType = VK_IMAGE_TYPE_2D;
+
+  VulkanImageViewInfo viewCreationInfo;
+  viewCreationInfo.mFormat = imageCreationInfo.mFormat;
+  viewCreationInfo.mViewType = VK_IMAGE_VIEW_TYPE_2D;
+  viewCreationInfo.mComponents[4] = {VK_COMPONENT_SWIZZLE_IDENTITY};
+  viewCreationInfo.mMipLevels = imageCreationInfo.mMipLevels;
+
+  if(renderTarget.IsDepthFormat())
+  {
+    imageCreationInfo.mUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    imageCreationInfo.mInitialLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+    viewCreationInfo.mAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+  }
+  else if(renderTarget.IsDepthStencilFormat())
+  {
+    imageCreationInfo.mUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    imageCreationInfo.mInitialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    viewCreationInfo.mAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+  }
+  else
+  {
+    imageCreationInfo.mUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    imageCreationInfo.mInitialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    viewCreationInfo.mAspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+  }
+
+  image = runtimeData.mImageCache->FindOrCreateImage(imageCreationInfo);
+  imageView = new VulkanImageView(device, image, viewCreationInfo);
+
+  vulkanRenderFrame.mResources.Add(image);
+  vulkanRenderFrame.mResources.Add(imageView);
+}
+
+VulkanImageView* VulkanRenderer::CreateRenderTargetImageView(const RenderTarget& renderTarget)
+{
+  VulkanImage* image = nullptr;
+  VulkanImageView* imageView = nullptr;
+  CreateRenderTargetImageAndView(renderTarget, image, imageView);
+  return imageView;
 }

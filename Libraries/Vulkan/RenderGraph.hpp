@@ -92,11 +92,14 @@ private:
 
   struct LogicalImageResource
   {
-    size_t mId = -1;
+    const RenderTarget* mRenderTarget = nullptr;
     VulkanImageView* mPhysicalImage = nullptr;
     VkAttachmentLoadOp mLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     VkImageLayout mInitialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     VkImageLayout mFinalLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    bool mUseClearColor = false;
+    ClearColor mClearColor;
+    ClearDepth mClearDepth;
   };
   struct LogicalPassRange
   {

@@ -98,8 +98,19 @@ void RenderGraph::CreateLogicalPasses(VulkanRenderer& renderer, const ViewBlock*
     
     if(task->mTaskType == RenderTaskType::ClearTarget)
     {
+      const ClearTargetRenderTask* clearTargetTask = reinterpret_cast<const ClearTargetRenderTask*>(task);
       logicalPass.mViewBlock = viewBlock;
       logicalPass.mLogicalRanges.PushBack({0, 0, task});
+      LogicalImageResource colorImageResource;
+      colorImageResource.mRenderTarget = clearTargetTask->mTarget;
+      colorImageResource.mClearColor = {clearTargetTask->mClearColor};
+      colorImageResource.mClearDepth.mDepth = clearTargetTask->mDepth;
+      colorImageResource.mClearDepth.mStencil = clearTargetTask->mStencil;
+      colorImageResource.mUseClearColor = true;
+      if(clearTargetTask->mTarget->IsDepthFormat() || clearTargetTask->mTarget->IsDepthStencilFormat())
+        logicalPass.mDepthImages.PushBack(colorImageResource);
+      else
+        logicalPass.mColorImages.PushBack(colorImageResource);
     }
     else if(task->mTaskType == RenderTaskType::RenderGroup)
     {
@@ -107,6 +118,13 @@ void RenderGraph::CreateLogicalPasses(VulkanRenderer& renderer, const ViewBlock*
       logicalPass.mViewBlock = viewBlock;
       logicalPass.mFrameData = renderGroupTask->mFrameData;
       logicalPass.mLogicalRanges.PushBack({0, logicalPass.mFrameData.Size(), task});
+
+      LogicalImageResource colorImageResource;
+      colorImageResource.mRenderTarget = renderGroupTask->mColorTarget0;
+      logicalPass.mColorImages.PushBack(colorImageResource);
+      LogicalImageResource depthImageResource;
+      depthImageResource.mRenderTarget = *renderGroupTask->mDepthTarget;
+      logicalPass.mDepthImages.PushBack(depthImageResource);
     }
     ++i;
   }
@@ -118,12 +136,12 @@ void RenderGraph::AssignLogicalIds(VulkanRenderer& renderer)
   {
     if(logicalPass.mTaskType == RenderTaskType::RenderGroup)
     {
-      LogicalImageResource colorImageResource;
+      /*LogicalImageResource colorImageResource;
       colorImageResource.mId = mFinalImageColorViewId;
       logicalPass.mColorImages.PushBack(colorImageResource);
       LogicalImageResource depthImageResource;
       depthImageResource.mId = mFinalImageDepthViewId;
-      logicalPass.mDepthImages.PushBack(depthImageResource);
+      logicalPass.mDepthImages.PushBack(depthImageResource);*/
     }
   }
 }
@@ -132,47 +150,91 @@ void RenderGraph::AssignLogicalIds(VulkanRenderer& renderer)
 void RenderGraph::MergeLogicalPasses(VulkanRenderer& renderer)
 {
   Array<LogicalPass> passes;
+
+  auto containsImageResourceRenderTargetFn = [&](const Array<LogicalImageResource>& resources, const LogicalImageResource& imageResource)
+  {
+    for(const LogicalImageResource& destResource : resources)
+    {
+      if(destResource.mRenderTarget->mId == imageResource.mRenderTarget->mId)
+        return true;
+    }
+    return false;
+  };
+
+  auto containsAllImageResources = [&](const Array<LogicalImageResource>& dest, const Array<LogicalImageResource>& source)
+  {
+    if(dest.Size() != source.Size())
+      return false;
+
+    for(const LogicalImageResource& sourceResource : source)
+    {
+      if(!containsImageResourceRenderTargetFn(dest, sourceResource))
+        return false;
+    }
+  };
+
+  auto isPassMergeable = [&](LogicalPass& previousPass, LogicalPass& logicalPass) -> bool
+  {
+    if(logicalPass.mTaskType == RenderTaskType::ClearTarget && previousPass.mTaskType == RenderTaskType::ClearTarget)
+      return true;
+
+    if(!containsAllImageResources(previousPass.mColorImages, logicalPass.mColorImages))
+      return false;
+
+    if(!containsAllImageResources(previousPass.mDepthImages, logicalPass.mDepthImages))
+      return false;
+
+    return true;
+  };
   auto findPassFn = [&](Array<LogicalPass>& previousPasses, LogicalPass& logicalPass)->LogicalPass*
   {
     for(LogicalPass& previousPass : previousPasses)
     {
-      if(previousPass.mColorImages.Size() == logicalPass.mColorImages.Size())
-      {
-        if(previousPass.mColorImages[0].mId == logicalPass.mColorImages[0].mId)
-        {
-          return &previousPass;
-        }
-      }
+      if(isPassMergeable(previousPass, logicalPass))
+        return &previousPass;
     }
     return nullptr;
   };
 
-  for(LogicalPass& logicalPass : mLogicalPasses)
+  auto mergeImageFn = [](Array<LogicalImageResource>& dstImages, const Array<LogicalImageResource>& sourceImages)
   {
-    if(logicalPass.mTaskType == RenderTaskType::ClearTarget)
+    for(const LogicalImageResource& sourceImage : sourceImages)
     {
-      passes.PushBack(logicalPass);
-    }
-    else if(logicalPass.mTaskType == RenderTaskType::RenderGroup)
-    {
-      LogicalPass* passToMergeInto = findPassFn(passes, logicalPass);
-      if(passToMergeInto == nullptr)
+      size_t foundIndex = -1;
+      for(size_t i = 0; i < dstImages.Size(); ++i)
       {
-        passes.PushBack(logicalPass);
-      }
-      else
-      {
-        size_t lastIndex = passToMergeInto->mFrameData.Size();
-        passToMergeInto->mFrameData.Insert(passToMergeInto->mFrameData.End(), logicalPass.mFrameData.All());
-        for(size_t i = 0; i < logicalPass.mLogicalRanges.Size(); ++i)
+        if(dstImages[i].mRenderTarget->mId == sourceImage.mRenderTarget->mId)
         {
-          auto&& range = logicalPass.mLogicalRanges[i];
-          size_t startIndex = lastIndex + range.mStart;
-          size_t endIndex = lastIndex + range.mEnd;
-          passToMergeInto->mLogicalRanges.PushBack({startIndex, endIndex, range.mRenderTask});
+          foundIndex = i;
+          break;
         }
       }
+      if(foundIndex == -1)
+        dstImages.PushBack(sourceImage);
     }
+  };
+
+  for(LogicalPass& logicalPass : mLogicalPasses)
+  {
+    LogicalPass* passToMergeInto = findPassFn(passes, logicalPass);
+    if(passToMergeInto == nullptr)
+    {
+      passes.PushBack(logicalPass);
+      continue;
+    }
+    
+    size_t lastIndex = passToMergeInto->mFrameData.Size();
+    passToMergeInto->mFrameData.Insert(passToMergeInto->mFrameData.End(), logicalPass.mFrameData.All());
+    for(size_t i = 0; i < logicalPass.mLogicalRanges.Size(); ++i)
+    {
+      auto&& range = logicalPass.mLogicalRanges[i];
+      size_t startIndex = lastIndex + range.mStart;
+      size_t endIndex = lastIndex + range.mEnd;
+      passToMergeInto->mLogicalRanges.PushBack({startIndex, endIndex, range.mRenderTask});
+      passToMergeInto->mTaskType = logicalPass.mTaskType;
+    }
+    mergeImageFn(passToMergeInto->mColorImages, logicalPass.mColorImages);
+    mergeImageFn(passToMergeInto->mDepthImages, logicalPass.mDepthImages);
   }
   mLogicalPasses = passes;
 }
@@ -182,7 +244,7 @@ void RenderGraph::ComputeLogicalLayouts(VulkanRenderer& renderer)
   HashMap<size_t, LogicalImageResource*> lastLayouts;
   auto computeTransitionLayout = [&lastLayouts](LogicalImageResource& imageResource, VkImageLayout transitionLayout, VkImageLayout finalLayout)
   {
-    LogicalImageResource* lastImageInfo = lastLayouts.FindValue(imageResource.mId, nullptr);
+    LogicalImageResource* lastImageInfo = lastLayouts.FindValue(imageResource.mRenderTarget->mId, nullptr);
     if(lastImageInfo != nullptr)
     {
       lastImageInfo->mFinalLayout = transitionLayout;
@@ -196,11 +258,14 @@ void RenderGraph::ComputeLogicalLayouts(VulkanRenderer& renderer)
       imageResource.mInitialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
       imageResource.mFinalLayout = finalLayout;
     }
-    lastLayouts[imageResource.mId] = &imageResource;
+    lastLayouts[imageResource.mRenderTarget->mId] = &imageResource;
   };
 
   for(LogicalPass& logicalPass : mLogicalPasses)
   {
+    if(logicalPass.mTaskType != RenderTaskType::RenderGroup)
+      continue;
+
     for(LogicalImageResource& imageResource : logicalPass.mColorImages)
     {
       computeTransitionLayout(imageResource, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
@@ -218,34 +283,38 @@ void RenderGraph::AssignPhysicalResources(VulkanRenderer& renderer)
   uint32_t frameId = runtimeData.mCurrentImageIndex;
   VulkanRenderFrame& vulkanRenderFrame = runtimeData.mRenderFrames[frameId];
   VulkanImage* finalColorImage = runtimeData.mSwapChain->GetImage(frameId);
-  VulkanImage* finalDepthImage = runtimeData.mDepthImage;
 
   VulkanImageViewInfo colorImageViewInfo;
   colorImageViewInfo.mFormat = runtimeData.mSwapChain->GetImageFormat();
   colorImageViewInfo.mAspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
   VulkanImageView* colorImageView = new VulkanImageView(runtimeData.mDevice, finalColorImage, colorImageViewInfo);
-
-  VulkanImageViewInfo depthImageViewInfo;
-  depthImageViewInfo.mFormat = runtimeData.mDepthFormat;
-  depthImageViewInfo.mAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
-  VulkanImageView* depthImageView = new VulkanImageView(runtimeData.mDevice, finalDepthImage, depthImageViewInfo);
-
   vulkanRenderFrame.mResources.Add(colorImageView);
-  vulkanRenderFrame.mResources.Add(depthImageView);
 
-  HashMap<size_t, VulkanImageView*> logicalImagesToPhysicalImages;
-  logicalImagesToPhysicalImages[mFinalImageColorViewId] = colorImageView;
-  logicalImagesToPhysicalImages[mFinalImageDepthViewId] = depthImageView;
+  HashMap<RenderTarget::TargetId, VulkanImageView*> logicalImagesToPhysicalImages;
+  logicalImagesToPhysicalImages[RenderTarget::mFinalTargetId] = colorImageView;
+
+  auto logicalImageToPhysicalImageFn = [&](VulkanRenderer& renderer, LogicalImageResource& logicalImage)
+  {
+    const RenderTarget* renderTarget = logicalImage.mRenderTarget;
+    logicalImage.mPhysicalImage = logicalImagesToPhysicalImages.FindValue(renderTarget->mId, nullptr);
+    if(logicalImage.mPhysicalImage == nullptr)
+    {
+      logicalImage.mPhysicalImage = renderer.CreateRenderTargetImageView(*renderTarget);
+      logicalImagesToPhysicalImages[renderTarget->mId] = logicalImage.mPhysicalImage;
+    }
+
+    ErrorIf(logicalImage.mPhysicalImage == nullptr, "Failed to create physical image");
+  };
 
   for(LogicalPass& logicalPass : mLogicalPasses)
   {
     for(LogicalImageResource& logicalImage : logicalPass.mColorImages)
     {
-      logicalImage.mPhysicalImage = logicalImagesToPhysicalImages.FindValue(logicalImage.mId, nullptr);
+      logicalImageToPhysicalImageFn(renderer, logicalImage);
     }
     for(LogicalImageResource& logicalImage : logicalPass.mDepthImages)
     {
-      logicalImage.mPhysicalImage = logicalImagesToPhysicalImages.FindValue(logicalImage.mId, nullptr);
+      logicalImageToPhysicalImageFn(renderer, logicalImage);
     }
   }
 }
@@ -287,8 +356,16 @@ void RenderGraph::CreatePhysicalPasses(VulkanRenderer& renderer)
       physicalPass->mViewBlock = logicalPass.mViewBlock;
       physicalPass->mRenderPass = renderPass;
       physicalPass->mFrameBuffer = frameBuffer;
-      physicalPass->mClearColors = lastClearColors;
-      physicalPass->mClearDepths = lastClearDepths;
+      for(size_t i = 0; i < logicalPass.mColorImages.Size(); ++i)
+      {
+        if(logicalPass.mColorImages[i].mUseClearColor)
+          physicalPass->mClearColors.PushBack(logicalPass.mColorImages[i].mClearColor);
+      }
+      for(size_t i = 0; i < logicalPass.mDepthImages.Size(); ++i)
+      {
+        if(logicalPass.mDepthImages[i].mUseClearColor)
+          physicalPass->mClearDepths.PushBack(logicalPass.mDepthImages[i].mClearDepth);
+      }
       physicalPass->mFrameData = logicalPass.mFrameData;
       for(auto&& range : logicalPass.mLogicalRanges)
       {

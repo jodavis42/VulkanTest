@@ -3,6 +3,7 @@
 #include "VulkanStandard.hpp"
 
 struct VulkanRuntimeData;
+class VulkanImage;
 class VulkanImageView;
 class VulkanFrameBuffer;
 class VulkanRenderPass;
@@ -11,6 +12,7 @@ class VulkanRenderPass;
 class VulkanResourcePool
 {
 public:
+  void Add(VulkanImage* image);
   void Add(VulkanImageView* imageView);
   void Add(VulkanRenderPass* renderPass);
   void Add(VulkanFrameBuffer* frameBuffer);
@@ -19,6 +21,7 @@ public:
   void Clear();
 
 private:
+  Array<VulkanImage*> mVulkanImages;
   Array<VulkanImageView*> mVulkanImageViews;
   Array<VulkanFrameBuffer*> mVulkanFrameBuffers;
   Array<VulkanRenderPass*> mRenderPasses;

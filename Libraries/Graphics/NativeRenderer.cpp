@@ -2,6 +2,7 @@
 
 #include "NativeRenderer.hpp"
 #include "RenderTasks.hpp"
+#include "RenderQueue.hpp"
 #include "Space.hpp"
 #include "Engine.hpp"
 #include "GraphicsSpace.hpp"
@@ -30,9 +31,12 @@ void NativeRenderer::OnCollectRenderTasks(RenderTaskEvent* renderTaskEvent)
   GraphicsSpace* graphicsSpace = space->Has<GraphicsSpace>();
   GraphicsEngine* graphicsEngine = graphicsSpace->mEngine;
   ResourceSystem* resourceSystem = graphicsEngine->mResourceSystem;
+  Zilch::Integer2 viewportSize = renderTaskEvent->GetViewportSize();
   Engine* engine = GetEngine();
 
-  renderTaskEvent->CreateClearTargetRenderTask();
+  ClearTargetRenderTask* clearTask = renderTaskEvent->CreateClearTargetRenderTask();
+  clearTask->mTarget = renderTaskEvent->GetFinalTarget(viewportSize, TextureFormat::RGBA8);
+
   RenderGroupRenderTask* renderGroupTask = renderTaskEvent->CreateRenderGroupRenderTask();
   RenderGroupManager* renderGroupManager = resourceSystem->FindResourceManager(RenderGroupManager);
   RenderGroup* opaqueRenderGroup = renderGroupManager->FindResource(ResourceName{"Opaque"});

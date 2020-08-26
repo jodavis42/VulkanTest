@@ -133,6 +133,7 @@ ZilchDefineStaticLibrary(GraphicsStaticLibrary)
   ZilchInitializeType(RenderGroupSet);
   ZilchInitializeType(BlendSettings);
   ZilchInitializeType(DepthSettings);
+  ZilchInitializeType(RenderTarget);
   ZilchInitializeType(RenderPipelineSettings);
   ZilchInitializeType(RenderTask);
   ZilchInitializeType(ClearTargetRenderTask);

@@ -12,22 +12,32 @@ class ScriptRenderer : ZilchComponent
     if(!this.Active)
       return;
     
+    var finalColorTarget = e.GetFinalTarget(e.ViewportSize, TextureFormat.RGBA8);
+    var depthTarget = e.GetRenderTarget(e.ViewportSize, TextureFormat.Depth24Stencil8);
+
     var clearTargetTask = e.CreateClearTargetRenderTask();
+    clearTargetTask.Target = finalColorTarget;
     clearTargetTask.ClearColor = Real4(0.1, 0.2, 0.3, 1);
+
+    var clearDepthTask = e.CreateClearTargetRenderTask();
+    clearDepthTask.Target = depthTarget;
+    clearDepthTask.Depth = 1;
     
-    this.OpaquePass(e);
-    this.AdditiveBlendPass(e);
+    this.OpaquePass(e, finalColorTarget, depthTarget);
+    this.AdditiveBlendPass(e, finalColorTarget, depthTarget);
   }
 
-  function OpaquePass(e : RenderTaskEvent)
+  function OpaquePass(e : RenderTaskEvent, finalColorTarget : RenderTarget, depthTarget : RenderTarget)
   {
     var settings = RenderPipelineSettings();
     settings.BlendSettings.BlendMode = BlendMode.Disabled;
-    var renderGroupTask = e.CreateRenderGroupRenderTask();
+    var renderGroupTask = e.CreateRenderGroupRenderTask(settings);
+    renderGroupTask.ColorTarget0 = finalColorTarget;
+    renderGroupTask.DepthTarget = depthTarget;
     renderGroupTask.AddRenderGroup(RenderGroup.Opaque);
   }
 
-  function AdditiveBlendPass(e : RenderTaskEvent)
+  function AdditiveBlendPass(e : RenderTaskEvent, finalColorTarget : RenderTarget, depthTarget : RenderTarget)
   {
     var settings = RenderPipelineSettings();
     settings.BlendSettings.BlendMode = BlendMode.Enabled;
@@ -39,6 +49,8 @@ class ScriptRenderer : ZilchComponent
     settings.BlendSettings.AlphaBlendEquation = BlendEquation.Add;
 
     var additiveBlendGroupTask = e.CreateRenderGroupRenderTask(settings);
+    additiveBlendGroupTask.ColorTarget0 = finalColorTarget;
+    additiveBlendGroupTask.DepthTarget = depthTarget;
     additiveBlendGroupTask.AddRenderGroup(RenderGroup.AdditiveBlend);
   }
 }

@@ -4,6 +4,8 @@
 #include "Zilch/Zilch.hpp"
 #include "GraphicsBufferTypes.hpp"
 #include "RenderGroup.hpp"
+#include "TextureFormat.hpp"
+#include "RenderTarget.hpp"
 #include "RenderPipelineSettings.hpp"
 
 struct Mesh;
@@ -54,6 +56,7 @@ struct ClearTargetRenderTask : public RenderTask
   Vec4 mClearColor = Vec4(0, 0, 0, 1);
   float mDepth = 1.0f;
   uint32_t mStencil = 0;
+  Zilch::HandleOf<RenderTarget> mTarget;
 };
 
 //-------------------------------------------------------------------RenderGroupRenderTask
@@ -66,6 +69,8 @@ struct RenderGroupRenderTask : public RenderTask
   void Add(const Graphical* graphical);
   void AddRenderGroup(const RenderGroupHandle& renderGroup);
 
+  Zilch::HandleOf<RenderTarget> mColorTarget0;
+  Zilch::HandleOf<RenderTarget> mDepthTarget;
   RenderPipelineSettings mRenderPipelineSettings;
   Array<GraphicalFrameData> mFrameData;
   Array<RenderGroupHandle> mRenderGroups;
@@ -77,6 +82,10 @@ struct RenderTaskEvent : public Zilch::EventData
   ZilchDeclareType(RenderTaskEvent, Zilch::TypeCopyMode::ReferenceType);
   ~RenderTaskEvent();
 
+  Zilch::Integer2 GetViewportSize() const;
+  Zilch::HandleOf<RenderTarget> GetFinalTarget(const Zilch::Integer2& textureSize, TextureFormat::Enum format);
+  Zilch::HandleOf<RenderTarget> GetRenderTarget(const Zilch::Integer2& textureSize, TextureFormat::Enum format);
+
   ClearTargetRenderTask* CreateClearTargetRenderTask();
   RenderGroupRenderTask* CreateRenderGroupRenderTask();
   RenderGroupRenderTask* CreateRenderGroupRenderTask(const RenderPipelineSettings& renderPipelineSettings);
@@ -84,6 +93,7 @@ struct RenderTaskEvent : public Zilch::EventData
   ViewBlock* mViewBlock = nullptr;
   GraphicsSpace* mGraphicsSpace = nullptr;
   Array<Zilch::HandleOf<RenderTask>> mRenderTasks;
+  uint32_t mLastRenderTargetId = 0;
 };
 
 namespace Events
